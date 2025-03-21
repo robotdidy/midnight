@@ -242,7 +242,7 @@ contract Terms is ITerms {
             // Note that we actually never check that.
             // If they are not, the match could fail.
             while (
-                bytes20(sellOffer.collaterals[i].token) < bytes20(buyOffer.collaterals[j].token)
+                bytes20(sellOffer.collaterals[j].token) < bytes20(buyOffer.collaterals[i].token)
                     && j++ < buyOffer.collaterals.length
             ) {}
             require(sellOffer.collaterals[i].token == buyOffer.collaterals[j].token, "Collaterals tokens do not match");

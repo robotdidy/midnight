@@ -20,17 +20,43 @@ contract LiquidationTest is BaseTest {
     Term[] private liquidationTerms;
     Seizure[] private s;
 
+    function sortTokens(ERC20[] memory arr) internal pure returns (ERC20[] memory) {
+        uint256 length = arr.length;
+        for (uint256 i = 1; i < length; i++) {
+            bytes20 key = bytes20((address(arr[i])));
+            uint256 j = i - 1;
+            while ((int256(j) >= 0) && (bytes20(address(arr[j])) > key)) {
+                arr[j + 1] = arr[j];
+                if (j == 0) {
+                    break;
+                }
+                j--;
+            }
+            arr[j + (bytes20(address(arr[j])) > key ? 0 : 1)] = ERC20(address(key));
+        }
+        return arr;
+    }
+
     function genTerm(uint256 n) internal returns (Term memory) {
-        // instantiate tokens and oracle
-        vm.stopPrank();
         Collateral[] memory cs = new Collateral[](n);
+        ERC20[] memory tokens = new ERC20[](n);
+
         for (uint256 i = 0; i < n; i++) {
-            ERC20 c = new ERC20("collat", "c", 1 ether);
+            tokens[i] = new ERC20("collat", "c", 1 ether);
+        }
+
+        tokens = sortTokens(tokens);
+
+        for (uint256 i = 0; i < n; i++) {
+            ERC20 c = tokens[i];
+            if (i < n - 1) {
+                require(bytes20(address(tokens[i])) < bytes20(address(tokens[i + 1])));
+            }
             Oracle o = new Oracle();
-            ERC20(c).transfer(borrower, 1 ether);
-            cs[i] = Collateral({token: address(c), lltv: 0.75e18, oracle: address(o)});
+            c.transfer(borrower, 1 ether);
+            cs[i] = Collateral({token: address(tokens[i]), lltv: 0.75e18, oracle: address(o)});
             vm.startPrank(borrower);
-            ERC20(c).approve(address(terms), type(uint256).max);
+            c.approve(address(terms), type(uint256).max);
             vm.stopPrank();
         }
 
@@ -91,8 +117,6 @@ contract LiquidationTest is BaseTest {
         loanToken = new ERC20("loan", "loan", 1 ether);
         loanToken.transfer(lender, 99);
         loanToken.transfer(borrower, 1);
-        collateralToken = new ERC20("collat", "collat", 1 ether);
-        oracle = new Oracle();
 
         vm.prank(lender);
         loanToken.approve(address(terms), type(uint256).max);
@@ -113,7 +137,7 @@ contract LiquidationTest is BaseTest {
         genSeizures();
     }
 
-    function runLiquidation(uint256 n) public {
+    function execLiquidation(uint256 n) public {
         loanToken.transfer(liquidator, 500);
         Term memory t = liquidationTerms[n - 1];
         vm.warp(block.timestamp + 50);
@@ -124,7 +148,7 @@ contract LiquidationTest is BaseTest {
         terms.liquidate(t, s, borrower, "0x0");
         uint256 gasUsed = gasBefore - gasleft();
 
-        oracle.setPrice(1e36);
+        Oracle(t.collaterals[0].oracle).setPrice(1e36);
         emit log_named_uint("Gas used", gasUsed);
 
         bytes32 idT = keccak256(abi.encode(t));
@@ -143,42 +167,42 @@ contract LiquidationTest is BaseTest {
     }
 
     function testLiquidation1() public {
-        runLiquidation(1);
+        execLiquidation(1);
     }
 
     function testLiquidation2() public {
-        runLiquidation(2);
+        execLiquidation(2);
     }
 
     function testLiquidation3() public {
-        runLiquidation(3);
+        execLiquidation(3);
     }
 
     function testLiquidation4() public {
-        runLiquidation(4);
+        execLiquidation(4);
     }
 
     function testLiquidation5() public {
-        runLiquidation(5);
+        execLiquidation(5);
     }
 
     function testLiquidation6() public {
-        runLiquidation(6);
+        execLiquidation(6);
     }
 
     function testLiquidation7() public {
-        runLiquidation(7);
+        execLiquidation(7);
     }
 
     function testLiquidation8() public {
-        runLiquidation(8);
+        execLiquidation(8);
     }
 
     function testLiquidation9() public {
-        runLiquidation(9);
+        execLiquidation(9);
     }
 
     function testLiquidation10() public {
-        runLiquidation(10);
+        execLiquidation(10);
     }
 }
