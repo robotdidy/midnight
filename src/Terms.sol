@@ -236,18 +236,19 @@ contract Terms is ITerms {
 
         require(buyOffer.offering != sellOffer.offering, "Same offering");
         require(buyOffer.loanToken == sellOffer.loanToken, "Loan tokens do not match");
+        uint256 j = 0;
         for (uint256 i = 0; i < sellOffer.collaterals.length; i++) {
-            uint256 j;
             // Relies on the fact that the collaterals are sorted.
             // Note that we actually never check that.
             // If they are not, the match could fail.
             while (
-                bytes20(sellOffer.collaterals[j].token) < bytes20(buyOffer.collaterals[i].token)
+                bytes20(sellOffer.collaterals[i].token) < bytes20(buyOffer.collaterals[j].token)
                     && j++ < buyOffer.collaterals.length
             ) {}
             require(sellOffer.collaterals[i].token == buyOffer.collaterals[j].token, "Collaterals tokens do not match");
             require(sellOffer.collaterals[i].lltv <= buyOffer.collaterals[j].lltv, "LLTVs do not match");
             require(sellOffer.collaterals[i].oracle == buyOffer.collaterals[j].oracle, "Oracles do not match");
+            j++;
         }
         require(buyOffer.maturity == sellOffer.maturity, "Maturities do not match");
         require(buyOffer.price >= sellOffer.price, "Buy offer price is less than sell offer price");
