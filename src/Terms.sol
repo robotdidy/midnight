@@ -126,10 +126,10 @@ contract Terms is ITerms {
         IERC20(collateral).transfer(msg.sender, amount);
     }
 
-    /// @notice Execute the given collection `seizures` on the given `term` of the given `borrower`.
+    /// @notice Execute the given collection of `seizures` on the given `term` of the given `borrower`.
     /// @dev On each seizure either `repaidAmounts` or `seizedAssets` should be equal to zero.
     /// @param term The term of the bond.
-    /// @param seizures An array of amounts of debt to repay or assetd to seize with the index of the collateral in the term collaterals.
+    /// @param seizures An array of amounts of debt to repay or assets to seize with the index of the collateral in the term's collateral assets.
     /// @param borrower The debtor of the loan.
     /// @param data Arbitrary data to pass to the callback. Pass empty data if not needed.
     /// @return A collection of the actual amounts of debt repaid or asset seized with the collateral index.

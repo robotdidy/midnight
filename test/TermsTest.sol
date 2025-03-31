@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "./BaseTest.sol";
-import {console} from "../lib/forge-std/src/Test.sol";
 
 import {Oracle} from "./helpers/Oracle.sol";
 
