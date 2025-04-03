@@ -7,6 +7,7 @@ import {SharesMathLib} from "./libraries/SharesMathLib.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/ITerms.sol";
+import "./interfaces/IMorphoLiquidationCallback.sol";
 
 contract Terms is ITerms {
     using MathLib for uint256;
@@ -126,63 +127,45 @@ contract Terms is ITerms {
         returns (Seizure[] memory)
     {
         require(seizures.length == term.collaterals.length, "Cannot seize more assets than the supplied collaterals");
+        require(!_isHealthy(term, borrower), "Healthy borrower");
 
         bytes32 id = _id(term);
-
         // Over approximation
         uint256 liquidationIncentiveFactor = 1.15e18;
 
         uint256 totalRepaid;
-        uint256 totalCollateralQuoted;
-
-        // Check that position is not healthy.
-        require(!_isHealthy(term, borrower), "Healthy borrower");
-
-        // Compute the repaid and seized amounts by collateral index, remaining collateral and total repaid.
+        bool allCollateralsAtZero = true;
         for (uint256 i = 0; i < term.collaterals.length; i++) {
             uint256 collateralPrice = IOracle(term.collaterals[i].oracle).price();
-            uint256 collateralQuoted =
-                collateralOf[borrower][id][term.collaterals[i].token].mulDivDown(collateralPrice, ORACLE_PRICE_SCALE);
-            if ((seizures[i].repaidAmount + seizures[i].seizedAssets) != 0) {
-                require(exactlyOneZero(seizures[i].seizedAssets, seizures[i].repaidAmount), "INCONSISTENT_INPUT");
 
-                // Perform the seizure
-                uint256 seizedAssetsQuoted = seizures[i].seizedAssets.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE);
-                if (seizures[i].seizedAssets > 0) {
-                    seizures[i].repaidAmount = seizedAssetsQuoted.wDivUp(liquidationIncentiveFactor);
-                } else {
-                    seizures[i].seizedAssets = seizures[i].repaidAmount.wMulDown(liquidationIncentiveFactor).mulDivUp(
-                        ORACLE_PRICE_SCALE, collateralPrice
-                    );
-                    seizedAssetsQuoted = seizures[i].seizedAssets.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE);
-                }
-                IERC20(term.collaterals[i].token).transfer(msg.sender, seizures[i].seizedAssets);
+            require(seizures[i].repaidAmount * seizures[i].seizedAssets == 0, "INCONSISTENT_INPUT");
 
-                collateralOf[borrower][_id(term)][term.collaterals[i].token] -= seizures[i].seizedAssets;
-                totalRepaid += seizures[i].repaidAmount;
-                totalCollateralQuoted += collateralQuoted - seizedAssetsQuoted;
+            if (seizures[i].seizedAssets > 0) {
+                seizures[i].repaidAmount = seizures[i].seizedAssets.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
+                    .wDivUp(liquidationIncentiveFactor);
             } else {
-                totalCollateralQuoted += collateralQuoted;
+                seizures[i].seizedAssets = seizures[i].repaidAmount.wMulDown(liquidationIncentiveFactor).mulDivUp(
+                    ORACLE_PRICE_SCALE, collateralPrice
+                );
             }
+
+            totalRepaid += seizures[i].repaidAmount;
+            collateralOf[borrower][id][term.collaterals[i].token] -= seizures[i].seizedAssets;
+            allCollateralsAtZero = allCollateralsAtZero && collateralOf[borrower][id][term.collaterals[i].token] == 0;
+
+            IERC20(term.collaterals[i].token).transfer(msg.sender, seizures[i].seizedAssets);
         }
 
         debtOf[borrower][id] -= totalRepaid;
         withdrawable[id] += totalRepaid;
 
         // Realize bad debt.
-        if (totalCollateralQuoted == 0) {
-            uint256 badDebt = debtOf[borrower][id];
-            totalAssets[id] -= badDebt;
+        if (allCollateralsAtZero) {
+            totalAssets[id] -= debtOf[borrower][id];
             debtOf[borrower][id] = 0;
         }
 
-        // Perform the callback.
-        // TODO: simplify with dedicated signature for callback
-        if (data.length > 0) {
-            bytes memory callbackData = abi.encode(seizures, borrower, msg.sender, data);
-            (bool success, bytes memory returnData) = msg.sender.call(callbackData);
-            if (!success) lowLevelRevert(returnData);
-        }
+        if (data.length > 0) IMorphoLiquidationCallback(msg.sender).onLiquidate(seizures, borrower, msg.sender, data);
 
         IERC20(term.loanToken).transferFrom(msg.sender, address(this), totalRepaid);
 
@@ -194,13 +177,6 @@ contract Terms is ITerms {
     }
 
     /// INTERNAL ///
-
-    // TODO: move to a dedicated library
-    function exactlyOneZero(uint256 x, uint256 y) internal pure returns (bool z) {
-        assembly {
-            z := xor(iszero(x), iszero(y))
-        }
-    }
 
     function lowLevelRevert(bytes memory returnData) internal pure {
         assembly ("memory-safe") {

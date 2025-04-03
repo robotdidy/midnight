@@ -138,11 +138,11 @@ contract LiquidationTest is BaseTest {
         uint256 gasUsed;
         if (n == 10) {
             gasBefore = gasleft();
-            terms.liquidate(t, sK[k - 1], borrower, "0x0");
+            terms.liquidate(t, sK[k - 1], borrower, hex"");
             gasUsed = gasBefore - gasleft();
         } else {
             gasBefore = gasleft();
-            terms.liquidate(t, sN[n - 1], borrower, "0x0");
+            terms.liquidate(t, sN[n - 1], borrower, hex"");
             gasUsed = gasBefore - gasleft();
         }
 

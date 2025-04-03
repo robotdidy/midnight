@@ -130,7 +130,7 @@ contract TermsTest is BaseTest {
         Oracle(collaterals[0].oracle).setPrice(0.75e36);
 
         vm.prank(liquidator);
-        terms.liquidate(term, seizures, borrower, "0x0");
+        terms.liquidate(term, seizures, borrower, hex"");
         assertEq(terms.debtOf(borrower, id), 0);
         assertEq(terms.withdrawable(id), 87);
         assertEq(terms.bondOf(lender, id), 87);
