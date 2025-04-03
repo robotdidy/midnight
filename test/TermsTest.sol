@@ -5,6 +5,8 @@ import "./BaseTest.sol";
 
 import {Oracle} from "./helpers/Oracle.sol";
 
+import "../lib/forge-std/src/console.sol";
+
 contract TermsTest is BaseTest {
     ERC20 private loanToken;
     ERC20 private collateralToken;
@@ -36,7 +38,7 @@ contract TermsTest is BaseTest {
         collaterals[0] = Collateral({token: address(collateralToken), lltv: 0.75e18, oracle: address(oracle)});
 
         seizures = new Seizure[](1);
-        seizures[0] = Seizure({collateralIndex: 0, repaidAmount: 0, seizedAssets: 134});
+        seizures[0] = Seizure({repaidAmount: 0, seizedAssets: 134});
 
         term = Term(address(loanToken), collaterals, block.timestamp + 100);
         id = keccak256(abi.encode(term));
@@ -131,10 +133,10 @@ contract TermsTest is BaseTest {
 
         vm.prank(liquidator);
         terms.liquidate(term, seizures, borrower, "0x0");
+        console.log("withdrawable shares", terms.withdrawableShares(id));
         assertEq(terms.debtOf(borrower, id), 0);
         assertEq(terms.withdrawable(id), 87);
         assertEq(terms.bondOf(lender, id), 87);
-        (uint256 totalAssets,) = terms.market(id);
-        assertEq(totalAssets, 87);
+        assertEq(terms.totalAssets(id), 87);
     }
 }

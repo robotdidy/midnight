@@ -15,7 +15,8 @@ contract LiquidationTest is BaseTest {
     address private lender;
     address private liquidator;
     Term[] private liquidationTerms;
-    Seizure[][] private s;
+    Seizure[][] private sN;
+    Seizure[][] private sK;
 
     function genTerm(uint256 n) internal returns (Term memory) {
         Collateral[] memory cs = new Collateral[](n);
@@ -101,15 +102,26 @@ contract LiquidationTest is BaseTest {
         vm.stopPrank();
 
         liquidationTerms = new Term[](10);
-        s = new Seizure[][](10);
+        sN = new Seizure[][](10);
+        sK = new Seizure[][](10);
 
         for (uint256 i = 0; i < 10; i++) {
             liquidationTerms[i] = genTerm(i + 1);
             mintBond(liquidationTerms[i].collaterals);
-            s[i] = new Seizure[](i + 1);
-            s[i][0] = Seizure({collateralIndex: 0, repaidAmount: 100, seizedAssets: 0});
+            sK[i] = new Seizure[](10);
+            sK[i][0] = Seizure({repaidAmount: 100, seizedAssets: 0});
             for (uint256 k = 1; k < i + 1; k++) {
-                s[i][k] = Seizure({collateralIndex: k, repaidAmount: 0, seizedAssets: 93});
+                sK[i][k] = Seizure({repaidAmount: 0, seizedAssets: 93});
+            }
+        }
+
+        for (uint256 i = 0; i < 10; i++) {
+            liquidationTerms[i] = genTerm(i + 1);
+            mintBond(liquidationTerms[i].collaterals);
+            sN[i] = new Seizure[](i + 1);
+            sN[i][0] = Seizure({repaidAmount: 100, seizedAssets: 0});
+            for (uint256 k = 1; k < i + 1; k++) {
+                sN[i][k] = Seizure({repaidAmount: 0, seizedAssets: 0});
             }
         }
 
@@ -124,13 +136,13 @@ contract LiquidationTest is BaseTest {
         vm.prank(liquidator);
         uint256 gasBefore;
         uint256 gasUsed;
-        if (n < 10) {
+        if (n == 10) {
             gasBefore = gasleft();
-            terms.liquidate(t, s[0], borrower, "0x0");
+            terms.liquidate(t, sK[k - 1], borrower, "0x0");
             gasUsed = gasBefore - gasleft();
         } else {
             gasBefore = gasleft();
-            terms.liquidate(t, s[k - 1], borrower, "0x0");
+            terms.liquidate(t, sN[n - 1], borrower, "0x0");
             gasUsed = gasBefore - gasleft();
         }
 
