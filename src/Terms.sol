@@ -57,16 +57,24 @@ contract Terms is ITerms {
 
         uint256 repaid = UtilsLib.min(debtOf[buyer][id], amount);
         uint256 bought = amount - repaid;
+        uint256 boughtShares = bought.toSharesDown(totalAssets[id], totalShares[id]);
         debtOf[buyer][id] -= repaid;
-        bondSharesOf[buyer][id] += bought.toSharesDown(totalAssets[id], totalShares[id]);
+        bondSharesOf[buyer][id] += boughtShares;
 
-        uint256 withdrawn =
-            UtilsLib.min(bondSharesOf[seller][id].toAssetsDown(totalAssets[id], totalShares[id]), amount);
-        bondSharesOf[seller][id] -= withdrawn.toSharesUp(totalAssets[id], totalShares[id]);
+        uint256 withdrawn;
+        uint256 withdrawnShares;
+
+        if (bondSharesOf[seller][id].toAssetsDown(totalAssets[id], totalShares[id]) < amount) {
+            withdrawn = bondSharesOf[seller][id].toAssetsDown(totalAssets[id], totalShares[id]);
+            withdrawnShares = bondSharesOf[seller][id];
+        } else {
+            withdrawn = amount;
+            withdrawnShares = amount.toSharesUp(totalAssets[id], totalShares[id]);
+        }
+
+        bondSharesOf[seller][id] -= withdrawnShares;
         debtOf[seller][id] += amount - withdrawn;
 
-        uint256 boughtShares = bought.toSharesDown(totalAssets[id], totalShares[id]);
-        uint256 withdrawnShares = withdrawn.toSharesDown(totalAssets[id], totalShares[id]);
         totalShares[id] += boughtShares;
         totalShares[id] -= withdrawnShares;
         totalAssets[id] += bought;
