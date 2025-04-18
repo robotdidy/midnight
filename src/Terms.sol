@@ -65,9 +65,12 @@ contract Terms is ITerms {
         bondSharesOf[seller][id] -= withdrawn.toSharesUp(totalAssets[id], totalShares[id]);
         debtOf[seller][id] += amount - withdrawn;
 
-        uint256 boughtAmount = (bought - withdrawn);
-        totalShares[id] += boughtAmount.toSharesDown(totalAssets[id], totalShares[id]);
-        totalAssets[id] += boughtAmount;
+        uint256 boughtShares = bought.toSharesDown(totalAssets[id], totalShares[id]);
+        uint256 withdrawnShares = withdrawn.toSharesDown(totalAssets[id], totalShares[id]);
+        totalShares[id] += boughtShares;
+        totalShares[id] -= withdrawnShares;
+        totalAssets[id] += bought;
+        totalAssets[id] -= withdrawn;
 
         require(debtOf[buyer][id] == 0 || _isHealthy(term, buyer), "Buyer is unhealthy");
         require(debtOf[seller][id] == 0 || _isHealthy(term, seller), "Seller is unhealthy");
