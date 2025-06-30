@@ -27,7 +27,7 @@ contract TermsTest is BaseTest {
 
         loanToken = new ERC20("loan", "loan");
         collateralToken = new ERC20("collat", "collat");
-        
+
         deal(address(loanToken), address(this), 100);
         deal(address(loanToken), address(lender), 99);
         deal(address(loanToken), address(borrower), 1);
