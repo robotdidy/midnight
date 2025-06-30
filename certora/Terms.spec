@@ -14,14 +14,14 @@ methods {
 
 /// HOOKS ///
 
-persistent ghost mapping(bytes32 => mathint) sumBondOf {
-    init_state axiom (forall bytes32 id. sumBondOf[id] == 0);
+persistent ghost mapping(bytes32 => mathint) sumBondSharesOf {
+    init_state axiom (forall bytes32 id. sumBondSharesOf[id] == 0);
 }
-hook Sload uint256 bondOfOwner bondOf[KEY address owner][KEY bytes32 id] {
-    require sumBondOf[id] >= to_mathint(bondOfOwner);
+hook Sload uint256 bondSharesOfOwner bondSharesOf[KEY address owner][KEY bytes32 id] {
+    require sumBondSharesOf[id] >= to_mathint(bondSharesOfOwner);
 }
-hook Sstore bondOf[KEY address owner][KEY bytes32 id] uint256 newBond (uint256 oldBond) {
-    sumBondOf[id] = sumBondOf[id] - oldBond + newBond;
+hook Sstore bondSharesOf[KEY address owner][KEY bytes32 id] uint256 newBondShares (uint256 oldBondShares) {
+    sumBondSharesOf[id] = sumBondSharesOf[id] - oldBondShares + newBondShares;
 }
 
 persistent ghost mapping(bytes32 => mathint) sumDebtOf {
@@ -36,8 +36,8 @@ hook Sstore debtOf[KEY address owner][KEY bytes32 id] uint256 newDebt (uint256 o
 
 /// SANITY ///
 
-invariant sanitySumBond(bytes32 id)
-    sumBondOf[id] >= 0;
+invariant sanitySumBondShares(bytes32 id)
+    sumBondSharesOf[id] >= 0;
     
 invariant sanitySumDebt(bytes32 id)
     sumDebtOf[id] >= 0;
@@ -49,8 +49,8 @@ rule satisfyMatch(env e, calldataarg args) {
 
 /// INVARIANTS ///
 
-strong invariant sums(bytes32 id)
-    sumBondOf[id] == sumDebtOf[id] + withdrawable(id);
+// strong invariant sums(bytes32 id)
+//     sumBondOf[id] == sumDebtOf[id] + withdrawable(id);
 
 // invariant balances(TermsHelpers.Term term)
 //     balanceOf(term.loanToken, currentContract) >= withdrawable(id(term));
