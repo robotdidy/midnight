@@ -52,7 +52,7 @@ contract Terms is ITerms {
         uint256 boughtShares = bought.mulDivDown(totalShares[id] + 1, totalAssets[id] + 1);
         uint256 withdrawn =
             UtilsLib.min(bondSharesOf[seller][id].mulDivDown(totalAssets[id] + 1, totalShares[id] + 1), amount);
-        uint256 withdrawnShares = withdrawn.mulDivDown(totalShares[id] + 1, totalAssets[id] + 1);
+        uint256 withdrawnShares = withdrawn.mulDivUp(totalShares[id] + 1, totalAssets[id] + 1);
 
         debtOf[buyer][id] -= repaid;
         bondSharesOf[buyer][id] += boughtShares;
