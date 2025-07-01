@@ -40,13 +40,14 @@ contract Terms is ITerms {
     function take(Term memory term, uint256 amount, address onBehalf, Offer memory offer, Signature memory sig)
         public
     {
-        _checkOffer(term, offer);
+        require(term.maturity >= block.timestamp, "maturity");
         _checkSignature(offer, sig);
+        _checkOffer(term, offer);
 
         (address buyer, address seller) = offer.buy ? (offer.offering, onBehalf) : (onBehalf, offer.offering);
 
-        require(amount <= offer.assets - consumed[offer.offering][offer.nonce], "consumed");
         consumed[offer.offering][offer.nonce] += amount;
+        require(consumed[offer.offering][offer.nonce] <= offer.assets, "consumed");
 
         bytes32 id = _id(term);
 
@@ -55,7 +56,7 @@ contract Terms is ITerms {
         uint256 boughtShares = bought.mulDivDown(totalShares[id] + 1, totalAssets[id] + 1);
         uint256 withdrawn =
             UtilsLib.min(bondSharesOf[seller][id].mulDivDown(totalAssets[id] + 1, totalShares[id] + 1), amount);
-        uint256 withdrawnShares = withdrawn.mulDivDown(totalShares[id] + 1, totalAssets[id] + 1);
+        uint256 withdrawnShares = withdrawn.mulDivUp(totalShares[id] + 1, totalAssets[id] + 1);
 
         debtOf[buyer][id] -= repaid;
         bondSharesOf[buyer][id] += boughtShares;
@@ -201,17 +202,17 @@ contract Terms is ITerms {
         require(offer.loanToken == term.loanToken, "Loan tokens do not match");
         require(offer.maturity == term.maturity, "Maturities do not match");
 
+        Collateral[] memory subset = offer.buy ? term.collaterals : offer.collaterals;
+        Collateral[] memory superset = offer.buy ? offer.collaterals : term.collaterals;
+
         uint256 j = 0;
-        for (uint256 i = 0; i < term.collaterals.length; i++) {
+        for (uint256 i = 0; i < subset.length; i++) {
             // Relies on the fact that the collaterals are sorted.
             // Note that we actually never check that.
-            // If they are not, the match could fail.
-            for (; j < offer.collaterals.length; j++) {
-                if (offer.collaterals[j].token == term.collaterals[i].token || j == offer.collaterals.length) break;
-            }
-            require(offer.collaterals[i].token == offer.collaterals[j].token, "Collaterals tokens do not match");
-            require(offer.collaterals[i].lltv <= offer.collaterals[j].lltv, "LLTVs do not match");
-            require(offer.collaterals[i].oracle == offer.collaterals[j].oracle, "Oracles do not match");
+            // If they are not, the matching could fail.
+            for (; superset[j].token != subset[i].token; j++) {}
+            require(superset[j].lltv >= subset[i].lltv, "LLTVs do not match");
+            require(subset[i].oracle == superset[j].oracle, "Oracles do not match");
             j++;
         }
     }
