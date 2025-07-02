@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import "./libraries/UtilsLib.sol";
 import {MathLib, WAD} from "./libraries/MathLib.sol";
-import {SharesMathLib} from "./libraries/SharesMathLib.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/ITerms.sol";
@@ -11,7 +10,6 @@ import "./interfaces/IMorphoLiquidationCallback.sol";
 
 contract Terms is ITerms {
     using MathLib for uint256;
-    using SharesMathLib for uint256;
 
     /// CONSTANTS ///
 
@@ -19,7 +17,6 @@ contract Terms is ITerms {
     bytes32 public constant OFFER_TYPEHASH = keccak256(
         "Offer(bool lend,address offering,uint256 assets,address loanToken,Collateral[] collaterals,uint256 maturity,uint256 price)"
     );
-
     uint256 public constant ORACLE_PRICE_SCALE = 1e36;
 
     /// STORAGE ///
@@ -36,42 +33,31 @@ contract Terms is ITerms {
 
     /// ENTRY-POINTS ///
 
-    /// @dev This function is used for both primary and secondary markets.
-    function MATCH(Offer memory buyOffer, Signature memory buySig, Offer memory sellOffer, Signature memory sellSig)
+    /// @dev Same function used to buy and sell.
+    /// @dev If one wants to make to offers without taking a position, they can batch take them and not have a position at the end.
+    function take(Term memory term, uint256 amount, address onBehalf, Offer memory offer, Signature memory sig)
         public
     {
-        _checkOffers(buyOffer, buySig, sellOffer, sellSig);
+        require(term.maturity >= block.timestamp, "maturity");
+        _checkSignature(offer, sig);
+        _checkOffer(term, offer);
 
-        uint256 amount = UtilsLib.min(
-            buyOffer.assets - consumed[abi.encode(buyOffer)], sellOffer.assets - consumed[abi.encode(sellOffer)]
-        );
-        require(amount > 0, "No assets to match");
-        address buyer = buyOffer.offering;
-        address seller = sellOffer.offering;
+        (address buyer, address seller) = offer.buy ? (offer.offering, onBehalf) : (onBehalf, offer.offering);
 
-        consumed[abi.encode(buyOffer)] += amount;
-        consumed[abi.encode(sellOffer)] += amount;
+        consumed[abi.encode(offer)] += amount;
+        require(consumed[abi.encode(offer)] <= offer.assets, "consumed");
 
-        Term memory term = Term(sellOffer.loanToken, sellOffer.collaterals, sellOffer.maturity);
         bytes32 id = _id(term);
 
         uint256 repaid = UtilsLib.min(debtOf[buyer][id], amount);
         uint256 bought = amount - repaid;
-        uint256 boughtShares = bought.toSharesDown(totalAssets[id], totalShares[id]);
+        uint256 boughtShares = bought.mulDivDown(totalShares[id] + 1, totalAssets[id] + 1);
+        uint256 withdrawn =
+            UtilsLib.min(bondSharesOf[seller][id].mulDivDown(totalAssets[id] + 1, totalShares[id] + 1), amount);
+        uint256 withdrawnShares = withdrawn.mulDivUp(totalShares[id] + 1, totalAssets[id] + 1);
+
         debtOf[buyer][id] -= repaid;
         bondSharesOf[buyer][id] += boughtShares;
-
-        uint256 withdrawn;
-        uint256 withdrawnShares;
-
-        if (bondSharesOf[seller][id].toAssetsDown(totalAssets[id], totalShares[id]) < amount) {
-            withdrawn = bondSharesOf[seller][id].toAssetsDown(totalAssets[id], totalShares[id]);
-            withdrawnShares = bondSharesOf[seller][id];
-        } else {
-            withdrawn = amount;
-            withdrawnShares = amount.toSharesUp(totalAssets[id], totalShares[id]);
-        }
-
         bondSharesOf[seller][id] -= withdrawnShares;
         debtOf[seller][id] += amount - withdrawn;
 
@@ -83,11 +69,8 @@ contract Terms is ITerms {
         require(_isHealthy(term, buyer), "Buyer is unhealthy");
         require(_isHealthy(term, seller), "Seller is unhealthy");
 
-        uint256 sellerScaledPrice = sellOffer.price * amount / sellOffer.assets;
-        uint256 buyerScaledPrice = buyOffer.price * amount / buyOffer.assets;
-
-        IERC20(buyOffer.loanToken).transferFrom(buyer, seller, sellerScaledPrice);
-        IERC20(buyOffer.loanToken).transferFrom(buyer, msg.sender, buyerScaledPrice - sellerScaledPrice);
+        uint256 scaledPrice = offer.price * amount / offer.assets;
+        IERC20(offer.loanToken).transferFrom(buyer, seller, scaledPrice);
     }
 
     /// @dev Will revert if there is no withdrawable funds.
@@ -95,8 +78,8 @@ contract Terms is ITerms {
         require(UtilsLib.exactlyOneZero(amount, shares), "INCONSISTENT_INPUT");
         bytes32 id = _id(term);
 
-        if (amount > 0) shares = amount.toSharesUp(totalAssets[id], totalShares[id]);
-        else amount = shares.toAssetsDown(totalAssets[id], totalShares[id]);
+        if (amount > 0) shares = amount.mulDivUp(totalShares[id] + 1, totalAssets[id] + 1);
+        else amount = shares.mulDivDown(totalAssets[id] + 1, totalShares[id] + 1);
 
         bondSharesOf[onBehalf][id] -= shares;
         withdrawable[id] -= amount;
@@ -204,7 +187,7 @@ contract Terms is ITerms {
     }
 
     function bondOf(address owner, bytes32 id) public view returns (uint256) {
-        return bondSharesOf[owner][id].toAssetsDown(totalAssets[id], totalShares[id]);
+        return bondSharesOf[owner][id].mulDivDown(totalAssets[id] + 1, totalShares[id] + 1);
     }
 
     /// INTERNAL ///
@@ -213,39 +196,23 @@ contract Terms is ITerms {
         return keccak256(abi.encode(term));
     }
 
-    function _checkOffers(
-        Offer memory buyOffer,
-        Signature memory buySig,
-        Offer memory sellOffer,
-        Signature memory sellSig
-    ) internal view {
-        // Check consistency.
+    function _checkOffer(Term memory term, Offer memory offer) internal pure {
+        require(offer.loanToken == term.loanToken, "Loan tokens do not match");
+        require(offer.maturity == term.maturity, "Maturities do not match");
 
-        require(buyOffer.buy && !sellOffer.buy, "Inconsistent lend flags");
-        require(buyOffer.maturity > block.timestamp, "Buy offer has expired");
-        _checkSignature(buyOffer, buySig);
-        _checkSignature(sellOffer, sellSig);
+        Collateral[] memory subset = offer.buy ? term.collaterals : offer.collaterals;
+        Collateral[] memory superset = offer.buy ? offer.collaterals : term.collaterals;
 
-        // Check compatibility.
-
-        require(buyOffer.offering != sellOffer.offering, "Same offering");
-        require(buyOffer.loanToken == sellOffer.loanToken, "Loan tokens do not match");
         uint256 j = 0;
-        for (uint256 i = 0; i < sellOffer.collaterals.length; i++) {
+        for (uint256 i = 0; i < subset.length; i++) {
             // Relies on the fact that the collaterals are sorted.
             // Note that we actually never check that.
-            // If they are not, the match could fail.
-            while (
-                bytes20(sellOffer.collaterals[i].token) < bytes20(buyOffer.collaterals[j].token)
-                    && j++ < buyOffer.collaterals.length
-            ) {}
-            require(sellOffer.collaterals[i].token == buyOffer.collaterals[j].token, "Collaterals tokens do not match");
-            require(sellOffer.collaterals[i].lltv <= buyOffer.collaterals[j].lltv, "LLTVs do not match");
-            require(sellOffer.collaterals[i].oracle == buyOffer.collaterals[j].oracle, "Oracles do not match");
+            // If they are not, the matching could fail.
+            while (superset[j].token != subset[i].token) j++;
+            require(superset[j].lltv >= subset[i].lltv, "LLTVs do not match");
+            require(subset[i].oracle == superset[j].oracle, "Oracles do not match");
             j++;
         }
-        require(buyOffer.maturity == sellOffer.maturity, "Maturities do not match");
-        require(buyOffer.price >= sellOffer.price, "Buy offer price is less than sell offer price");
     }
 
     function _checkSignature(Offer memory offer, Signature memory signature) internal view {

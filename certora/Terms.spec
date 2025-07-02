@@ -42,8 +42,8 @@ invariant sanitySumBondShares(bytes32 id)
 invariant sanitySumDebt(bytes32 id)
     sumDebtOf[id] >= 0;
 
-rule satisfyMatch(env e, calldataarg args) {
-    MATCH(e, args);
+rule satisfyTake(env e, calldataarg args) {
+    take(e, args);
     satisfy true;
 }
 
