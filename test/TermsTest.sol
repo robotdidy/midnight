@@ -39,7 +39,7 @@ contract TermsTest is BaseTest {
         collaterals[0] = Collateral({token: address(collateralToken), lltv: 0.75e18, oracle: address(oracle)});
 
         seizures = new Seizure[](1);
-        seizures[0] = Seizure({repaidAmount: 0, seizedAssets: 134});
+        seizures[0] = Seizure({repaidBonds: 0, seizedAssets: 134});
 
         term = Term(address(loanToken), collaterals, block.timestamp + 100);
         id = keccak256(abi.encode(term));
@@ -77,7 +77,7 @@ contract TermsTest is BaseTest {
             price: 99
         });
         Signature memory borrowSig = _signOffer(borrowOffer, borrowerSK);
-        terms.take(term, 100, lender, borrowOffer, borrowSig);
+        terms.take(term, 99, lender, borrowOffer, borrowSig);
 
         assertEq(terms.bondSharesOf(lender, id), 100, "lender bond shares");
         assertEq(terms.debtOf(borrower, id), 100, "borrower debt");
@@ -97,7 +97,7 @@ contract TermsTest is BaseTest {
             price: 99
         });
         Signature memory lendSig = _signOffer(lendOffer, lenderSK);
-        terms.take(term, 100, borrower, lendOffer, lendSig);
+        terms.take(term, 99, borrower, lendOffer, lendSig);
 
         assertEq(terms.bondSharesOf(lender, id), 100, "bond shares");
         assertEq(terms.debtOf(borrower, id), 100, "lender debt");
@@ -128,8 +128,8 @@ contract TermsTest is BaseTest {
         });
         Signature memory borrowSig = _signOffer(borrowOffer, borrowerSK);
 
-        terms.take(term, 100, address(this), borrowOffer, borrowSig);
-        terms.take(term, 100, address(this), lendOffer, lendSig);
+        terms.take(term, 99, address(this), borrowOffer, borrowSig);
+        terms.take(term, 99, address(this), lendOffer, lendSig);
 
         assertEq(terms.bondSharesOf(address(this), id), 0, "bond shares");
         assertEq(terms.debtOf(address(this), id), 0, "debt");
@@ -185,7 +185,7 @@ contract TermsTest is BaseTest {
         vm.prank(liquidator);
         Seizure[] memory ret = terms.liquidate(term, seizures, borrower, hex"");
         assertEq(terms.debtOf(borrower, id), 0);
-        assertEq(ret[0].repaidAmount, 87);
+        assertEq(ret[0].repaidBonds, 87);
         assertEq(terms.withdrawable(id), 87);
         assertEq(terms.bondOf(lender, id), 87);
         assertEq(terms.totalAssets(id), 87);
@@ -203,10 +203,10 @@ contract TermsTest is BaseTest {
         });
         Signature memory lendSig = _signOffer(lendOffer, lenderSK);
 
-        terms.take(term, 100, borrower, lendOffer, lendSig);
+        terms.take(term, 99, borrower, lendOffer, lendSig);
 
         vm.expectRevert("consumed");
-        terms.take(term, 100, borrower, lendOffer, lendSig);
+        terms.take(term, 99, borrower, lendOffer, lendSig);
     }
 
     function testTakeLendOfferCollateralMissing() public {
@@ -224,7 +224,7 @@ contract TermsTest is BaseTest {
         Signature memory lendSig = _signOffer(lendOffer, lenderSK);
 
         vm.expectRevert(stdError.indexOOBError);
-        terms.take(term, 100, borrower, lendOffer, lendSig);
+        terms.take(term, 99, borrower, lendOffer, lendSig);
     }
 
     function testTakeLendOfferLLTVMismatch() public {
@@ -242,7 +242,7 @@ contract TermsTest is BaseTest {
         Signature memory lendSig = _signOffer(lendOffer, lenderSK);
 
         vm.expectRevert("LLTVs do not match");
-        terms.take(term, 100, borrower, lendOffer, lendSig);
+        terms.take(term, 99, borrower, lendOffer, lendSig);
     }
 
     function testTakeLendOfferOraclesMismatch() public {
@@ -260,7 +260,7 @@ contract TermsTest is BaseTest {
         Signature memory lendSig = _signOffer(lendOffer, lenderSK);
 
         vm.expectRevert("Oracles do not match");
-        terms.take(term, 100, borrower, lendOffer, lendSig);
+        terms.take(term, 99, borrower, lendOffer, lendSig);
     }
 
     function testTakeBorrowOfferTooMuchCollaterals() public {
@@ -278,7 +278,7 @@ contract TermsTest is BaseTest {
         Signature memory borrowSig = _signOffer(borrowOffer, borrowerSK);
 
         vm.expectRevert(stdError.indexOOBError);
-        terms.take(term, 100, lender, borrowOffer, borrowSig);
+        terms.take(term, 99, lender, borrowOffer, borrowSig);
     }
 
     function testTakeBorrowOfferLLTVMismatch() public {
@@ -296,7 +296,7 @@ contract TermsTest is BaseTest {
         Signature memory borrowSig = _signOffer(borrowOffer, borrowerSK);
 
         vm.expectRevert("LLTVs do not match");
-        terms.take(term, 100, lender, borrowOffer, borrowSig);
+        terms.take(term, 99, lender, borrowOffer, borrowSig);
     }
 
     function testTakeBorrowOfferOraclesMismatch() public {
@@ -314,6 +314,6 @@ contract TermsTest is BaseTest {
         Signature memory borrowSig = _signOffer(borrowOffer, borrowerSK);
 
         vm.expectRevert("Oracles do not match");
-        terms.take(term, 100, lender, borrowOffer, borrowSig);
+        terms.take(term, 99, lender, borrowOffer, borrowSig);
     }
 }

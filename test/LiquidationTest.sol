@@ -72,7 +72,7 @@ contract LiquidationTest is BaseTest {
 
         Signature memory borrowSig = _signOffer(borrowOffer, borrowerSK);
 
-        terms.take(term, 1000, lender, borrowOffer, borrowSig);
+        terms.take(term, 990, lender, borrowOffer, borrowSig);
     }
 
     function setUp() public override {
@@ -102,9 +102,9 @@ contract LiquidationTest is BaseTest {
             liquidationTerms[i] = genTerm(i + 1);
             mintBond(liquidationTerms[i].collaterals);
             sK[i] = new Seizure[](10);
-            sK[i][0] = Seizure({repaidAmount: 100, seizedAssets: 0});
+            sK[i][0] = Seizure({repaidBonds: 100, seizedAssets: 0});
             for (uint256 k = 1; k < i + 1; k++) {
-                sK[i][k] = Seizure({repaidAmount: 0, seizedAssets: 93});
+                sK[i][k] = Seizure({repaidBonds: 0, seizedAssets: 93});
             }
         }
 
@@ -112,9 +112,9 @@ contract LiquidationTest is BaseTest {
             liquidationTerms[i] = genTerm(i + 1);
             mintBond(liquidationTerms[i].collaterals);
             sN[i] = new Seizure[](i + 1);
-            sN[i][0] = Seizure({repaidAmount: 100, seizedAssets: 0});
+            sN[i][0] = Seizure({repaidBonds: 100, seizedAssets: 0});
             for (uint256 k = 1; k < i + 1; k++) {
-                sN[i][k] = Seizure({repaidAmount: 0, seizedAssets: 0});
+                sN[i][k] = Seizure({repaidBonds: 0, seizedAssets: 0});
             }
         }
 
