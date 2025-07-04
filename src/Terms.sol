@@ -3,7 +3,7 @@
 pragma solidity 0.8.28;
 
 import "./libraries/UtilsLib.sol";
-import {MathLib, WAD} from "./libraries/MathLib.sol";
+import "./libraries/MathLib.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/ITerms.sol";
@@ -71,7 +71,6 @@ contract Terms is ITerms {
         totalBonds[id] += bought;
         totalBonds[id] -= withdrawn;
 
-        require(_isHealthy(term, buyer), "Buyer is unhealthy");
         require(_isHealthy(term, seller), "Seller is unhealthy");
 
         IERC20(offer.loanToken).transferFrom(buyer, seller, assets);
@@ -140,8 +139,8 @@ contract Terms is ITerms {
             uint256 price = IOracle(term.collaterals[i].oracle).price();
             uint256 collateralQuoted =
                 collateralOf[borrower][id][term.collaterals[i].token].mulDivDown(price, ORACLE_PRICE_SCALE);
-            maxDebt += collateralQuoted.wMulDown(term.collaterals[i].lltv);
-            repayableDebt += collateralQuoted.wDivUp(liquidationIncentiveFactor);
+            maxDebt += collateralQuoted.mulDivDown(term.collaterals[i].lltv, 1e18);
+            repayableDebt += collateralQuoted.mulDivUp(1e18, liquidationIncentiveFactor);
         }
         require(debtOf[borrower][id] >= maxDebt, "position is healthy");
 
@@ -157,11 +156,10 @@ contract Terms is ITerms {
 
                 if (seizures[i].seizedAssets > 0) {
                     seizures[i].repaidBonds = seizures[i].seizedAssets.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
-                        .wDivUp(liquidationIncentiveFactor);
+                        .mulDivUp(1e18, liquidationIncentiveFactor);
                 } else {
-                    seizures[i].seizedAssets = seizures[i].repaidBonds.wMulDown(liquidationIncentiveFactor).mulDivDown(
-                        ORACLE_PRICE_SCALE, collateralPrice
-                    );
+                    seizures[i].seizedAssets = seizures[i].repaidBonds.mulDivDown(liquidationIncentiveFactor, 1e18)
+                        .mulDivDown(ORACLE_PRICE_SCALE, collateralPrice);
                 }
 
                 totalRepaid += seizures[i].repaidBonds;
@@ -237,7 +235,7 @@ contract Terms is ITerms {
                 uint256 price = IOracle(term.collaterals[i].oracle).price();
                 uint256 collateralQuoted =
                     collateralOf[borrower][id][term.collaterals[i].token].mulDivDown(price, ORACLE_PRICE_SCALE);
-                maxDebt += collateralQuoted.wMulDown(term.collaterals[i].lltv);
+                maxDebt += collateralQuoted.mulDivDown(term.collaterals[i].lltv, 1e18);
             }
 
             return debt <= maxDebt;

@@ -130,6 +130,12 @@ contract TakeTest is BaseTest {
         assertEq(terms.consumed(lender, 0), 100);
     }
 
+    function testTakeMaturityPassed() public {
+        vm.warp(block.timestamp + 101);
+        vm.expectRevert("maturity");
+        terms.take(term, 100, lender, lendOffer, sig(lendOffer, lenderSK));
+    }
+
     function testTakeLendOfferCollateralMissing() public {
         lendOffer.collaterals[0].token = address(0);
 
@@ -170,5 +176,17 @@ contract TakeTest is BaseTest {
 
         vm.expectRevert("Oracles do not match");
         terms.take(term, 100, lender, borrowOffer, sig(borrowOffer, borrowerSK));
+    }
+
+    function testTakeSellerMakerNotHealthyMaker() public {
+        terms.withdrawCollateral(term, address(collateralToken1), 1, borrower);
+        vm.expectRevert("Seller is unhealthy");
+        terms.take(term, 100, lender, borrowOffer, sig(borrowOffer, borrowerSK));
+    }
+
+    function testTakeSellerTakerNotHealthy() public {
+        terms.withdrawCollateral(term, address(collateralToken1), 1, borrower);
+        vm.expectRevert("Seller is unhealthy");
+        terms.take(term, 100, borrower, lendOffer, sig(lendOffer, lenderSK));
     }
 }
