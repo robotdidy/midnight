@@ -2,9 +2,7 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./TakeTest.sol";
-
-import {Oracle} from "./helpers/Oracle.sol";
+import "./BaseTest.sol";
 
 contract OtherFunctionsTest is BaseTest {
     Term internal term;
@@ -17,7 +15,14 @@ contract OtherFunctionsTest is BaseTest {
         collaterals[0] = Collateral({token: address(collateralToken1), lltv: 0.75e18, oracle: address(oracle)});
         collaterals[1] = Collateral({token: address(collateralToken2), lltv: 0.75e18, oracle: address(oracle)});
 
-        term = Term(address(loanToken), collaterals, block.timestamp + 100);
+        // Populate collaterals one by one to avoid the unsupported memory-to-storage array assignment that breaks the
+        // solc legacy pipeline.
+        term.loanToken = address(loanToken);
+        term.maturity = block.timestamp + 100;
+        for (uint256 i = 0; i < collaterals.length; i++) {
+            term.collaterals.push(collaterals[i]);
+        }
+
         id = toId(term);
     }
 
@@ -49,6 +54,39 @@ contract OtherFunctionsTest is BaseTest {
         assertEq(terms.collateralOf(user, toId(term), address(collateralToken)), supply - withdraw, "collateral of");
         assertEq(collateralToken.balanceOf(address(terms)), supply - withdraw, "balance of terms");
         assertEq(collateralToken.balanceOf(address(this)), withdraw, "balance of this");
+    }
+
+    function testWithdrawCollateralWithBorrowHealthy(uint256 supply, uint256 withdraw, uint256 bonds) public {
+        // Setup
+        bonds = bound(bonds, 0, MAX_TEST_AMOUNT);
+        uint256 minCollateral = (bonds * 1e18 + (0.75e18 - 1)) / 0.75e18;
+        supply = bound(supply, minCollateral, 1e41);
+        withdraw = bound(withdraw, 0, (supply - minCollateral) / 2);
+        deal(address(collateralToken1), address(this), supply);
+        setupBond(term, bonds, supply);
+
+        // Test
+        terms.withdrawCollateral(term, address(collateralToken1), withdraw, borrower);
+
+        assertEq(
+            terms.collateralOf(borrower, toId(term), address(collateralToken1)), supply - withdraw, "collateral of"
+        );
+        assertEq(collateralToken1.balanceOf(address(terms)), supply - withdraw, "balance of terms");
+        assertEq(collateralToken1.balanceOf(address(this)), withdraw, "balance of this");
+    }
+
+    function testWithdrawCollateralWithBorrowUnhealthy(uint256 supply, uint256 withdraw, uint256 bonds) public {
+        // Setup
+        bonds = bound(bonds, 1, MAX_TEST_AMOUNT);
+        uint256 minCollateral = (bonds * 1e18 + (0.75e18 - 1)) / 0.75e18;
+        supply = bound(supply, minCollateral, 1e41);
+        withdraw = bound(withdraw, supply - minCollateral + 1, supply);
+        deal(address(collateralToken1), address(this), supply);
+        setupBond(term, bonds, supply);
+
+        // Test
+        vm.expectRevert("Unhealthy borrower");
+        terms.withdrawCollateral(term, address(collateralToken1), withdraw, borrower);
     }
 
     function testRepay(uint256 bonds, uint256 repaid) public {

@@ -9,7 +9,6 @@ import {Oracle} from "./helpers/Oracle.sol";
 contract TakeTest is BaseTest {
     Term internal term;
     bytes32 internal id;
-    Collateral[] internal collaterals;
     Offer internal lendOffer;
     Offer internal borrowOffer;
 
@@ -21,46 +20,55 @@ contract TakeTest is BaseTest {
         deal(address(collateralToken1), address(this), 135);
         deal(address(collateralToken1), address(this), type(uint256).max);
 
-        collaterals = new Collateral[](2);
+        Collateral[] memory collaterals = new Collateral[](2);
         collaterals[0] = Collateral({token: address(collateralToken1), lltv: 0.75e18, oracle: address(oracle)});
         collaterals[1] = Collateral({token: address(collateralToken2), lltv: 0.75e18, oracle: address(oracle)});
         collaterals = sortCollaterals(collaterals);
 
-        term = Term(address(loanToken), collaterals, block.timestamp + 100);
+        // Populate collaterals one by one to avoid the unsupported memory-to-storage array assignment that breaks the
+        // solc legacy pipeline.
+        term.loanToken = address(loanToken);
+        term.maturity = block.timestamp + 100;
+        for (uint256 i = 0; i < collaterals.length; i++) {
+            term.collaterals.push(collaterals[i]);
+        }
+
         id = keccak256(abi.encode(term));
 
-        lendOffer = Offer({
-            buy: true,
-            offering: lender,
-            assets: 100,
-            loanToken: address(loanToken),
-            collaterals: collaterals,
-            maturity: block.timestamp + 100,
-            rate: 0.01e18 / 100,
-            nonce: 0
-        });
+        lendOffer.buy = true;
+        lendOffer.offering = lender;
+        lendOffer.assets = 100;
+        lendOffer.loanToken = address(loanToken);
+        lendOffer.maturity = block.timestamp + 100;
+        lendOffer.rate = 0.01e18 / 100;
+        lendOffer.nonce = 0;
 
-        borrowOffer = Offer({
-            buy: false,
-            offering: borrower,
-            assets: 100,
-            loanToken: address(loanToken),
-            collaterals: collaterals,
-            maturity: block.timestamp + 100,
-            rate: 0.01e18 / 100,
-            nonce: 0
-        });
+        for (uint256 i = 0; i < collaterals.length; i++) {
+            lendOffer.collaterals.push(collaterals[i]);
+        }
+
+        borrowOffer.buy = false;
+        borrowOffer.offering = borrower;
+        borrowOffer.assets = 100;
+        borrowOffer.loanToken = address(loanToken);
+        borrowOffer.maturity = block.timestamp + 100;
+        borrowOffer.rate = 0.01e18 / 100;
+        borrowOffer.nonce = 0;
+
+        for (uint256 i = 0; i < collaterals.length; i++) {
+            borrowOffer.collaterals.push(collaterals[i]);
+        }
 
         terms.supplyCollateral(term, address(collateralToken1), 135, borrower);
     }
 
     function testTakePostMaturity(uint256 maturity) public {
         maturity = bound(maturity, 0, block.timestamp - 1);
-        Term memory _term = Term(address(loanToken), collaterals, maturity);
+        term.maturity = maturity;
         Offer memory offer;
         Signature memory sig;
         vm.expectRevert("maturity");
-        terms.take(_term, 100, lender, offer, sig);
+        terms.take(term, 100, lender, offer, sig);
     }
 
     function testLend() public {
@@ -189,5 +197,30 @@ contract TakeTest is BaseTest {
         terms.withdrawCollateral(term, address(collateralToken1), 1, borrower);
         vm.expectRevert("Seller is unhealthy");
         terms.take(term, 100, borrower, lendOffer, sig(lendOffer, lenderSK));
+    }
+
+    function testTakeOfferWrongLoanToken(address _loanToken) public {
+        vm.assume(_loanToken != address(loanToken));
+        lendOffer.loanToken = _loanToken;
+        vm.expectRevert("Loan tokens do not match");
+        terms.take(term, 100, borrower, lendOffer, sig(lendOffer, lenderSK));
+    }
+
+    function testTakeOfferWrongMaturity(uint256 _maturity) public {
+        vm.assume(_maturity != term.maturity);
+        lendOffer.maturity = _maturity;
+        vm.expectRevert("Maturities do not match");
+        terms.take(term, 100, borrower, lendOffer, sig(lendOffer, lenderSK));
+    }
+
+    function testTakeWrongSignture(Offer memory _offer) public {
+        vm.assume(keccak256(abi.encode(_offer)) != keccak256(abi.encode(lendOffer)));
+        vm.expectRevert("Invalid signature");
+        terms.take(term, 100, borrower, lendOffer, sig(_offer, lenderSK));
+    }
+
+    function testTakeInvalidSignature() public {
+        vm.expectRevert("Invalid signature");
+        terms.take(term, 100, borrower, lendOffer, Signature(0, 0, 0));
     }
 }

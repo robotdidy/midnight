@@ -80,8 +80,12 @@ abstract contract BaseTest is Test {
     }
 
     function setupBond(Term memory term, uint256 bonds) internal {
-        deal(address(loanToken), lender, bonds);
         uint256 collateral = (bonds * 1e18 + term.collaterals[0].lltv - 1) / term.collaterals[0].lltv;
+        setupBond(term, bonds, collateral);
+    }
+
+    function setupBond(Term memory term, uint256 bonds, uint256 collateral) internal {
+        deal(address(loanToken), lender, bonds);
         deal(address(term.collaterals[0].token), address(this), collateral);
 
         terms.supplyCollateral(term, address(term.collaterals[0].token), collateral, borrower);
