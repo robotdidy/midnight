@@ -20,7 +20,7 @@ contract ERC20False {
 }
 
 /// @dev Normal token.
-contract ERC20True {    
+contract ERC20True {
     fallback() external {
         // return true.
         assembly {
@@ -30,7 +30,7 @@ contract ERC20True {
     }
 }
 
-contract SafeERC20LibTest is Test {
+contract SafeTransferLibTest is Test {
     ERC20True public tokenTrue;
     ERC20False public tokenFalse;
     ERC20WithoutBoolean public tokenWithoutBoolean;
