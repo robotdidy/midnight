@@ -119,12 +119,6 @@ contract Terms is ITerms {
         SafeTransferLib.safeTransfer(collateral, msg.sender, assets);
     }
 
-    struct Vars {
-        uint256 maxDebt;
-        uint256 repayableDebt;
-        uint256 totalRepaid;
-    }
-
     /// @notice Execute the given collection of `seizures` on the given `term` of the given `borrower`.
     /// @dev On each seizure either `repaidBonds` or `seizedAssets` should be equal to zero.
     /// @param term The term of the bond.
@@ -137,20 +131,22 @@ contract Terms is ITerms {
         external
         returns (Seizure[] memory)
     {
-        Vars memory vars;
+        uint256 repayableDebt;
+        uint256 maxDebt;
         bytes32 id = _id(term);
         uint256[] memory prices = new uint256[](term.collaterals.length);
 
         for (uint256 i = 0; i < term.collaterals.length; i++) {
             prices[i] = IOracle(term.collaterals[i].oracle).price();
-            uint256 collateralQuoted =
-                collateralOf[borrower][id][term.collaterals[i].token].mulDivDown(prices[i], ORACLE_PRICE_SCALE);
-            vars.maxDebt += collateralQuoted.mulDivDown(term.collaterals[i].lltv, 1e18);
-            vars.repayableDebt += collateralQuoted.mulDivUp(1e18, LIQUIDATION_INCENTIVE_FACTOR);
+            {
+                address token = term.collaterals[i].token;
+                uint256 collateralQuoted = collateralOf[borrower][id][token].mulDivDown(prices[i], ORACLE_PRICE_SCALE);
+                maxDebt += collateralQuoted.mulDivDown(term.collaterals[i].lltv, 1e18);
+                repayableDebt += collateralQuoted.mulDivUp(1e18, LIQUIDATION_INCENTIVE_FACTOR);
+            }
         }
-        uint256 originalDebt = debtOf[borrower][id];
-        require(originalDebt > vars.maxDebt, "position is healthy");
 
+        uint256 totalRepaid;
         uint256 collateralIndex = type(uint256).max;
         Seizure memory seizure;
         for (uint256 i = seizures.length; i > 0; i--) {
@@ -168,31 +164,39 @@ contract Terms is ITerms {
                 );
             }
 
-            vars.totalRepaid += seizure.repaidBonds;
-            collateralOf[borrower][id][term.collaterals[seizure.collateralIndex].token] -= seizure.seizedAssets;
+            totalRepaid += seizure.repaidBonds;
+            address token = term.collaterals[seizure.collateralIndex].token;
+            collateralOf[borrower][id][token] -= seizure.seizedAssets;
         }
 
         // Realize bad debt
-        uint256 badDebt;
-        if (vars.repayableDebt < originalDebt) {
-            // Because roundings are not aligned the effective bad debt is either the remaining debt or the original
-            // debt minus the theoretical repayable debt.
-            badDebt = UtilsLib.min(originalDebt - vars.totalRepaid, originalDebt - vars.repayableDebt);
-            totalBonds[id] -= badDebt;
+        {
+            uint256 originalDebt = debtOf[borrower][id];
+            require(originalDebt > maxDebt, "position is healthy");
+
+            uint256 badDebt;
+
+            if (repayableDebt < originalDebt) {
+                // Because roundings are not aligned the effective bad debt is either the remaining debt or the original
+                // debt minus the theoretical repayable debt.
+                badDebt = UtilsLib.min(originalDebt - totalRepaid, originalDebt - repayableDebt);
+                totalBonds[id] -= badDebt;
+            }
+
+            withdrawable[id] += totalRepaid;
+            debtOf[borrower][id] = originalDebt - totalRepaid - badDebt;
         }
 
-        withdrawable[id] += vars.totalRepaid;
-        debtOf[borrower][id] = originalDebt - vars.totalRepaid - badDebt;
-
         for (uint256 i = 0; i < seizures.length; i++) {
+            seizure = seizures[i];
             SafeTransferLib.safeTransfer(
-                term.collaterals[seizures[i].collateralIndex].token, msg.sender, seizures[i].seizedAssets
+                term.collaterals[seizure.collateralIndex].token, msg.sender, seizure.seizedAssets
             );
         }
 
         if (data.length > 0) IMorphoLiquidationCallback(msg.sender).onLiquidate(seizures, borrower, msg.sender, data);
 
-        SafeTransferLib.safeTransferFrom(term.loanToken, msg.sender, address(this), vars.totalRepaid);
+        SafeTransferLib.safeTransferFrom(term.loanToken, msg.sender, address(this), totalRepaid);
 
         return seizures;
     }

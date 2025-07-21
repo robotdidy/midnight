@@ -47,7 +47,7 @@ contract LiquidationTest is BaseTest {
         setupBond(term, 100);
 
         vm.expectRevert("position is healthy");
-        terms.liquidate(term, new Seizure[](2), borrower, "");
+        terms.liquidate(term, new Seizure[](0), borrower, "");
     }
 
     function testLiquidateNoOp() public {
