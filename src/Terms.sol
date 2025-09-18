@@ -171,19 +171,17 @@ contract Terms is ITerms {
             collateralOf[borrower][id][collateralToken] -= seizure.seizedAssets;
         }
 
-        // Realize bad debt
-        uint256 badDebt;
+        repayableDebt = UtilsLib.min(repayableDebt, originalDebt);
+        totalRepaid = UtilsLib.min(totalRepaid, repayableDebt);
 
-        if (totalRepaid > originalDebt) totalRepaid = originalDebt;
-        if (repayableDebt < originalDebt) {
-            // Because roundings are not aligned the effective bad debt is either the remaining debt or the original
-            // debt minus the theoretical repayable debt.
-            badDebt = UtilsLib.min(originalDebt - totalRepaid, originalDebt - repayableDebt);
-            totalBonds[id] -= badDebt;
+        // Realize bad debt.
+        if (originalDebt > repayableDebt) {
+            debtOf[borrower][id] = repayableDebt;
+            totalBonds[id] -= originalDebt - repayableDebt;
         }
 
         withdrawable[id] += totalRepaid;
-        debtOf[borrower][id] = originalDebt - totalRepaid - badDebt;
+        debtOf[borrower][id] -= totalRepaid;
 
         for (uint256 i = 0; i < seizures.length; i++) {
             seizure = seizures[i];
