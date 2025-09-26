@@ -11,7 +11,7 @@ contract LiquidationTest is BaseTest {
     /// forge-config: default.isolate = true
     function testLiquidateGas() public {
         uint256 numCollaterals = 10;
-        uint numSeizures = 10;
+        uint256 numSeizures = 10;
         uint256 lltv = 0.75e18;
 
         // Create collaterals
