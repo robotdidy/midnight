@@ -175,10 +175,9 @@ contract Terms is ITerms {
         require(originalDebt > maxDebt, "position is healthy");
 
         uint256 totalRepaid;
-        Seizure memory seizure;
 
         for (uint256 i = 0; i < seizures.length; i++) {
-            seizure = seizures[i];
+            Seizure memory seizure = seizures[i];
             require(UtilsLib.exactlyOneZero(seizure.repaidBonds, seizure.seizedAssets), "INCONSISTENT_INPUT");
 
             if (seizure.seizedAssets > 0) {
@@ -210,7 +209,7 @@ contract Terms is ITerms {
         debtOf[borrower][id] = originalDebt - totalRepaid - badDebt;
 
         for (uint256 i = 0; i < seizures.length; i++) {
-            seizure = seizures[i];
+            Seizure memory seizure = seizures[i];
             SafeTransferLib.safeTransfer(
                 term.collaterals[seizure.collateralIndex].token, msg.sender, seizure.seizedAssets
             );
