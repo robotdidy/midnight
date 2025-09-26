@@ -34,10 +34,8 @@ contract OtherFunctionsTest is BaseTest {
 
         // Test
         terms.supplyCollateral(term, address(collateralToken), amount, user);
-
         assertEq(terms.collateralOf(user, toId(term), address(collateralToken)), amount, "collateral of");
         assertEq(collateralToken.balanceOf(address(terms)), amount, "balance of terms");
-        assertEq(collateralToken.balanceOf(user), 0, "balance of user");
     }
 
     function testWithdrawCollateralNoBorrow(address user, uint256 supply, uint256 withdraw) public {

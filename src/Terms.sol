@@ -49,12 +49,14 @@ contract Terms is ITerms {
         uint256 buyerAssets,
         uint256 sellerAssets,
         uint256 bonds,
-        address onBehalf,
+        address taker,
         Offer memory offer,
         Signature memory sig,
-        address callbackAddress,
-        bytes memory callbackData
+        address takerCallbackAddress,
+        bytes memory takerCallbackData
     ) public {
+        uint256 sum = buyerAssets + sellerAssets + bonds;
+        require(sum == buyerAssets || sum == sellerAssets || sum == bonds, "inconsistent input");
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
         require(term.maturity >= block.timestamp, "bond maturity");
@@ -63,12 +65,22 @@ contract Terms is ITerms {
         require(signatureIsValid(offer, sig), "Invalid signature");
         _checkCollateralInclusion(term, offer);
 
-        uint256 denominator = offer.expiry - offer.start;
-        uint256 price = denominator > 0
-            ? offer.startPrice + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start) / denominator
+        (
+            address buyer,
+            address buyerCallbackAddress,
+            bytes memory buyerCallbackData,
+            address seller,
+            address sellerCallbackAddress,
+            bytes memory sellerCallbackData
+        ) = offer.buy
+            ? (offer.offering, offer.callbackAddress, offer.callbackData, taker, takerCallbackAddress, takerCallbackData)
+            : (taker, takerCallbackAddress, takerCallbackData, offer.offering, offer.callbackAddress, offer.callbackData);
+
+        uint256 offerDuration = offer.expiry - offer.start;
+        uint256 price = offerDuration > 0
+            ? offer.startPrice + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start) / offerDuration
             : offer.startPrice;
 
-        // todo check rounding
         if (buyerAssets > 0) {
             bonds = buyerAssets.mulDivDown(1e18, price);
             sellerAssets = (1e18 - tradingFeePct[term.loanToken]).mulDivDown(buyerAssets, 1e18)
@@ -88,17 +100,6 @@ contract Terms is ITerms {
             (consumed[offer.offering][offer.nonce] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets,
             "consumed"
         );
-
-        (
-            address buyer,
-            address buyerCallbackAddress,
-            bytes memory buyerCallbackData,
-            address seller,
-            address sellerCallbackAddress,
-            bytes memory sellerCallbackData
-        ) = offer.buy
-            ? (offer.offering, offer.callbackAddress, offer.callbackData, onBehalf, callbackAddress, callbackData)
-            : (onBehalf, callbackAddress, callbackData, offer.offering, offer.callbackAddress, offer.callbackData);
 
         bytes32 id = _id(term);
 

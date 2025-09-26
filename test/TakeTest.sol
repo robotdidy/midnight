@@ -17,7 +17,6 @@ contract TakeTest is BaseTest {
 
         deal(address(loanToken), address(this), 100);
         deal(address(loanToken), address(lender), 100);
-        deal(address(collateralToken1), address(this), 135);
         deal(address(collateralToken1), address(this), type(uint256).max);
 
         Collateral[] memory collaterals = new Collateral[](2);
