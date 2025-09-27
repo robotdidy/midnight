@@ -39,6 +39,15 @@ contract Terms is ITerms {
     mapping(address loanToken => uint256) public tradingFeePct;
     mapping(address loanToken => address) public tradingFeeRecipient;
 
+    /// @dev Contract owner for administrative functions.
+    address public owner;
+
+    /// CONSTRUCTOR ///
+
+    constructor() {
+        owner = msg.sender;
+    }
+
     /// ENTRY-POINTS ///
 
     /// @dev Same function used to buy and sell.
@@ -80,20 +89,19 @@ contract Terms is ITerms {
         uint256 price = offerDuration > 0
             ? offer.startPrice + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start) / offerDuration
             : offer.startPrice;
+        require(price <= 1e18, "price too high");
 
         if (buyerAssets > 0) {
             bonds = buyerAssets.mulDivDown(1e18, price);
-            sellerAssets = (1e18 - tradingFeePct[term.loanToken]).mulDivDown(buyerAssets, 1e18)
-                - bonds.mulDivDown(tradingFeePct[term.loanToken], 1e18);
+            sellerAssets = buyerAssets - (bonds - buyerAssets).mulDivDown(tradingFeePct[term.loanToken], 1e18);
         } else if (sellerAssets > 0) {
-            bonds = sellerAssets.mulDivDown(1e18, price);
-            buyerAssets = (sellerAssets + bonds.mulDivDown(tradingFeePct[term.loanToken], 1e18)).mulDivDown(
-                1e18, 1e18 - tradingFeePct[term.loanToken]
+            buyerAssets = sellerAssets.mulDivDown(
+                1e18, 1e18 + tradingFeePct[term.loanToken] - tradingFeePct[term.loanToken].mulDivDown(1e18, price)
             );
+            bonds = buyerAssets.mulDivDown(1e18, price);
         } else {
             buyerAssets = bonds.mulDivDown(price, 1e18);
-            sellerAssets = (1e18 - tradingFeePct[term.loanToken]).mulDivDown(buyerAssets, 1e18)
-                - bonds.mulDivDown(tradingFeePct[term.loanToken], 1e18);
+            sellerAssets = buyerAssets - (bonds - buyerAssets).mulDivDown(tradingFeePct[term.loanToken], 1e18);
         }
 
         require(
@@ -252,6 +260,22 @@ contract Terms is ITerms {
         SafeTransferLib.safeTransferFrom(term.loanToken, msg.sender, address(this), totalRepaid);
 
         return seizures;
+    }
+
+    function setOwner(address newOwner) external {
+        require(msg.sender == owner, "Only owner");
+        owner = newOwner;
+    }
+
+    function setTradingFee(address loanToken, uint256 feePct) external {
+        require(msg.sender == owner, "Only owner");
+        require(feePct <= 1e18, "Fee too high");
+        tradingFeePct[loanToken] = feePct;
+    }
+
+    function setTradingFeeRecipient(address loanToken, address recipient) external {
+        require(msg.sender == owner, "Only owner");
+        tradingFeeRecipient[loanToken] = recipient;
     }
 
     /// INTERNAL ///
