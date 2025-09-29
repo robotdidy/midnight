@@ -40,9 +40,9 @@ struct Signature {
 struct Seizure {
     // Index of the collateral in the obligation's collateral assets.
     uint256 collateralIndex;
-    // Amount of debt to repay.
+    // Amount of notional to repay.
     uint256 repaid;
-    // Amount of collateral asset to seize.
+    // Amount of collateral to seize.
     uint256 seized;
 }
 

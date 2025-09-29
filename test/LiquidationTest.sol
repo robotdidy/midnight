@@ -33,21 +33,21 @@ contract LiquidationTest is BaseTest {
     }
 
     function testLiquidateHealthy() public {
-        setupBond(obligation, 100);
+        setupObligation(obligation, 100);
 
         vm.expectRevert("position is healthy");
         morphoV2.liquidate(obligation, new Seizure[](0), borrower, "");
     }
 
     function testLiquidateNoOp() public {
-        setupBond(obligation, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(0);
 
         morphoV2.liquidate(obligation, new Seizure[](0), borrower, "");
     }
 
     function testLiquidateInconsistentInput() public {
-        setupBond(obligation, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(0);
 
         Seizure[] memory seizures = new Seizure[](1);
@@ -57,9 +57,9 @@ contract LiquidationTest is BaseTest {
         morphoV2.liquidate(obligation, seizures, borrower, "");
     }
 
-    function testLiquidateBondsInput() public {
+    function testLiquidateObligationsInput() public {
         // Setup
-        setupBond(obligation, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(1e36 - 1);
         deal(address(loanToken), address(this), 1);
 
@@ -74,7 +74,7 @@ contract LiquidationTest is BaseTest {
 
     function testLiquidateCollateralInput() public {
         // Setup
-        setupBond(obligation, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(1e36 - 1);
         deal(address(loanToken), address(this), 1);
 
@@ -89,7 +89,7 @@ contract LiquidationTest is BaseTest {
 
     function testLiquidateBadDebt() public {
         // Setup
-        setupBond(obligation, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(0.5e36);
         deal(address(loanToken), address(this), 1);
 
@@ -105,7 +105,7 @@ contract LiquidationTest is BaseTest {
         vm.assume(data.length > 0);
 
         // Setup
-        setupBond(obligation, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(1e36 - 1);
         deal(address(loanToken), address(this), 1);
 
@@ -128,7 +128,7 @@ contract LiquidationTest is BaseTest {
         obligation.collaterals[1].oracle = address(oracle2);
         id = toId(obligation);
 
-        setupMaxBondWithCollaterals(obligation, 100, 100);
+        setupMaxObligationWithCollaterals(obligation, 100, 100);
         uint256 price = 1e36 * 1e18 / morphoV2.LIQUIDATION_INCENTIVE_FACTOR() * 98 / 100;
         uint256 price2 = 1e36 * 1e18 / morphoV2.LIQUIDATION_INCENTIVE_FACTOR();
         oracle.setPrice(price);

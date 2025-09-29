@@ -77,12 +77,12 @@ abstract contract BaseTest is Test {
         return arr;
     }
 
-    function setupBond(Obligation memory obligation, uint256 obligations) internal {
+    function setupObligation(Obligation memory obligation, uint256 obligations) internal {
         uint256 collateral = (obligations * 1e18 + obligation.collaterals[0].lltv - 1) / obligation.collaterals[0].lltv;
-        setupBond(obligation, obligations, collateral);
+        setupObligation(obligation, obligations, collateral);
     }
 
-    function setupBond(Obligation memory obligation, uint256 obligations, uint256 collateral) internal {
+    function setupObligation(Obligation memory obligation, uint256 obligations, uint256 collateral) internal {
         deal(address(loanToken), lender, obligations);
         deal(address(obligation.collaterals[0].token), address(this), collateral);
 
@@ -107,15 +107,15 @@ abstract contract BaseTest is Test {
         morphoV2.take(obligation, obligations, 0, lender, borrowOffer, sig(borrowOffer, borrowerSK), address(0), hex"");
     }
 
-    function setupMaxBondWithCollaterals(Obligation memory obligation, uint256 collateral0, uint256 collateral1)
+    function setupMaxObligationWithCollaterals(Obligation memory obligation, uint256 collateral0, uint256 collateral1)
         internal
     {
         uint256 maxDebt =
             (collateral0 * obligation.collaterals[0].lltv + collateral1 * obligation.collaterals[1].lltv) / 1e18;
-        setupBondWithCollaterals(obligation, maxDebt, collateral0, collateral1);
+        setupObligationWithCollaterals(obligation, maxDebt, collateral0, collateral1);
     }
 
-    function setupBondWithCollaterals(
+    function setupObligationWithCollaterals(
         Obligation memory obligation,
         uint256 obligations,
         uint256 collateral0,

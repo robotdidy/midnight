@@ -64,7 +64,7 @@ contract OtherFunctionsTest is BaseTest {
         supply = bound(supply, minCollateral, 1e41);
         withdraw = bound(withdraw, 0, (supply - minCollateral) / 2);
         deal(address(collateralToken1), address(this), supply);
-        setupBond(obligation, obligations, supply);
+        setupObligation(obligation, obligations, supply);
 
         // Test
         morphoV2.withdrawCollateral(obligation, address(collateralToken1), withdraw, borrower);
@@ -85,7 +85,7 @@ contract OtherFunctionsTest is BaseTest {
         supply = bound(supply, minCollateral, 1e41);
         withdraw = bound(withdraw, supply - minCollateral + 1, supply);
         deal(address(collateralToken1), address(this), supply);
-        setupBond(obligation, obligations, supply);
+        setupObligation(obligation, obligations, supply);
 
         // Test
         vm.expectRevert("Unhealthy borrower");
@@ -96,14 +96,14 @@ contract OtherFunctionsTest is BaseTest {
         // Note that if this changes the values when the input is in the bounds, it will break withdraw tests.
         obligations = bound(obligations, 0, MAX_TEST_AMOUNT);
         repaid = bound(repaid, 0, obligations);
-        setupBond(obligation, obligations);
+        setupObligation(obligation, obligations);
 
         vm.warp(block.timestamp + 99);
 
         deal(address(loanToken), address(borrower), repaid);
 
         vm.prank(borrower);
-        morphoV2.repayDebt(obligation, repaid, borrower);
+        morphoV2.repay(obligation, repaid, borrower);
 
         assertEq(morphoV2.debtOf(borrower, id), obligations - repaid);
         assertEq(morphoV2.withdrawable(id), repaid);
@@ -113,13 +113,13 @@ contract OtherFunctionsTest is BaseTest {
 
     function testWithdrawInconsistentInput() public {
         vm.expectRevert("INCONSISTENT_INPUT");
-        morphoV2.withdrawBond(obligation, 1, 1, lender);
+        morphoV2.withdraw(obligation, 1, 1, lender);
 
         vm.expectRevert("INCONSISTENT_INPUT");
-        morphoV2.withdrawBond(obligation, 0, 0, lender);
+        morphoV2.withdraw(obligation, 0, 0, lender);
     }
 
-    function testWithdrawWithBonds(uint256 obligations, uint256 withdraw) public {
+    function testWithdrawWithObligations(uint256 obligations, uint256 withdraw) public {
         // Setup
         obligations = bound(obligations, 1, MAX_TEST_AMOUNT);
         withdraw = bound(withdraw, 1, obligations);
@@ -127,10 +127,11 @@ contract OtherFunctionsTest is BaseTest {
 
         // Test
         vm.prank(lender);
-        morphoV2.withdrawBond(obligation, withdraw, 0, lender);
+        morphoV2.withdraw(obligation, withdraw, 0, lender);
 
-        assertEq(morphoV2.obligationSharesOf(lender, id), obligations - withdraw, "obligationSharesOf");
+        assertEq(morphoV2.sharesOf(lender, id), obligations - withdraw, "obligationSharesOf");
         assertEq(morphoV2.withdrawable(id), 0, "withdrawable");
+        assertEq(morphoV2.totalShares(id), obligations - withdraw, "totalShares");
         assertEq(loanToken.balanceOf(address(morphoV2)), 0, "balance of morphoV2");
         assertEq(loanToken.balanceOf(lender), withdraw, "balance of lender");
     }
@@ -144,9 +145,9 @@ contract OtherFunctionsTest is BaseTest {
         // Test
         // TODO: sharesPrice != 1
         vm.prank(lender);
-        morphoV2.withdrawBond(obligation, 0, shares, lender);
+        morphoV2.withdraw(obligation, 0, shares, lender);
 
-        assertEq(morphoV2.obligationSharesOf(lender, id), obligations - shares, "obligationSharesOf");
+        assertEq(morphoV2.sharesOf(lender, id), obligations - shares, "obligationSharesOf");
         assertEq(morphoV2.withdrawable(id), 0, "withdrawable");
         assertEq(loanToken.balanceOf(address(morphoV2)), 0, "balance of morphoV2");
         assertEq(loanToken.balanceOf(lender), shares, "balance of lender");

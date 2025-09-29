@@ -23,7 +23,7 @@ contract MorphoV2 is IMorphoV2 {
 
     /// STORAGE ///
 
-    mapping(address => mapping(bytes32 => uint256)) public obligationSharesOf;
+    mapping(address => mapping(bytes32 => uint256)) public sharesOf;
     mapping(address => mapping(bytes32 => uint256)) public debtOf;
     mapping(bytes32 => uint256) public withdrawable;
     mapping(bytes32 => uint256) public totalObligations;
@@ -42,18 +42,18 @@ contract MorphoV2 is IMorphoV2 {
     /// position at the end.
     function take(
         Obligation memory obligation,
-        uint256 assets,
-        uint256 obligations,
+        uint256 consideration,
+        uint256 notional,
         address taker,
         Offer memory offer,
         Signature memory sig,
         address takerCallbackAddress,
         bytes memory takerCallbackData
     ) public {
-        require(assets == 0 || obligations == 0, "inconsistent input");
+        require(consideration == 0 || notional == 0, "inconsistent input");
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
-        require(obligation.maturity >= block.timestamp, "bond maturity");
+        require(obligation.maturity >= block.timestamp, "maturity");
         require(offer.loanToken == obligation.loanToken, "Loan tokens do not match");
         require(offer.maturity == obligation.maturity, "Maturities do not match");
         require(signatureIsValid(offer, sig), "Invalid signature");
@@ -75,26 +75,25 @@ contract MorphoV2 is IMorphoV2 {
             ? offer.startPrice + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start) / offerDuration
             : offer.startPrice;
 
-        if (assets > 0) obligations = assets.mulDivDown(1e18, price);
-        else assets = obligations.mulDivDown(price, 1e18);
+        if (consideration > 0) notional = consideration.mulDivDown(1e18, price);
+        else consideration = notional.mulDivDown(price, 1e18);
 
-        require((consumed[offer.offering][offer.nonce] += assets) <= offer.assets, "consumed");
+        require((consumed[offer.offering][offer.nonce] += consideration) <= offer.assets, "consumed");
 
         bytes32 id = _id(obligation);
 
         {
-            uint256 repaid = UtilsLib.min(debtOf[buyer][id], obligations);
-            uint256 bought = obligations - repaid;
+            uint256 repaid = UtilsLib.min(debtOf[buyer][id], notional);
+            uint256 bought = notional - repaid;
             uint256 boughtShares = bought.mulDivDown(totalShares[id] + 1, totalObligations[id] + 1);
-            uint256 withdrawn = UtilsLib.min(
-                obligationSharesOf[seller][id].mulDivDown(totalObligations[id] + 1, totalShares[id] + 1), obligations
-            );
+            uint256 withdrawn =
+                UtilsLib.min(sharesOf[seller][id].mulDivDown(totalObligations[id] + 1, totalShares[id] + 1), notional);
             uint256 withdrawnShares = withdrawn.mulDivUp(totalShares[id] + 1, totalObligations[id] + 1);
 
             debtOf[buyer][id] -= repaid;
-            obligationSharesOf[buyer][id] += boughtShares;
-            obligationSharesOf[seller][id] -= withdrawnShares;
-            debtOf[seller][id] += obligations - withdrawn;
+            sharesOf[buyer][id] += boughtShares;
+            sharesOf[seller][id] -= withdrawnShares;
+            debtOf[seller][id] += notional - withdrawn;
 
             totalShares[id] += boughtShares;
             totalShares[id] -= withdrawnShares;
@@ -103,44 +102,42 @@ contract MorphoV2 is IMorphoV2 {
         }
 
         if (buyerCallbackAddress != address(0)) {
-            ICallbacks(buyerCallbackAddress).onTake(obligation, buyer, assets, buyerCallbackData);
+            ICallbacks(buyerCallbackAddress).onTake(obligation, buyer, consideration, buyerCallbackData);
         }
 
-        SafeTransferLib.safeTransferFrom(offer.loanToken, buyer, seller, assets);
+        SafeTransferLib.safeTransferFrom(offer.loanToken, buyer, seller, consideration);
 
         if (sellerCallbackAddress != address(0)) {
-            ICallbacks(sellerCallbackAddress).onTake(obligation, seller, assets, sellerCallbackData);
+            ICallbacks(sellerCallbackAddress).onTake(obligation, seller, consideration, sellerCallbackData);
         }
 
         require(_isHealthy(obligation, seller), "Seller is unhealthy");
     }
 
     /// @dev Will revert if there is no withdrawable funds.
-    function withdrawBond(Obligation memory obligation, uint256 obligations, uint256 shares, address onBehalf)
-        external
-    {
-        require(UtilsLib.exactlyOneZero(obligations, shares), "INCONSISTENT_INPUT");
+    function withdraw(Obligation memory obligation, uint256 notional, uint256 shares, address onBehalf) external {
+        require(UtilsLib.exactlyOneZero(notional, shares), "INCONSISTENT_INPUT");
         bytes32 id = _id(obligation);
 
-        if (obligations > 0) shares = obligations.mulDivUp(totalShares[id] + 1, totalObligations[id] + 1);
-        else obligations = shares.mulDivDown(totalObligations[id] + 1, totalShares[id] + 1);
+        if (notional > 0) shares = notional.mulDivUp(totalShares[id] + 1, totalObligations[id] + 1);
+        else notional = shares.mulDivDown(totalObligations[id] + 1, totalShares[id] + 1);
 
-        obligationSharesOf[onBehalf][id] -= shares;
-        withdrawable[id] -= obligations;
+        sharesOf[onBehalf][id] -= shares;
+        withdrawable[id] -= notional;
 
         totalShares[id] -= shares;
-        totalObligations[id] -= obligations;
+        totalObligations[id] -= notional;
 
-        SafeTransferLib.safeTransfer(obligation.loanToken, msg.sender, obligations);
+        SafeTransferLib.safeTransfer(obligation.loanToken, msg.sender, notional);
     }
 
-    function repayDebt(Obligation memory obligation, uint256 obligations, address onBehalf) external {
+    function repay(Obligation memory obligation, uint256 notional, address onBehalf) external {
         bytes32 id = _id(obligation);
 
-        debtOf[onBehalf][id] -= obligations;
-        withdrawable[id] += obligations;
+        debtOf[onBehalf][id] -= notional;
+        withdrawable[id] += notional;
 
-        SafeTransferLib.safeTransferFrom(obligation.loanToken, msg.sender, address(this), obligations);
+        SafeTransferLib.safeTransferFrom(obligation.loanToken, msg.sender, address(this), notional);
     }
 
     function supplyCollateral(Obligation memory obligation, address collateral, uint256 assets, address onBehalf)
@@ -161,8 +158,8 @@ contract MorphoV2 is IMorphoV2 {
     }
 
     /// @notice Execute the given collection of `seizures` on the given `obligation` of the given `borrower`.
-    /// @dev On each seizure either `repaidObligations` or `seized` should be equal to zero.
-    /// @param obligation The obligation of the bond.
+    /// @dev On each seizure either `repaid` or `seized` should be equal to zero.
+    /// @param obligation The obligation.
     /// @param seizures An array of amounts of debt to repay or assets to seize with the index of the collateral in the
     /// obligation's collateral assets.
     /// @param borrower The debtor of the loan.
