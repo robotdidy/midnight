@@ -174,10 +174,13 @@ contract Terms is ITerms {
             prices[i] = IOracle(term.collaterals[i].oracle).price();
             {
                 address collateralToken = term.collaterals[i].token;
-                uint256 collateralQuoted =
-                    collateralOf[borrower][id][collateralToken].mulDivDown(prices[i], ORACLE_PRICE_SCALE);
-                maxDebt += collateralQuoted.mulDivDown(term.collaterals[i].lltv, 1e18);
-                repayableDebt += collateralQuoted.mulDivUp(1e18, LIQUIDATION_INCENTIVE_FACTOR);
+                uint256 collateralAmount = collateralOf[borrower][id][collateralToken];
+                maxDebt += collateralAmount.mulDivDown(prices[i], ORACLE_PRICE_SCALE).mulDivDown(
+                    term.collaterals[i].lltv, 1e18
+                );
+                repayableDebt += collateralAmount.mulDivUp(prices[i], ORACLE_PRICE_SCALE).mulDivDown(
+                    1e18, LIQUIDATION_INCENTIVE_FACTOR
+                );
             }
         }
 
