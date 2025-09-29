@@ -187,6 +187,13 @@ contract Terms is ITerms {
         uint256 originalDebt = debtOf[borrower][id];
         require(originalDebt > maxDebt, "position is healthy");
 
+        // Realize bad debt.
+        if (originalDebt > repayableDebt) {
+            uint256 badDebt = originalDebt - repayableDebt;
+            debtOf[borrower][id] -= badDebt;
+            totalBonds[id] -= badDebt;
+        }
+
         uint256 totalRepaid;
 
         for (uint256 i = 0; i < seizures.length; i++) {
@@ -207,18 +214,8 @@ contract Terms is ITerms {
             collateralOf[borrower][id][collateralToken] -= seizure.seizedAssets;
         }
 
-        // Realize bad debt
-        uint256 badDebt;
-
-        if (repayableDebt < originalDebt) {
-            // Because roundings are not aligned the effective bad debt is either the remaining debt or the original
-            // debt minus the theoretical repayable debt.
-            badDebt = UtilsLib.min(originalDebt - totalRepaid, originalDebt - repayableDebt);
-            totalBonds[id] -= badDebt;
-        }
-
         withdrawable[id] += totalRepaid;
-        debtOf[borrower][id] = originalDebt - totalRepaid - badDebt;
+        debtOf[borrower][id] -= totalRepaid;
 
         for (uint256 i = 0; i < seizures.length; i++) {
             Seizure memory seizure = seizures[i];
