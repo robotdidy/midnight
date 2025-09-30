@@ -177,10 +177,12 @@ contract MorphoV2 is IMorphoV2 {
 
         for (uint256 i = 0; i < obligation.collaterals.length; i++) {
             prices[i] = IOracle(obligation.collaterals[i].oracle).price();
-            uint256 collateralQuoted =
-                collateralOf[borrower][id][obligation.collaterals[i].token].mulDivDown(prices[i], ORACLE_PRICE_SCALE);
-            maxDebt += collateralQuoted.mulDivDown(obligation.collaterals[i].lltv, 1e18);
-            repayableDebt += collateralQuoted.mulDivUp(1e18, LIQUIDATION_INCENTIVE_FACTOR);
+            uint256 collateralAmount = collateralOf[borrower][id][obligation.collaterals[i].token];
+            maxDebt += collateralAmount.mulDivDown(prices[i], ORACLE_PRICE_SCALE).mulDivDown(
+                obligation.collaterals[i].lltv, 1e18
+            );
+            repayableDebt +=
+                collateralAmount.mulDivUp(prices[i], ORACLE_PRICE_SCALE).mulDivUp(1e18, LIQUIDATION_INCENTIVE_FACTOR);
         }
 
         uint256 originalDebt = debtOf[borrower][id];
