@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-struct Term {
+struct Obligation {
     address loanToken;
     // Must be sorted by address.
     Collateral[] collaterals;
@@ -38,12 +38,12 @@ struct Signature {
 }
 
 struct Seizure {
-    // Index of the collateral in the term's collateral assets.
+    // Index of the collateral in the obligation's collateral assets.
     uint256 collateralIndex;
-    // Amount of bonds to repay.
-    uint256 repaidBonds;
-    // Amount of collateral asset to seize.
-    uint256 seizedAssets;
+    // Amount of obligation units to repay.
+    uint256 repaid;
+    // Amount of collateral to seize.
+    uint256 seized;
 }
 
-interface ITerms {}
+interface IMorphoV2 {}

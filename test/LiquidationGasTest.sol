@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "./BaseTest.sol";
 
 contract LiquidationTest is BaseTest {
-    Term internal term;
+    Obligation internal obligation;
     bytes32 internal id;
 
     /// forge-config: default.isolate = true
@@ -19,25 +19,25 @@ contract LiquidationTest is BaseTest {
         Collateral[] memory collaterals = new Collateral[](numCollaterals);
         for (uint256 i = 0; i < collaterals.length; i++) {
             ERC20 collat = new ERC20("collat", "collat");
-            collat.approve(address(terms), type(uint256).max);
+            collat.approve(address(morphoV2), type(uint256).max);
             collaterals[i] = Collateral({token: address(collat), lltv: lltv, oracle: address(new Oracle())});
         }
         collaterals = sortCollaterals(collaterals);
 
-        // Populate term
+        // Populate obligation
 
-        term.loanToken = address(loanToken);
-        term.maturity = block.timestamp + 100;
+        obligation.loanToken = address(loanToken);
+        obligation.maturity = block.timestamp + 100;
 
         uint256 collateral = 1e18;
         for (uint256 i = 0; i < collaterals.length; i++) {
-            term.collaterals.push(collaterals[i]);
+            obligation.collaterals.push(collaterals[i]);
         }
 
         for (uint256 i = 0; i < collaterals.length; i++) {
             deal(address(collaterals[i].token), address(this), collateral);
 
-            terms.supplyCollateral(term, collaterals[i].token, collateral, borrower);
+            morphoV2.supplyCollateral(obligation, collaterals[i].token, collateral, borrower);
         }
 
         deal(address(loanToken), lender, 1e3 * 1e18);
@@ -46,13 +46,13 @@ contract LiquidationTest is BaseTest {
 
         // Create and take offer
 
-        id = toId(term);
+        id = toId(obligation);
         Offer memory borrowOffer = Offer({
             buy: false,
             offering: borrower,
             assets: maxDebt,
-            loanToken: term.loanToken,
-            collaterals: term.collaterals,
+            loanToken: obligation.loanToken,
+            collaterals: obligation.collaterals,
             start: block.timestamp,
             expiry: block.timestamp + 100,
             startPrice: 1e18,
@@ -63,7 +63,7 @@ contract LiquidationTest is BaseTest {
             callbackData: ""
         });
 
-        terms.take(term, 0, maxDebt, lender, borrowOffer, sig(borrowOffer, borrowerSK), address(0), hex"");
+        morphoV2.take(obligation, 0, maxDebt, lender, borrowOffer, sig(borrowOffer, borrowerSK), address(0), hex"");
 
         // Setup liquidation
         for (uint256 i = 0; i < numCollaterals; i++) {
@@ -75,10 +75,10 @@ contract LiquidationTest is BaseTest {
 
         Seizure[] memory seizures = new Seizure[](numSeizures);
         for (uint256 i = 0; i < numSeizures; i++) {
-            seizures[i] = Seizure({collateralIndex: i, repaidBonds: 0, seizedAssets: 1});
+            seizures[i] = Seizure({collateralIndex: i, repaid: 0, seized: 1});
         }
 
-        terms.liquidate(term, seizures, borrower, "");
+        morphoV2.liquidate(obligation, seizures, borrower, "");
         console.log("g %s", vm.lastCallGas().gasTotalUsed);
     }
 }

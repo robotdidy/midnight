@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "./BaseTest.sol";
 
 contract LiquidationTest is BaseTest {
-    Term internal term;
+    Obligation internal obligation;
     bytes32 internal id;
 
     Seizure[] internal recordedSeizures;
@@ -23,81 +23,81 @@ contract LiquidationTest is BaseTest {
 
         // Populate collaterals one by one to avoid the unsupported memory-to-storage array assignment that breaks the
         // solc legacy pipeline.
-        term.loanToken = address(loanToken);
-        term.maturity = block.timestamp + 100;
+        obligation.loanToken = address(loanToken);
+        obligation.maturity = block.timestamp + 100;
         for (uint256 i = 0; i < collaterals.length; i++) {
-            term.collaterals.push(collaterals[i]);
+            obligation.collaterals.push(collaterals[i]);
         }
 
-        id = toId(term);
+        id = toId(obligation);
     }
 
     function testLiquidateHealthy() public {
-        setupBond(term, 100);
+        setupObligation(obligation, 100);
 
         vm.expectRevert("position is healthy");
-        terms.liquidate(term, new Seizure[](0), borrower, "");
+        morphoV2.liquidate(obligation, new Seizure[](0), borrower, "");
     }
 
     function testLiquidateNoOp() public {
-        setupBond(term, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(0);
 
-        terms.liquidate(term, new Seizure[](0), borrower, "");
+        morphoV2.liquidate(obligation, new Seizure[](0), borrower, "");
     }
 
     function testLiquidateInconsistentInput() public {
-        setupBond(term, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(0);
 
         Seizure[] memory seizures = new Seizure[](1);
-        seizures[0] = Seizure({collateralIndex: 0, repaidBonds: 1, seizedAssets: 1});
+        seizures[0] = Seizure({collateralIndex: 0, repaid: 1, seized: 1});
 
         vm.expectRevert("INCONSISTENT_INPUT");
-        terms.liquidate(term, seizures, borrower, "");
+        morphoV2.liquidate(obligation, seizures, borrower, "");
     }
 
-    function testLiquidateBondsInput() public {
+    function testLiquidateObligationUnitsInput() public {
         // Setup
-        setupBond(term, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(1e36 - 1);
         deal(address(loanToken), address(this), 1);
 
         // Test
         Seizure[] memory seizures = new Seizure[](1);
-        seizures[0] = Seizure({collateralIndex: 0, repaidBonds: 1, seizedAssets: 0});
-        terms.liquidate(term, seizures, borrower, "");
-        assertEq(terms.debtOf(borrower, id), 99);
-        assertEq(terms.collateralOf(borrower, id, term.collaterals[0].token), 133);
+        seizures[0] = Seizure({collateralIndex: 0, repaid: 1, seized: 0});
+        morphoV2.liquidate(obligation, seizures, borrower, "");
+        assertEq(morphoV2.debtOf(borrower, id), 99);
+        assertEq(morphoV2.collateralOf(borrower, id, obligation.collaterals[0].token), 133);
         assertEq(loanToken.balanceOf(address(this)), 0);
     }
 
     function testLiquidateCollateralInput() public {
         // Setup
-        setupBond(term, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(1e36 - 1);
         deal(address(loanToken), address(this), 1);
 
         // Test
         Seizure[] memory seizures = new Seizure[](1);
-        seizures[0] = Seizure({collateralIndex: 0, repaidBonds: 0, seizedAssets: 1});
-        terms.liquidate(term, seizures, borrower, "");
+        seizures[0] = Seizure({collateralIndex: 0, repaid: 0, seized: 1});
+        morphoV2.liquidate(obligation, seizures, borrower, "");
         assertEq(loanToken.balanceOf(address(this)), 0);
-        assertEq(terms.debtOf(borrower, id), 99);
-        assertEq(terms.collateralOf(borrower, id, term.collaterals[0].token), 133);
+        assertEq(morphoV2.debtOf(borrower, id), 99);
+        assertEq(morphoV2.collateralOf(borrower, id, obligation.collaterals[0].token), 133);
     }
 
     function testLiquidateBadDebt() public {
         // Setup
-        setupBond(term, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(0.5e36);
         deal(address(loanToken), address(this), 1);
 
         // Test
         Seizure[] memory seizures = new Seizure[](1);
-        seizures[0] = Seizure({collateralIndex: 0, repaidBonds: 1, seizedAssets: 0});
-        terms.liquidate(term, seizures, borrower, "");
-        assertEq(terms.collateralOf(borrower, id, term.collaterals[0].token), 132);
+        seizures[0] = Seizure({collateralIndex: 0, repaid: 1, seized: 0});
+        morphoV2.liquidate(obligation, seizures, borrower, "");
+        assertEq(morphoV2.collateralOf(borrower, id, obligation.collaterals[0].token), 132);
         // TODO assert bad debt
     }
 
@@ -105,18 +105,18 @@ contract LiquidationTest is BaseTest {
         vm.assume(data.length > 0);
 
         // Setup
-        setupBond(term, 100);
+        setupObligation(obligation, 100);
         oracle.setPrice(1e36 - 1);
         deal(address(loanToken), address(this), 1);
 
         // Test
         Seizure[] memory seizures = new Seizure[](1);
-        seizures[0] = Seizure({collateralIndex: 0, repaidBonds: 1, seizedAssets: 0});
-        terms.liquidate(term, seizures, borrower, data);
+        seizures[0] = Seizure({collateralIndex: 0, repaid: 1, seized: 0});
+        morphoV2.liquidate(obligation, seizures, borrower, data);
 
         assertEq(recordedSeizures.length, 1, "seizures length");
-        assertEq(recordedSeizures[0].repaidBonds, 1, "repaid bonds");
-        assertEq(recordedSeizures[0].seizedAssets, 1, "seized assets");
+        assertEq(recordedSeizures[0].repaid, 1, "repaid obligations");
+        assertEq(recordedSeizures[0].seized, 1, "seized assets");
         assertEq(recordedBorrower, borrower, "borrower");
         assertEq(recordedLiquidator, address(this), "liquidator");
         assertEq(recordedData, data, "data");
@@ -125,21 +125,21 @@ contract LiquidationTest is BaseTest {
     // Check that if there is bad debt it is possible to seize all assets.
     function testLiquidateAllWhenBadDebt() public {
         Oracle oracle2 = new Oracle();
-        term.collaterals[1].oracle = address(oracle2);
-        id = toId(term);
+        obligation.collaterals[1].oracle = address(oracle2);
+        id = toId(obligation);
 
-        setupMaxBondWithCollaterals(term, 100, 100);
-        uint256 price = 1e36 * 1e18 / terms.LIQUIDATION_INCENTIVE_FACTOR() * 95 / 100;
-        uint256 price2 = 1e36 * 1e18 / terms.LIQUIDATION_INCENTIVE_FACTOR();
+        setupMaxObligationWithCollaterals(obligation, 100, 100);
+        uint256 price = 1e36 * 1e18 / morphoV2.LIQUIDATION_INCENTIVE_FACTOR() * 95 / 100;
+        uint256 price2 = 1e36 * 1e18 / morphoV2.LIQUIDATION_INCENTIVE_FACTOR();
         oracle.setPrice(price);
         oracle2.setPrice(price2);
         deal(address(loanToken), address(this), 100e18);
 
         Seizure[] memory seizures = new Seizure[](2);
-        seizures[0] = Seizure({collateralIndex: 0, repaidBonds: 0, seizedAssets: 100});
-        seizures[1] = Seizure({collateralIndex: 1, repaidBonds: 0, seizedAssets: 100});
+        seizures[0] = Seizure({collateralIndex: 0, repaid: 0, seized: 100});
+        seizures[1] = Seizure({collateralIndex: 1, repaid: 0, seized: 100});
 
-        terms.liquidate(term, seizures, borrower, "");
+        morphoV2.liquidate(obligation, seizures, borrower, "");
     }
 
     function onLiquidate(Seizure[] memory seizures, address borrower, address liquidator, bytes memory data) public {
