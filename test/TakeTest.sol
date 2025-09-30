@@ -376,6 +376,13 @@ contract TakeTest is BaseTest {
         vm.expectRevert("Invalid signature");
         terms.take(term, 100, 0, borrower, lendOffer, Signature(0, 0, 0), address(0), hex"");
     }
+
+    function testTakeInconsistentPrices() public {
+        lendOffer.expiryPrice = 0.98 ether;
+        lendOffer.expiry = lendOffer.start;
+        vm.expectRevert("inconsistent prices");
+        terms.take(term, 100, 0, borrower, lendOffer, sig(lendOffer, lenderSK), address(0), hex"");
+    }
 }
 
 contract BorrowCallback is ICallbacks {
