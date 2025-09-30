@@ -290,6 +290,13 @@ contract TakeTest is BaseTest {
         assertEq(LendCallback(callbackAddress).recordedData(), abi.encode(address(loanToken), 100));
     }
 
+    function testTakeConsistentPrices() public {
+        lendOffer.expiry = lendOffer.start;
+        terms.take(term, 100, 0, borrower, lendOffer, sig(lendOffer, lenderSK), address(0), hex"");
+
+        assertEq(terms.bondSharesOf(lender, id), 101, "lender bond shares");
+    }
+
     function testTakeMaturityPassed() public {
         vm.warp(block.timestamp + 101);
         vm.expectRevert("bond maturity");
@@ -375,6 +382,13 @@ contract TakeTest is BaseTest {
     function testTakeInvalidSignature() public {
         vm.expectRevert("Invalid signature");
         terms.take(term, 100, 0, borrower, lendOffer, Signature(0, 0, 0), address(0), hex"");
+    }
+
+    function testTakeInconsistentPrices() public {
+        lendOffer.expiryPrice = 0.98 ether;
+        lendOffer.expiry = lendOffer.start;
+        vm.expectRevert("inconsistent prices");
+        terms.take(term, 100, 0, borrower, lendOffer, sig(lendOffer, lenderSK), address(0), hex"");
     }
 }
 

@@ -56,6 +56,7 @@ contract Terms is ITerms {
         require(term.maturity >= block.timestamp, "bond maturity");
         require(offer.loanToken == term.loanToken, "Loan tokens do not match");
         require(offer.maturity == term.maturity, "Maturities do not match");
+        require(offer.start < offer.expiry || offer.expiryPrice == offer.startPrice, "inconsistent prices");
         require(signatureIsValid(offer, sig), "Invalid signature");
         _checkCollateralInclusion(term, offer);
 
@@ -70,9 +71,9 @@ contract Terms is ITerms {
             ? (offer.offering, offer.callbackAddress, offer.callbackData, taker, takerCallbackAddress, takerCallbackData)
             : (taker, takerCallbackAddress, takerCallbackData, offer.offering, offer.callbackAddress, offer.callbackData);
 
-        uint256 offerDuration = offer.expiry - offer.start;
-        uint256 price = offerDuration > 0
-            ? offer.startPrice + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start) / offerDuration
+        uint256 price = offer.expiry != offer.start
+            ? offer.startPrice
+                + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start) / (offer.expiry - offer.start)
             : offer.startPrice;
 
         if (assets > 0) bonds = assets.mulDivDown(1e18, price);
