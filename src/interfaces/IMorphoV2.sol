@@ -16,12 +16,10 @@ struct Collateral {
 }
 
 struct Offer {
+    Obligation obligation;
     bool buy;
     address offering;
     uint256 assets;
-    address loanToken;
-    Collateral[] collaterals;
-    uint256 maturity;
     uint256 start;
     uint256 expiry;
     uint256 startPrice;
