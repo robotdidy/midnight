@@ -128,8 +128,7 @@ contract MorphoV2 is IMorphoV2 {
         }
 
         require(
-            (consumed[offer.maker][offer.nonce] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets,
-            "consumed"
+            (consumed[offer.maker][offer.nonce] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets, "consumed"
         );
 
         bytes32 id = _id(obligation);
