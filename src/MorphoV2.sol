@@ -112,19 +112,34 @@ contract MorphoV2 is IMorphoV2 {
             : offer.startPrice;
         require(price <= 1e18, "price too high");
 
-        if (buyerAssets > 0) {
+        if (offer.buy && buyerAssets > 0) {
             obligationUnits = buyerAssets.mulDivDown(1e18, price);
-            sellerAssets =
-                buyerAssets - (obligationUnits - buyerAssets).mulDivDown(tradingFee[obligation.loanToken], 1e18);
-        } else if (sellerAssets > 0) {
+            sellerAssets = (buyerAssets - obligationUnits.mulDivDown(tradingFee[obligation.loanToken], 1e18)).mulDivDown(
+                1e18, 1e18 - tradingFee[obligation.loanToken]
+            );
+        } else if (offer.buy && sellerAssets > 0) {
             buyerAssets = sellerAssets.mulDivDown(
-                1e18, 1e18 + tradingFee[obligation.loanToken] - tradingFee[obligation.loanToken].mulDivDown(1e18, price)
+                1e18 - tradingFee[obligation.loanToken], 1e18 - tradingFee[obligation.loanToken].mulDivDown(1e18, price)
             );
             obligationUnits = buyerAssets.mulDivDown(1e18, price);
-        } else {
+        } else if (offer.buy && obligationUnits > 0) {
             buyerAssets = obligationUnits.mulDivDown(price, 1e18);
-            sellerAssets =
-                buyerAssets - (obligationUnits - buyerAssets).mulDivDown(tradingFee[obligation.loanToken], 1e18);
+            sellerAssets = (buyerAssets - obligationUnits.mulDivDown(tradingFee[obligation.loanToken], 1e18)).mulDivDown(
+                1e18, 1e18 - tradingFee[obligation.loanToken]
+            );
+        } else if (!offer.buy && buyerAssets > 0) {
+            sellerAssets = buyerAssets.mulDivDown(
+                1e18, 1e18 + tradingFee[obligation.loanToken].mulDivDown(1e18, price) - tradingFee[obligation.loanToken]
+            );
+            obligationUnits = sellerAssets.mulDivDown(1e18, price);
+        } else if (!offer.buy && sellerAssets > 0) {
+            obligationUnits = sellerAssets.mulDivDown(1e18, price);
+            buyerAssets =
+                sellerAssets + (obligationUnits - sellerAssets).mulDivDown(tradingFee[obligation.loanToken], 1e18);
+        } else if (!offer.buy && obligationUnits > 0) {
+            sellerAssets = obligationUnits.mulDivDown(price, 1e18);
+            buyerAssets =
+                sellerAssets + (obligationUnits - sellerAssets).mulDivDown(tradingFee[obligation.loanToken], 1e18);
         }
 
         require(
