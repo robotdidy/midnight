@@ -20,7 +20,7 @@ library MathLib {
         }
     }
 
-    /// @dev Returns true if leafHash is a leaf of the Merkle tree with root=root with internal nodes proof.
+    /// @dev Returns true if hash(hash(leafHash, proof[0]), proof[1])... = root (hash sorts the inputs lexicographically).
     function isLeaf(bytes32 root, bytes32 leafHash, bytes32[] memory proof) internal pure returns (bool) {
         bytes32 currentHash = leafHash;
         for (uint256 i = 0; i < proof.length; i++) {
