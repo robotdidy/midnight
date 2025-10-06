@@ -54,7 +54,7 @@ abstract contract BaseTest is Test {
     }
 
     function root(Offer[2] memory offers) internal pure returns (bytes32) {
-        return sortHash(keccak256(abi.encode(offers[0])), keccak256(abi.encode(offers[1])));
+        return MathLib.sort(keccak256(abi.encode(offers[0])), keccak256(abi.encode(offers[1])));
     }
 
     function proof(Offer[1] memory offers) internal pure returns (bytes32[] memory) {
@@ -66,10 +66,6 @@ abstract contract BaseTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = keccak256(abi.encode(offers[1]));
         return proof;
-    }
-
-    function sortHash(bytes32 h1, bytes32 h2) internal pure returns (bytes32) {
-        return h1 < h2 ? keccak256(abi.encode(h1, h2)) : keccak256(abi.encode(h2, h1));
     }
 
     function sig(bytes32 _root, uint256 sk) internal view returns (Signature memory) {
