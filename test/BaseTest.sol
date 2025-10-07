@@ -57,18 +57,18 @@ abstract contract BaseTest is Test {
         return keccak256(MathLib.sort(keccak256(abi.encode(offers[0])), keccak256(abi.encode(offers[1]))));
     }
 
-    function proof(Offer[1] memory offers) internal pure returns (bytes32[] memory) {
+    function proof(Offer[1] memory) internal pure returns (bytes32[] memory) {
         return new bytes32[](0);
     }
 
     // assumes the offer is the first one!
     function proof(Offer[2] memory offers) internal pure returns (bytes32[] memory) {
-        bytes32[] memory proof = new bytes32[](1);
-        proof[0] = keccak256(abi.encode(offers[1]));
-        return proof;
+        bytes32[] memory res = new bytes32[](1);
+        res[0] = keccak256(abi.encode(offers[1]));
+        return res;
     }
 
-    function sig(bytes32 _root, uint256 sk) internal view returns (Signature memory) {
+    function sig(bytes32 _root, uint256 sk) internal pure returns (Signature memory) {
         bytes32 messageHash = keccak256(bytes.concat("\x19\x45thereum Signed Message:\n32", _root));
         Signature memory signature;
         (signature.v, signature.r, signature.s) = vm.sign(sk, messageHash);
