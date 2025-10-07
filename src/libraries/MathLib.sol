@@ -20,8 +20,8 @@ library MathLib {
         }
     }
 
-    /// @dev Returns true if hash(hash(leafHash, proof[0]), proof[1])... = root (hash sorts the inputs
-    /// lexicographically).
+    /// @dev Returns hash(... hash(leafHash, proof[0]), ..., proof[n]) == root.
+    /// @dev Hash sorts the inputs lexicographically.
     function isLeaf(bytes32 root, bytes32 leafHash, bytes32[] memory proof) internal pure returns (bool) {
         bytes32 currentHash = leafHash;
         for (uint256 i = 0; i < proof.length; i++) {
