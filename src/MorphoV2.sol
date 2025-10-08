@@ -75,22 +75,20 @@ contract MorphoV2 is IMorphoV2 {
 
         bytes32 id = _id(offer.obligation);
 
-        uint256 repaid = UtilsLib.min(debtOf[buyer][id], obligationUnits);
-        uint256 bought = obligationUnits - repaid;
-        uint256 boughtShares = bought.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
-        uint256 withdrawn =
-            UtilsLib.min(sharesOf[seller][id].mulDivDown(totalUnits[id] + 1, totalShares[id] + 1), obligationUnits);
-        uint256 withdrawnShares = withdrawn.mulDivUp(totalShares[id] + 1, totalUnits[id] + 1);
+        uint256 sellerSharesDecrease =
+            UtilsLib.min(obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1), sharesOf[seller][id]);
+        uint256 sellerDebtIncrease =
+            obligationUnits - sellerSharesDecrease.mulDivDown(totalUnits[id] + 1, totalShares[id] + 1);
+        uint256 buyerDebtDecrease = UtilsLib.min(obligationUnits, debtOf[buyer][id]);
+        uint256 buyerSharesIncrease =
+            (obligationUnits - buyerDebtDecrease).mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
 
-        debtOf[buyer][id] -= repaid;
-        sharesOf[buyer][id] += boughtShares;
-        sharesOf[seller][id] -= withdrawnShares;
-        debtOf[seller][id] += obligationUnits - withdrawn;
-
-        totalShares[id] += boughtShares;
-        totalShares[id] -= withdrawnShares;
-        totalUnits[id] += bought;
-        totalUnits[id] -= withdrawn;
+        debtOf[buyer][id] -= buyerDebtDecrease;
+        sharesOf[buyer][id] += buyerSharesIncrease;
+        sharesOf[seller][id] -= sellerSharesDecrease;
+        debtOf[seller][id] += sellerDebtIncrease;
+        totalShares[id] = totalShares[id] + buyerSharesIncrease - sellerSharesDecrease;
+        totalUnits[id] = totalUnits[id] + sellerDebtIncrease - buyerDebtDecrease;
 
         if (buyerCallbackAddress != address(0)) {
             ICallbacks(buyerCallbackAddress).onTake(offer.obligation, buyer, assets, buyerCallbackData);
