@@ -9,8 +9,11 @@ contract UtilsLibTest is Test {
         assertEq(UtilsLib.exactlyOneZero(x, y), (x == 0) != (y == 0));
     }
 
-    function testAtMostOneNonZero(uint256 a, uint256 b, uint256 c) public pure {
-        assertEq(UtilsLib.atMostOneNonZero(a, b, c), (a == 0 ? 1 : 0) + (b == 0 ? 1 : 0) + (c == 0 ? 1 : 0) >= 2);
+    function testAtMostOneNonZero(uint256 a, uint256 b, uint256 c, uint256 d) public pure {
+        assertEq(
+            UtilsLib.atMostOneNonZero(a, b, c, d),
+            (a == 0 ? 1 : 0) + (b == 0 ? 1 : 0) + (c == 0 ? 1 : 0) + (d == 0 ? 1 : 0) >= 3
+        );
     }
 
     function testMin(uint256 a, uint256 b) public pure {

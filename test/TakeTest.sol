@@ -64,12 +64,13 @@ contract TakeTest is BaseTest {
         offer.expiry = block.timestamp;
         Signature memory sig;
         vm.expectRevert("maturity");
-        morphoV2.take(100, 0, 0, lender, offer, sig, root([offer]), proof([offer]), address(0), hex"");
+        morphoV2.take(100, 0, 0, 0, lender, offer, sig, root([offer]), proof([offer]), address(0), hex"");
     }
 
     function testLend() public {
         morphoV2.take(
             100,
+            0,
             0,
             0,
             lender,
@@ -93,6 +94,7 @@ contract TakeTest is BaseTest {
     function testBorrow() public {
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,
@@ -119,6 +121,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             lender,
             borrowOffer,
             sig(root([borrowOffer]), borrowerSK),
@@ -134,6 +137,7 @@ contract TakeTest is BaseTest {
         deal(address(loanToken), otherLender, 100);
         lendOffer.maker = otherLender;
         morphoV2.take(
+            0,
             0,
             101,
             0,
@@ -160,6 +164,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             lender,
             borrowOffer,
             sig(root([borrowOffer]), borrowerSK),
@@ -171,6 +176,7 @@ contract TakeTest is BaseTest {
         lendOffer.maker = borrower;
         lendOffer.nonce = 1;
         morphoV2.take(
+            0,
             0,
             101,
             0,
@@ -197,6 +203,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer]), lenderSK),
@@ -214,6 +221,7 @@ contract TakeTest is BaseTest {
         borrowOffer.maker = otherBorrower;
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,
@@ -242,6 +250,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer]), lenderSK),
@@ -255,6 +264,7 @@ contract TakeTest is BaseTest {
         borrowOffer.nonce = 1;
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,
@@ -282,6 +292,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             address(this),
             borrowOffer,
             sig(root([borrowOffer]), borrowerSK),
@@ -291,6 +302,7 @@ contract TakeTest is BaseTest {
             hex""
         );
         morphoV2.take(
+            0,
             0,
             101,
             0,
@@ -315,6 +327,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer]), lenderSK),
@@ -327,6 +340,7 @@ contract TakeTest is BaseTest {
         vm.expectRevert("consumed");
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,
@@ -342,6 +356,7 @@ contract TakeTest is BaseTest {
     function testTakePartialFill() public {
         morphoV2.take(
             50,
+            0,
             0,
             0,
             borrower,
@@ -360,6 +375,7 @@ contract TakeTest is BaseTest {
             51,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer]), lenderSK),
@@ -371,6 +387,7 @@ contract TakeTest is BaseTest {
 
         morphoV2.take(
             50,
+            0,
             0,
             0,
             borrower,
@@ -396,6 +413,7 @@ contract TakeTest is BaseTest {
             70,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer]), lenderSK),
@@ -408,6 +426,7 @@ contract TakeTest is BaseTest {
         vm.expectRevert("consumed");
         morphoV2.take(
             31,
+            0,
             0,
             0,
             borrower,
@@ -423,6 +442,7 @@ contract TakeTest is BaseTest {
 
         morphoV2.take(
             30,
+            0,
             0,
             0,
             borrower,
@@ -448,6 +468,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             lender,
             borrowOffer,
             sig(root([borrowOffer]), otherBorrowerSK),
@@ -468,6 +489,7 @@ contract TakeTest is BaseTest {
 
         morphoV2.take(
             100,
+            0,
             0,
             0,
             otherBorrower,
@@ -495,6 +517,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer]), otherLenderSK),
@@ -517,6 +540,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             otherLender,
             borrowOffer,
             sig(root([borrowOffer]), borrowerSK),
@@ -534,6 +558,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer]), lenderSK),
@@ -543,7 +568,7 @@ contract TakeTest is BaseTest {
             hex""
         );
 
-        assertEq(morphoV2.sharesOf(lender, id), 101, "lender bond shares");
+        assertEq(morphoV2.sharesOf(lender, id), 101, "lender shares");
     }
 
     function testTakeMaturityPassed() public {
@@ -551,6 +576,7 @@ contract TakeTest is BaseTest {
         vm.expectRevert("maturity");
         morphoV2.take(
             100,
+            0,
             0,
             0,
             lender,
@@ -570,6 +596,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             lender,
             borrowOffer,
             sig(root([borrowOffer]), borrowerSK),
@@ -585,6 +612,7 @@ contract TakeTest is BaseTest {
         vm.expectRevert("Seller is unhealthy");
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,
@@ -604,6 +632,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(wrongRoot, lenderSK),
@@ -617,7 +646,17 @@ contract TakeTest is BaseTest {
     function testTakeInvalidSignature() public {
         vm.expectRevert("invalid signature");
         morphoV2.take(
-            100, 0, 0, borrower, lendOffer, Signature(0, 0, 0), root([lendOffer]), proof([lendOffer]), address(0), hex""
+            100,
+            0,
+            0,
+            0,
+            borrower,
+            lendOffer,
+            Signature(0, 0, 0),
+            root([lendOffer]),
+            proof([lendOffer]),
+            address(0),
+            hex""
         );
     }
 
@@ -627,6 +666,7 @@ contract TakeTest is BaseTest {
         vm.expectRevert("inconsistent prices");
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,
@@ -644,6 +684,7 @@ contract TakeTest is BaseTest {
         vm.expectRevert("invalid proof");
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,
@@ -664,6 +705,7 @@ contract TakeTest is BaseTest {
             100,
             0,
             0,
+            0,
             borrower,
             lendOffer,
             sig(root([lendOffer, otherOffer]), lenderSK),
@@ -677,6 +719,7 @@ contract TakeTest is BaseTest {
     function testTakeTwoLeaves(Offer memory otherOffer) public {
         morphoV2.take(
             100,
+            0,
             0,
             0,
             borrower,

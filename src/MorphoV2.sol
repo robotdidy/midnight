@@ -27,13 +27,45 @@ contract MorphoV2 is IMorphoV2 {
     /// otherwise one might not be takable anymore while an other one at the same nonce is still takeable.
     mapping(address user => mapping(uint256 nonce => uint256)) public consumed;
 
+    /// @dev Cut on interest at each trade.
+    mapping(address loanToken => uint256) public tradingFee;
+    address public tradingFeeRecipient;
+
+    /// @dev Contract owner for administrative functions.
+    address public owner;
+
+    /// CONSTRUCTOR ///
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    /// ADMIN FUNCTIONS ///
+
+    function setOwner(address newOwner) external {
+        require(msg.sender == owner, "Only owner");
+        owner = newOwner;
+    }
+
+    function setTradingFee(address loanToken, uint256 fee) external {
+        require(msg.sender == owner, "Only owner");
+        require(fee <= 1e18, "Fee too high");
+        tradingFee[loanToken] = fee;
+    }
+
+    function setTradingFeeRecipient(address recipient) external {
+        require(msg.sender == owner, "Only owner");
+        tradingFeeRecipient = recipient;
+    }
+
     /// ENTRY-POINTS ///
 
     /// @dev Same function used to buy and sell.
     /// @dev If one wants to match two offers without taking a position, they can batch take them and not have a
     /// position at the end.
     function take(
-        uint256 assets,
+        uint256 buyerAssets,
+        uint256 sellerAssets,
         uint256 obligationUnits,
         uint256 obligationShares,
         address taker,
@@ -45,13 +77,16 @@ contract MorphoV2 is IMorphoV2 {
         bytes memory takerCallbackData
     ) public {
         bytes32 id = _id(offer.obligation);
-        require(UtilsLib.atMostOneNonZero(obligationUnits, obligationShares, assets), "inconsistent input");
+        require(
+            UtilsLib.atMostOneNonZero(buyerAssets, sellerAssets, obligationUnits, obligationShares),
+            "inconsistent input"
+        );
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
         require(offer.obligation.maturity >= block.timestamp, "maturity");
         require(offer.obligation.chainId == block.chainid, "chain id mismatch");
         require(offer.start < offer.expiry || offer.expiryPrice == offer.startPrice, "inconsistent prices");
-        require(signer(root, sig) == offer.maker, "invalid signature");
+        require(_signer(root, sig) == offer.maker, "invalid signature");
         require(MathLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
 
         (
@@ -65,23 +100,37 @@ contract MorphoV2 is IMorphoV2 {
             ? (offer.maker, offer.callbackAddress, offer.callbackData, taker, takerCallbackAddress, takerCallbackData)
             : (taker, takerCallbackAddress, takerCallbackData, offer.maker, offer.callbackAddress, offer.callbackData);
 
-        uint256 price = offer.expiry != offer.start
+        uint256 offerPrice = offer.expiry != offer.start
             ? offer.startPrice
                 + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start) / (offer.expiry - offer.start)
             : offer.startPrice;
+        require(offerPrice <= 1e18, "price too high");
 
-        if (assets > 0) {
-            obligationUnits = assets.mulDivDown(1e18, price);
-            obligationShares = obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
+        uint256 _tradingFee = tradingFee[offer.obligation.loanToken];
+        uint256 buyerPrice = offer.buy ? offerPrice : offerPrice.mulDivDown(WAD - _tradingFee, WAD) + _tradingFee;
+        uint256 sellerPrice = offer.buy ? (offerPrice - _tradingFee).mulDivDown(WAD, WAD - _tradingFee) : offerPrice;
+
+        if (buyerAssets > 0) {
+            obligationUnits = buyerAssets.mulDivDown(1e18, buyerPrice);
+            sellerAssets = buyerAssets.mulDivDown(sellerPrice, buyerPrice);
+            obligationShares = obligationUnits.mulDivDown(totalUnits[id] + 1, totalShares[id] + 1);
+        } else if (sellerAssets > 0) {
+            obligationUnits = sellerAssets.mulDivDown(1e18, sellerPrice);
+            buyerAssets = sellerAssets.mulDivDown(buyerPrice, sellerPrice);
+            obligationShares = obligationUnits.mulDivDown(totalUnits[id] + 1, totalShares[id] + 1);
         } else if (obligationUnits > 0) {
-            assets = obligationUnits.mulDivDown(price, 1e18);
+            buyerAssets = obligationUnits.mulDivDown(buyerPrice, 1e18);
+            sellerAssets = obligationUnits.mulDivDown(sellerPrice, 1e18);
             obligationShares = obligationUnits.mulDivDown(totalUnits[id] + 1, totalShares[id] + 1);
         } else {
             obligationUnits = obligationShares.mulDivDown(totalUnits[id] + 1, totalShares[id] + 1);
-            assets = obligationUnits.mulDivDown(price, 1e18);
+            buyerAssets = obligationUnits.mulDivDown(buyerPrice, 1e18);
+            sellerAssets = obligationUnits.mulDivDown(sellerPrice, 1e18);
         }
 
-        require((consumed[offer.maker][offer.nonce] += assets) <= offer.assets, "consumed");
+        require(
+            (consumed[offer.maker][offer.nonce] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets, "consumed"
+        );
 
         uint256 sellerSharesDecrease = UtilsLib.min(obligationShares, sharesOf[seller][id]);
         uint256 sellerDebtIncrease =
@@ -90,25 +139,24 @@ contract MorphoV2 is IMorphoV2 {
         uint256 buyerSharesIncrease =
             (obligationUnits - buyerDebtDecrease).mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
 
-        if (buyerDebtDecrease > 0) debtOf[buyer][id] -= buyerDebtDecrease;
-        if (buyerSharesIncrease > 0) sharesOf[buyer][id] += buyerSharesIncrease;
-        if (sellerSharesDecrease > 0) sharesOf[seller][id] -= sellerSharesDecrease;
-        if (sellerDebtIncrease > 0) debtOf[seller][id] += sellerDebtIncrease;
-        if (buyerSharesIncrease != sellerSharesDecrease) {
-            totalShares[id] = totalShares[id] + buyerSharesIncrease - sellerSharesDecrease;
-        }
-        if (sellerDebtIncrease != buyerDebtDecrease) {
-            totalUnits[id] = totalUnits[id] + sellerDebtIncrease - buyerDebtDecrease;
-        }
+        debtOf[buyer][id] -= buyerDebtDecrease;
+        sharesOf[buyer][id] += buyerSharesIncrease;
+        sharesOf[seller][id] -= sellerSharesDecrease;
+        debtOf[seller][id] += sellerDebtIncrease;
+        totalShares[id] = totalShares[id] + buyerSharesIncrease - sellerSharesDecrease;
+        totalUnits[id] = totalUnits[id] + sellerDebtIncrease - buyerDebtDecrease;
 
         if (buyerCallbackAddress != address(0)) {
-            ICallbacks(buyerCallbackAddress).onTake(offer.obligation, buyer, assets, buyerCallbackData);
+            ICallbacks(buyerCallbackAddress).onTake(offer.obligation, buyer, buyerAssets, buyerCallbackData);
         }
 
-        SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, seller, assets);
+        SafeTransferLib.safeTransferFrom(
+            offer.obligation.loanToken, buyer, tradingFeeRecipient, buyerAssets - sellerAssets
+        );
+        SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, seller, sellerAssets);
 
         if (sellerCallbackAddress != address(0)) {
-            ICallbacks(sellerCallbackAddress).onTake(offer.obligation, seller, assets, sellerCallbackData);
+            ICallbacks(sellerCallbackAddress).onTake(offer.obligation, seller, sellerAssets, sellerCallbackData);
         }
 
         require(_isHealthy(offer.obligation, seller), "Seller is unhealthy");
@@ -238,7 +286,7 @@ contract MorphoV2 is IMorphoV2 {
         return keccak256(abi.encode(obligation));
     }
 
-    function signer(bytes32 root, Signature memory signature) internal view returns (address) {
+    function _signer(bytes32 root, Signature memory signature) internal pure returns (address) {
         bytes32 messageHash = keccak256(bytes.concat("\x19\x45thereum Signed Message:\n32", root));
         address tentativeSigner = ecrecover(messageHash, signature.v, signature.r, signature.s);
         require(tentativeSigner != address(0), "invalid signature");

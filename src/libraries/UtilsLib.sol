@@ -11,9 +11,9 @@ library UtilsLib {
     }
 
     /// @dev Returns true if at most one of `a`, `b`, `c` is nonzero.
-    function atMostOneNonZero(uint256 a, uint256 b, uint256 c) internal pure returns (bool z) {
+    function atMostOneNonZero(uint256 a, uint256 b, uint256 c, uint256 d) internal pure returns (bool z) {
         assembly {
-            z := gt(add(add(iszero(a), iszero(b)), iszero(c)), 1)
+            z := gt(add(add(add(iszero(a), iszero(b)), iszero(c)), iszero(d)), 1)
         }
     }
 
