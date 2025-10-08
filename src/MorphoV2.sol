@@ -29,7 +29,7 @@ contract MorphoV2 is IMorphoV2 {
 
     /// @dev Cut on interest at each trade.
     mapping(address loanToken => uint256) public tradingFee;
-    mapping(address loanToken => address) public tradingFeeRecipient;
+    address public tradingFeeRecipient;
 
     /// @dev Contract owner for administrative functions.
     address public owner;
@@ -53,9 +53,9 @@ contract MorphoV2 is IMorphoV2 {
         tradingFee[loanToken] = fee;
     }
 
-    function setTradingFeeRecipient(address loanToken, address recipient) external {
+    function setTradingFeeRecipient(address recipient) external {
         require(msg.sender == owner, "Only owner");
-        tradingFeeRecipient[loanToken] = recipient;
+        tradingFeeRecipient = recipient;
     }
 
     /// ENTRY-POINTS ///
@@ -147,10 +147,7 @@ contract MorphoV2 is IMorphoV2 {
         }
 
         SafeTransferLib.safeTransferFrom(
-            offer.obligation.loanToken,
-            buyer,
-            tradingFeeRecipient[offer.obligation.loanToken],
-            buyerAssets - sellerAssets
+            offer.obligation.loanToken, buyer, tradingFeeRecipient, buyerAssets - sellerAssets
         );
         SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, seller, sellerAssets);
 

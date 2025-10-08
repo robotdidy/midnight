@@ -41,14 +41,14 @@ contract SettersTest is BaseTest {
     }
 
     function testSetTradingFeeRecipientSuccess(address recipient) public {
-        morphoV2.setTradingFeeRecipient(address(loanToken), recipient);
-        assertEq(morphoV2.tradingFeeRecipient(address(loanToken)), recipient, "recipient set");
+        morphoV2.setTradingFeeRecipient(recipient);
+        assertEq(morphoV2.tradingFeeRecipient(), recipient, "recipient set");
     }
 
     function testSetTradingFeeRecipientOnlyOwner(address rdm) public {
         vm.assume(rdm != address(this));
         vm.prank(rdm);
         vm.expectRevert("Only owner");
-        morphoV2.setTradingFeeRecipient(address(loanToken), makeAddr("newRecipient"));
+        morphoV2.setTradingFeeRecipient(makeAddr("newRecipient"));
     }
 }

@@ -58,12 +58,12 @@ contract TradingFeeTest is BaseTest {
 
         // Set up trading fee for tests
         morphoV2.setTradingFee(address(loanToken), 0.05e18); // 5%
-        morphoV2.setTradingFeeRecipient(address(loanToken), feeRecipient);
+        morphoV2.setTradingFeeRecipient(feeRecipient);
     }
 
     function testTradingFeeSetup() public view {
         assertEq(morphoV2.tradingFee(address(loanToken)), 0.05e18, "trading fee percentage");
-        assertEq(morphoV2.tradingFeeRecipient(address(loanToken)), feeRecipient, "fee recipient");
+        assertEq(morphoV2.tradingFeeRecipient(), feeRecipient, "fee recipient");
     }
 
     function testBuyerAssetsWithFee() public {
