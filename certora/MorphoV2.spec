@@ -4,9 +4,9 @@
 
 methods {
     function withdrawable(bytes32 id) external returns uint256 envfree;
-    function totalAssets(bytes32 id) external returns (uint256) envfree;
+    function totalUnits(bytes32 id) external returns (uint256) envfree;
     function totalShares(bytes32 id) external returns (uint256) envfree;
-    function bondSharesOf(address owner, bytes32 id) external returns (uint256) envfree;
+    function sharesOf(address owner, bytes32 id) external returns (uint256) envfree;
     function debtOf(address owner, bytes32 id) external returns (uint256) envfree;
 
     function _.transfer(address, uint256) external => DISPATCHER(true);
@@ -17,14 +17,14 @@ methods {
 
 /// HELPERS ///
 
-persistent ghost mapping(bytes32 => mathint) sumBondSharesOf {
-    init_state axiom (forall bytes32 id. sumBondSharesOf[id] == 0);
+persistent ghost mapping(bytes32 => mathint) sumSharesOf {
+    init_state axiom (forall bytes32 id. sumSharesOf[id] == 0);
 }
-hook Sload uint256 bondSharesOfOwner bondSharesOf[KEY address owner][KEY bytes32 id] {
-    require sumBondSharesOf[id] >= to_mathint(bondSharesOfOwner);
+hook Sload uint256 sharesOfOwner sharesOf[KEY address owner][KEY bytes32 id] {
+    require sumSharesOf[id] >= to_mathint(sharesOfOwner);
 }
-hook Sstore bondSharesOf[KEY address owner][KEY bytes32 id] uint256 newBondShares (uint256 oldBondShares) {
-    sumBondSharesOf[id] = sumBondSharesOf[id] - oldBondShares + newBondShares;
+hook Sstore sharesOf[KEY address owner][KEY bytes32 id] uint256 newShares (uint256 oldShares) {
+    sumSharesOf[id] = sumSharesOf[id] - oldShares + newShares;
 }
 
 persistent ghost mapping(bytes32 => mathint) sumDebtOf {
@@ -45,16 +45,16 @@ rule sanity() {
 
 /// INVARIANTS ///
 
-strong invariant totalAssetsEqualsSumDebtPlusWithdrawable(bytes32 id)
-    totalAssets(id) == sumDebtOf[id] + withdrawable(id);
+strong invariant totalUnitsEqualsSumDebtPlusWithdrawable(bytes32 id)
+    totalUnits(id) == sumDebtOf[id] + withdrawable(id);
 
-strong invariant totalSharesEqualsSumBondSharesOf(bytes32 id)
-    totalShares(id) == sumBondSharesOf[id];
+strong invariant totalSharesEqualsSumSharesOf(bytes32 id)
+    totalShares(id) == sumSharesOf[id];
 
 // this is not true because of the roundings in shares to/from assets conversions
 // strong invariant sharePriceBelow1(bytes32 id)
-//     totalShares(id) >= totalAssets(id);
+//     totalShares(id) >= totalUnits(id);
 
 // this is not true because of the roundings in shares to/from assets conversions
 // invariant notBorrowerAndLender(bytes32 id, address user)
-//     bondSharesOf(user, id) == 0 || debtOf(user, id) == 0;
+//     sharesOf(user, id) == 0 || debtOf(user, id) == 0;
