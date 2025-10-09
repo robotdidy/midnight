@@ -12,7 +12,7 @@ contract UtilsLibTest is Test {
     function testAtMostOneNonZero(uint256 a, uint256 b, uint256 c, uint256 d) public pure {
         assertEq(
             UtilsLib.atMostOneNonZero(a, b, c, d),
-            (a == 0 ? 1 : 0) + (b == 0 ? 1 : 0) + (c == 0 ? 1 : 0) + (d == 0 ? 1 : 0) >= 3
+            (a != 0 ? 1 : 0) + (b != 0 ? 1 : 0) + (c != 0 ? 1 : 0) + (d != 0 ? 1 : 0) <= 1
         );
     }
 
