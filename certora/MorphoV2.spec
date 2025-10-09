@@ -36,3 +36,6 @@ strong invariant totalUnitsEqualsSumDebtPlusWithdrawable(bytes32 id)
 
 strong invariant totalSharesEqualsSumSharesOf(bytes32 id)
     totalShares(id) == sumSharesOf[id];
+
+strong invariant sharePriceBelowOne(bytes32 id)
+    totalShares(id) >= totalUnits(id);
