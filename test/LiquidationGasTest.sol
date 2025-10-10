@@ -66,6 +66,7 @@ contract LiquidationTest is BaseTest {
             0,
             0,
             maxDebt,
+            0,
             lender,
             borrowOffer,
             sig(root([borrowOffer]), borrowerSK),
