@@ -60,6 +60,7 @@ contract MorphoV2 is IMorphoV2 {
 
     /// ENTRY-POINTS ///
 
+    /// @dev Returns buyerAssets, sellerAssets, obligationUnits, obligationShares.
     /// @dev Same function used to buy and sell.
     /// @dev If one wants to match two offers without taking a position, they can batch take them and not have a
     /// position at the end.
@@ -75,7 +76,7 @@ contract MorphoV2 is IMorphoV2 {
         bytes32[] memory proof,
         address takerCallbackAddress,
         bytes memory takerCallbackData
-    ) public {
+    ) public returns (uint256, uint256, uint256, uint256) {
         bytes32 id = _id(offer.obligation);
         require(
             UtilsLib.atMostOneNonZero(buyerAssets, sellerAssets, obligationUnits, obligationShares),
@@ -160,6 +161,8 @@ contract MorphoV2 is IMorphoV2 {
         }
 
         require(_isHealthy(offer.obligation, seller), "Seller is unhealthy");
+
+        return (buyerAssets, sellerAssets, obligationUnits, obligationShares);
     }
 
     /// @dev Will revert if there is no withdrawable funds.
