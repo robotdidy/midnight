@@ -23,8 +23,10 @@ contract MorphoV2 is IMorphoV2 {
     mapping(address => mapping(bytes32 => mapping(address => uint256))) public collateralOf;
 
     /// @dev Multiple offers can have the same nonce. This allows to implement easy and efficient batch-cancelling and
-    /// OCO (One-Cancels-the-Other) orders. Note that OCO orders work better if all offers have the same amount,
-    /// otherwise one might not be takable anymore while an other one at the same nonce is still takeable.
+    /// OCO (One-Cancels-the-Other) offers.
+    /// @dev OCO offers should all have the same amounts to work as expected.
+    /// @dev OCO offers should all have the same input (assets, obligation units or obligation shares) to work as
+    /// expected.
     mapping(address user => mapping(uint256 nonce => uint256)) public consumed;
 
     /// @dev Cut on interest at each trade.
@@ -82,6 +84,10 @@ contract MorphoV2 is IMorphoV2 {
             UtilsLib.atMostOneNonZero(buyerAssets, sellerAssets, obligationUnits, obligationShares),
             "inconsistent input"
         );
+        require(
+            UtilsLib.atMostOneNonZero(offer.assets, offer.obligationUnits, offer.obligationShares),
+            "inconsistent offer input"
+        );
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
         require(offer.obligation.maturity >= block.timestamp, "maturity");
@@ -129,9 +135,16 @@ contract MorphoV2 is IMorphoV2 {
             sellerAssets = obligationUnits.mulDivDown(sellerPrice, 1e18);
         }
 
-        require(
-            (consumed[offer.maker][offer.nonce] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets, "consumed"
-        );
+        if (offer.assets > 0) {
+            require(
+                (consumed[offer.maker][offer.nonce] += offer.buy ? buyerAssets : sellerAssets) <= offer.assets,
+                "consumed"
+            );
+        } else if (offer.obligationUnits > 0) {
+            require((consumed[offer.maker][offer.nonce] += obligationUnits) <= offer.obligationUnits, "consumed");
+        } else {
+            require((consumed[offer.maker][offer.nonce] += obligationShares) <= offer.obligationShares, "consumed");
+        }
 
         uint256 sellerSharesDecrease = UtilsLib.min(obligationShares, sharesOf[seller][id]);
         uint256 sellerDebtIncrease =

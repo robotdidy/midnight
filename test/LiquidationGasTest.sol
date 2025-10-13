@@ -53,6 +53,8 @@ contract LiquidationTest is BaseTest {
             buy: false,
             maker: borrower,
             assets: maxDebt,
+            obligationUnits: 0,
+            obligationShares: 0,
             start: block.timestamp,
             expiry: block.timestamp + 100,
             startPrice: 1e18,
