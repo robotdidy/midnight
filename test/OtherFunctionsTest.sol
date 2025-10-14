@@ -115,9 +115,6 @@ contract OtherFunctionsTest is BaseTest {
     function testWithdrawInconsistentInput() public {
         vm.expectRevert("INCONSISTENT_INPUT");
         morphoV2.withdraw(obligation, 1, 1, lender);
-
-        vm.expectRevert("INCONSISTENT_INPUT");
-        morphoV2.withdraw(obligation, 0, 0, lender);
     }
 
     function testWithdrawWithObligations(uint256 obligations, uint256 withdraw) public {

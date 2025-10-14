@@ -60,13 +60,16 @@ contract MorphoV2 is IMorphoV2 {
 
     /// ENTRY-POINTS ///
 
+    /// @dev Returns buyerAssets, sellerAssets, obligationUnits, obligationShares.
     /// @dev Same function used to buy and sell.
     /// @dev If one wants to match two offers without taking a position, they can batch take them and not have a
     /// position at the end.
+    /// @dev Neither the taker nor the maker can pass from having obligation shares to having debt in one take.
     function take(
         uint256 buyerAssets,
         uint256 sellerAssets,
         uint256 obligationUnits,
+        uint256 obligationShares,
         address taker,
         Offer memory offer,
         Signature memory sig,
@@ -74,9 +77,10 @@ contract MorphoV2 is IMorphoV2 {
         bytes32[] memory proof,
         address takerCallbackAddress,
         bytes memory takerCallbackData
-    ) public {
+    ) public returns (uint256, uint256, uint256, uint256) {
+        bytes32 id = _id(offer.obligation);
         require(
-            (buyerAssets == 0 ? 1 : 0) + (sellerAssets == 0 ? 1 : 0) + (obligationUnits == 0 ? 1 : 0) >= 2,
+            UtilsLib.atMostOneNonZero(buyerAssets, sellerAssets, obligationUnits, obligationShares),
             "inconsistent input"
         );
         require(block.timestamp >= offer.start, "offer not started");
@@ -111,10 +115,17 @@ contract MorphoV2 is IMorphoV2 {
         if (buyerAssets > 0) {
             obligationUnits = buyerAssets.mulDivDown(1e18, buyerPrice);
             sellerAssets = buyerAssets.mulDivDown(sellerPrice, buyerPrice);
+            obligationShares = obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
         } else if (sellerAssets > 0) {
             obligationUnits = sellerAssets.mulDivDown(1e18, sellerPrice);
             buyerAssets = sellerAssets.mulDivDown(buyerPrice, sellerPrice);
+            obligationShares = obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
+        } else if (obligationUnits > 0) {
+            buyerAssets = obligationUnits.mulDivDown(buyerPrice, 1e18);
+            sellerAssets = obligationUnits.mulDivDown(sellerPrice, 1e18);
+            obligationShares = obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
         } else {
+            obligationUnits = obligationShares.mulDivDown(totalUnits[id] + 1, totalShares[id] + 1);
             buyerAssets = obligationUnits.mulDivDown(buyerPrice, 1e18);
             sellerAssets = obligationUnits.mulDivDown(sellerPrice, 1e18);
         }
@@ -123,22 +134,23 @@ contract MorphoV2 is IMorphoV2 {
             (consumed[offer.maker][offer.nonce] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets, "consumed"
         );
 
-        bytes32 id = _id(offer.obligation);
-
-        uint256 sellerSharesDecrease =
-            UtilsLib.min(obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1), sharesOf[seller][id]);
-        uint256 sellerDebtIncrease =
-            obligationUnits - sellerSharesDecrease.mulDivUp(totalUnits[id] + 1, totalShares[id] + 1);
-        uint256 buyerDebtDecrease = UtilsLib.min(obligationUnits, debtOf[buyer][id]);
-        uint256 buyerSharesIncrease =
-            (obligationUnits - buyerDebtDecrease).mulDivUp(totalShares[id] + 1, totalUnits[id] + 1);
-
-        debtOf[buyer][id] -= buyerDebtDecrease;
-        sharesOf[buyer][id] += buyerSharesIncrease;
-        sharesOf[seller][id] -= sellerSharesDecrease;
-        debtOf[seller][id] += sellerDebtIncrease;
-        totalShares[id] = totalShares[id] + buyerSharesIncrease - sellerSharesDecrease;
-        totalUnits[id] = totalUnits[id] + sellerDebtIncrease - buyerDebtDecrease;
+        if (debtOf[buyer][id] == 0 && sharesOf[seller][id] == 0) {
+            sharesOf[buyer][id] += obligationShares;
+            debtOf[seller][id] += obligationUnits;
+            totalShares[id] += obligationShares;
+            totalUnits[id] += obligationUnits;
+        } else if (debtOf[buyer][id] == 0 && sharesOf[seller][id] > 0) {
+            sharesOf[buyer][id] += obligationShares;
+            sharesOf[seller][id] -= obligationShares;
+        } else if (debtOf[buyer][id] > 0 && sharesOf[seller][id] == 0) {
+            debtOf[buyer][id] -= obligationUnits;
+            debtOf[seller][id] += obligationUnits;
+        } else {
+            debtOf[buyer][id] -= obligationUnits;
+            sharesOf[seller][id] -= obligationShares;
+            totalShares[id] -= obligationShares;
+            totalUnits[id] -= obligationUnits;
+        }
 
         if (buyerCallbackAddress != address(0)) {
             ICallbacks(buyerCallbackAddress).onTake(offer.obligation, buyer, buyerAssets, buyerCallbackData);
@@ -154,13 +166,15 @@ contract MorphoV2 is IMorphoV2 {
         }
 
         require(_isHealthy(offer.obligation, seller), "Seller is unhealthy");
+
+        return (buyerAssets, sellerAssets, obligationUnits, obligationShares);
     }
 
     /// @dev Will revert if there is no withdrawable funds.
     function withdraw(Obligation memory obligation, uint256 obligationUnits, uint256 shares, address onBehalf)
         external
     {
-        require(UtilsLib.exactlyOneZero(obligationUnits, shares), "INCONSISTENT_INPUT");
+        require(UtilsLib.atMostOneNonZero(obligationUnits, shares), "INCONSISTENT_INPUT");
         bytes32 id = _id(obligation);
 
         if (obligationUnits > 0) shares = obligationUnits.mulDivUp(totalShares[id] + 1, totalUnits[id] + 1);
@@ -241,7 +255,7 @@ contract MorphoV2 is IMorphoV2 {
 
         for (uint256 i = 0; i < seizures.length; i++) {
             Seizure memory seizure = seizures[i];
-            require(UtilsLib.exactlyOneZero(seizure.repaid, seizure.seized), "INCONSISTENT_INPUT");
+            require(UtilsLib.atMostOneNonZero(seizure.repaid, seizure.seized), "INCONSISTENT_INPUT");
 
             if (seizure.seized > 0) {
                 seizure.repaid = seizure.seized.mulDivUp(1e18, LIQUIDATION_INCENTIVE_FACTOR).mulDivUp(
