@@ -2,7 +2,10 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./BaseTest.sol";
+import {MathLib} from "../src/libraries/MathLib.sol";
+import {Obligation, Offer, Collateral} from "../src/interfaces/IMorphoV2.sol";
+
+import {BaseTest} from "./BaseTest.sol";
 
 contract TradingFeeTest is BaseTest {
     using MathLib for uint256;
@@ -57,12 +60,12 @@ contract TradingFeeTest is BaseTest {
         morphoV2.supplyCollateral(obligation, address(collateralToken1), 200 ether, borrower);
 
         // Set up trading fee for tests
-        morphoV2.setTradingFee(address(loanToken), 0.05e18); // 5%
+        morphoV2.setTradingFee(id, 0.05e18); // 5%
         morphoV2.setTradingFeeRecipient(feeRecipient);
     }
 
     function testTradingFeeSetup() public view {
-        assertEq(morphoV2.tradingFee(address(loanToken)), 0.05e18, "trading fee percentage");
+        assertEq(morphoV2.tradingFee(id), 0.05e18, "trading fee percentage");
         assertEq(morphoV2.tradingFeeRecipient(), feeRecipient, "fee recipient");
     }
 
@@ -89,7 +92,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -129,7 +132,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -164,7 +167,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -177,7 +180,7 @@ contract TradingFeeTest is BaseTest {
     }
 
     function testZeroTradingFee() public {
-        morphoV2.setTradingFee(address(loanToken), 0);
+        morphoV2.setTradingFee(id, 0);
         uint256 buyerAssets = 100 ether;
         borrowOffer.startPrice = 0.9 ether;
         borrowOffer.expiryPrice = 0.9 ether;
@@ -193,7 +196,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -221,7 +224,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -249,7 +252,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -277,7 +280,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),

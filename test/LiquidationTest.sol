@@ -2,7 +2,11 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./BaseTest.sol";
+import {LIQUIDATION_INCENTIVE_FACTOR} from "../src/libraries/ConstantsLib.sol";
+import {Obligation, Collateral, Seizure} from "../src/interfaces/IMorphoV2.sol";
+
+import {Oracle} from "./helpers/Oracle.sol";
+import {BaseTest} from "./BaseTest.sol";
 
 contract LiquidationTest is BaseTest {
     Obligation internal obligation;

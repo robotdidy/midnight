@@ -2,8 +2,13 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./BaseTest.sol";
+import {Obligation, Offer, Signature, Collateral, Seizure} from "../src/interfaces/IMorphoV2.sol";
+import {MorphoV2} from "../src/MorphoV2.sol";
+import {ORACLE_PRICE_SCALE} from "../src/libraries/ConstantsLib.sol";
+import {ICallbacks} from "../src/interfaces/ICallbacks.sol";
 
+import {BaseTest} from "./BaseTest.sol";
+import {ERC20} from "./helpers/ERC20.sol";
 import {Oracle} from "./helpers/Oracle.sol";
 
 contract TakeTest is BaseTest {
@@ -77,7 +82,7 @@ contract TakeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -101,7 +106,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -126,14 +131,14 @@ contract TakeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
             hex""
         );
 
-        (address otherLender, uint256 otherLenderSK) = makeAddrAndKey("otherLender");
+        (address otherLender, uint256 otherLenderSecretKey) = makeAddrAndKey("otherLender");
         vm.prank(otherLender);
         loanToken.approve(address(morphoV2), 100);
         deal(address(loanToken), otherLender, 100);
@@ -145,7 +150,7 @@ contract TakeTest is BaseTest {
             0,
             lender,
             lendOffer,
-            sig(root([lendOffer]), otherLenderSK),
+            sig(root([lendOffer]), otherLenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -169,7 +174,7 @@ contract TakeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -184,7 +189,7 @@ contract TakeTest is BaseTest {
             0,
             lender,
             lendOffer,
-            sig(root([lendOffer]), borrowerSK),
+            sig(root([lendOffer]), borrowerSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -208,14 +213,14 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
             hex""
         );
 
-        (address otherBorrower, uint256 otherBorrowerSK) = makeAddrAndKey("otherBorrower");
+        (address otherBorrower, uint256 otherBorrowerSecretKey) = makeAddrAndKey("otherBorrower");
         vm.prank(otherBorrower);
         collateralToken1.approve(address(morphoV2), 135);
         deal(address(collateralToken1), otherBorrower, 135);
@@ -228,7 +233,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             borrowOffer,
-            sig(root([borrowOffer]), otherBorrowerSK),
+            sig(root([borrowOffer]), otherBorrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -255,7 +260,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -271,7 +276,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             borrowOffer,
-            sig(root([borrowOffer]), lenderSK),
+            sig(root([borrowOffer]), lenderSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -297,7 +302,7 @@ contract TakeTest is BaseTest {
             0,
             address(this),
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -310,7 +315,7 @@ contract TakeTest is BaseTest {
             0,
             address(this),
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -332,7 +337,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -347,7 +352,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -363,7 +368,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -380,7 +385,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -394,7 +399,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -418,7 +423,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -433,7 +438,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer2,
-            sig(root([lendOffer2]), lenderSK),
+            sig(root([lendOffer2]), lenderSecretKey),
             root([lendOffer2]),
             proof([lendOffer2]),
             address(0),
@@ -449,7 +454,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer2,
-            sig(root([lendOffer2]), lenderSK),
+            sig(root([lendOffer2]), lenderSecretKey),
             root([lendOffer2]),
             proof([lendOffer2]),
             address(0),
@@ -459,7 +464,7 @@ contract TakeTest is BaseTest {
     }
 
     function testTakeLendBorrowCallback() public {
-        (address otherBorrower, uint256 otherBorrowerSK) = makeAddrAndKey("otherBorrower");
+        (address otherBorrower, uint256 otherBorrowerSecretKey) = makeAddrAndKey("otherBorrower");
         borrowOffer.callbackAddress = address(new BorrowCallback());
         borrowOffer.callbackData = abi.encode(address(collateralToken1), 135);
         borrowOffer.maker = address(otherBorrower);
@@ -473,7 +478,7 @@ contract TakeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), otherBorrowerSK),
+            sig(root([borrowOffer]), otherBorrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -496,7 +501,7 @@ contract TakeTest is BaseTest {
             0,
             otherBorrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             callbackAddress,
@@ -507,7 +512,7 @@ contract TakeTest is BaseTest {
     }
 
     function testTakeBorrowLendCallback() public {
-        (address otherLender, uint256 otherLenderSK) = makeAddrAndKey("otherLender");
+        (address otherLender, uint256 otherLenderSecretKey) = makeAddrAndKey("otherLender");
         vm.prank(otherLender);
         loanToken.approve(address(morphoV2), 100);
         lendOffer.callbackAddress = address(new LendCallback());
@@ -522,7 +527,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), otherLenderSK),
+            sig(root([lendOffer]), otherLenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -545,7 +550,7 @@ contract TakeTest is BaseTest {
             0,
             otherLender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             callbackAddress,
@@ -563,7 +568,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -583,7 +588,7 @@ contract TakeTest is BaseTest {
             0,
             lender,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -601,7 +606,7 @@ contract TakeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -619,7 +624,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -637,7 +642,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(wrongRoot, lenderSK),
+            sig(wrongRoot, lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -654,7 +659,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            Signature(0, 0, 0),
+            Signature({v: 0, r: 0, s: 0}),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -673,7 +678,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -691,7 +696,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof,
             address(0),
@@ -710,7 +715,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer, otherOffer]), lenderSK),
+            sig(root([lendOffer, otherOffer]), lenderSecretKey),
             root([lendOffer, otherOffer]),
             proof,
             address(0),
@@ -726,7 +731,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer, otherOffer]), lenderSK),
+            sig(root([lendOffer, otherOffer]), lenderSecretKey),
             root([lendOffer, otherOffer]),
             proof([lendOffer, otherOffer]),
             address(0),
@@ -737,7 +742,7 @@ contract TakeTest is BaseTest {
     // test inputs
 
     function setupFeesAndRounding() internal {
-        morphoV2.setTradingFee(address(loanToken), 0.05e18);
+        morphoV2.setTradingFee(keccak256(abi.encode(obligation)), 0.05e18);
         morphoV2.setTradingFeeRecipient(address(this));
 
         address otherBorrower = makeAddr("otherBorrower");
@@ -755,7 +760,7 @@ contract TakeTest is BaseTest {
             0,
             otherBorrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -788,7 +793,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -816,7 +821,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -844,7 +849,7 @@ contract TakeTest is BaseTest {
             0,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -870,7 +875,7 @@ contract TakeTest is BaseTest {
             obligationShares,
             borrower,
             lendOffer,
-            sig(root([lendOffer]), lenderSK),
+            sig(root([lendOffer]), lenderSecretKey),
             root([lendOffer]),
             proof([lendOffer]),
             address(0),
@@ -899,7 +904,7 @@ contract LendCallback is ICallbacks {
 
     function onTake(Obligation memory obligation, address maker, uint256 assets, bytes memory data) external {
         recordedData = data;
-        ERC20(obligation.loanToken).transfer(maker, assets);
+        require(ERC20(obligation.loanToken).transfer(maker, assets), "transfer failed");
     }
 
     function onLiquidate(Seizure[] memory seizures, address borrower, address liquidator, bytes memory data) external {}

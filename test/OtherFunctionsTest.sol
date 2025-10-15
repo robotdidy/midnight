@@ -2,7 +2,10 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./BaseTest.sol";
+import {Obligation, Collateral} from "../src/interfaces/IMorphoV2.sol";
+
+import {ERC20} from "./helpers/ERC20.sol";
+import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
 
 contract OtherFunctionsTest is BaseTest {
     Obligation internal obligation;

@@ -2,13 +2,13 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity 0.8.28;
 
-import "./libraries/UtilsLib.sol";
-import "./libraries/SafeTransferLib.sol";
-import "./libraries/ConstantsLib.sol";
-import "./libraries/MathLib.sol";
-import "./interfaces/IOracle.sol";
-import "./interfaces/IMorphoV2.sol";
-import "./interfaces/ICallbacks.sol";
+import {UtilsLib} from "./libraries/UtilsLib.sol";
+import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
+import {WAD, ORACLE_PRICE_SCALE, LIQUIDATION_INCENTIVE_FACTOR} from "./libraries/ConstantsLib.sol";
+import {MathLib} from "./libraries/MathLib.sol";
+import {IOracle} from "./interfaces/IOracle.sol";
+import {IMorphoV2, Obligation, Offer, Signature, Seizure} from "./interfaces/IMorphoV2.sol";
+import {ICallbacks} from "./interfaces/ICallbacks.sol";
 
 contract MorphoV2 is IMorphoV2 {
     using MathLib for uint256;
@@ -27,12 +27,15 @@ contract MorphoV2 is IMorphoV2 {
     /// otherwise one might not be takable anymore while an other one at the same nonce is still takeable.
     mapping(address user => mapping(uint256 nonce => uint256)) public consumed;
 
-    /// @dev Cut on interest at each trade.
-    mapping(address loanToken => uint256) public tradingFee;
+    /// @dev Cut on interest at each trade for a given obligation id.
+    mapping(bytes32 id => uint256) public tradingFee;
     address public tradingFeeRecipient;
 
     /// @dev Contract owner for administrative functions.
     address public owner;
+
+    /// @dev Address that can set trading fees.
+    address public feeSetter;
 
     /// CONSTRUCTOR ///
 
@@ -47,10 +50,15 @@ contract MorphoV2 is IMorphoV2 {
         owner = newOwner;
     }
 
-    function setTradingFee(address loanToken, uint256 fee) external {
+    function setFeeSetter(address newFeeSetter) external {
         require(msg.sender == owner, "Only owner");
+        feeSetter = newFeeSetter;
+    }
+
+    function setTradingFee(bytes32 id, uint256 fee) external {
+        require(msg.sender == feeSetter, "Only feeSetter");
         require(fee <= 1e18, "Fee too high");
-        tradingFee[loanToken] = fee;
+        tradingFee[id] = fee;
     }
 
     function setTradingFeeRecipient(address recipient) external {
@@ -109,7 +117,7 @@ contract MorphoV2 is IMorphoV2 {
             : offer.startPrice;
         require(offerPrice <= 1e18, "price too high");
 
-        uint256 _tradingFee = tradingFee[offer.obligation.loanToken];
+        uint256 _tradingFee = tradingFee[id];
         uint256 buyerPrice = offer.buy ? offerPrice : offerPrice.mulDivDown(WAD - _tradingFee, WAD) + _tradingFee;
         uint256 sellerPrice = offer.buy ? (offerPrice - _tradingFee).mulDivDown(WAD, WAD - _tradingFee) : offerPrice;
 

@@ -2,7 +2,12 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./BaseTest.sol";
+import {Obligation, Offer, Collateral, Seizure} from "../src/interfaces/IMorphoV2.sol";
+
+import {console} from "../lib/forge-std/src/console.sol";
+import {ERC20} from "./helpers/ERC20.sol";
+import {Oracle} from "./helpers/Oracle.sol";
+import {BaseTest} from "./BaseTest.sol";
 
 contract LiquidationTest is BaseTest {
     Obligation internal obligation;
@@ -69,7 +74,7 @@ contract LiquidationTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
