@@ -4,7 +4,9 @@ methods {
     function withdrawable(bytes32 id) external returns uint256 envfree;
     function totalUnits(bytes32 id) external returns (uint256) envfree;
     function totalShares(bytes32 id) external returns (uint256) envfree;
-
+    function sharesOf(address owner, bytes32 id) external returns (uint256) envfree;
+    function debtOf(address owner, bytes32 id) external returns (uint256) envfree;
+  
     function _.price() external => NONDET;
 }
 
@@ -26,7 +28,7 @@ hook Sstore debtOf[KEY address owner][KEY bytes32 id] uint256 newDebt (uint256 o
     sumDebtOf[id] = sumDebtOf[id] - oldDebt + newDebt;
 }
 
-rule takeInputs(env e, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, address taker, MorphoV2.Offer offer, MorphoV2.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
+rule takeInputOutputConsistency(env e, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, address taker, MorphoV2.Offer offer, MorphoV2.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
     uint256 buyerAssetsOutput;
     uint256 sellerAssetsOutput;
     uint256 obligationUnitsOutput;
@@ -41,6 +43,9 @@ rule takeInputs(env e, uint256 buyerAssets, uint256 sellerAssets, uint256 obliga
 }
 
 /// INVARIANTS ///
+
+strong invariant notBorrowerAndLender(bytes32 id, address user)
+    sharesOf(user, id) == 0 || debtOf(user, id) == 0;
 
 strong invariant totalUnitsEqualsSumDebtPlusWithdrawable(bytes32 id)
     totalUnits(id) == sumDebtOf[id] + withdrawable(id);

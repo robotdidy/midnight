@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./BaseTest.sol";
+import {BaseTest} from "./BaseTest.sol";
 
 contract SettersTest is BaseTest {
     function testInitialOwner() public view {

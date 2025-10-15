@@ -2,7 +2,10 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import "./BaseTest.sol";
+import {MathLib} from "../src/libraries/MathLib.sol";
+import {Obligation, Offer, Collateral} from "../src/interfaces/IMorphoV2.sol";
+
+import {BaseTest} from "./BaseTest.sol";
 
 contract TradingFeeTest is BaseTest {
     using MathLib for uint256;
@@ -89,7 +92,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -129,7 +132,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -164,7 +167,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -193,7 +196,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -221,7 +224,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -249,7 +252,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
@@ -277,7 +280,7 @@ contract TradingFeeTest is BaseTest {
             0,
             lender,
             borrowOffer,
-            sig(root([borrowOffer]), borrowerSK),
+            sig(root([borrowOffer]), borrowerSecretKey),
             root([borrowOffer]),
             proof([borrowOffer]),
             address(0),
