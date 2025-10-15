@@ -116,11 +116,11 @@ contract MorphoV2 is IMorphoV2 {
         if (buyerAssets > 0) {
             obligationUnits = buyerAssets.mulDivDown(1e18, buyerPrice);
             sellerAssets = buyerAssets.mulDivDown(sellerPrice, buyerPrice);
-            obligationShares = obligationUnits.mulDiv(totalShares[id] + 1, totalUnits[id] + 1);
+            obligationShares = obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
         } else if (sellerAssets > 0) {
             obligationUnits = sellerAssets.mulDivDown(1e18, sellerPrice);
             buyerAssets = sellerAssets.mulDivDown(buyerPrice, sellerPrice);
-            obligationShares = obligationUnits.mulDiv(totalShares[id] + 1, totalUnits[id] + 1);
+            obligationShares = obligationUnits.mulDivDown(totalShares[id] + 1, totalUnits[id] + 1);
         } else if (obligationUnits > 0) {
             buyerAssets = obligationUnits.mulDivDown(buyerPrice, 1e18);
             sellerAssets = obligationUnits.mulDivDown(sellerPrice, 1e18);
