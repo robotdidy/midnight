@@ -319,14 +319,12 @@ contract MorphoV2 is IMorphoV2 {
             uint256 maxDebt;
             address previousCollateralToken;
             for (uint256 i = 0; i < obligation.collaterals.length; i++) {
-                require(
-                    bytes20(obligation.collaterals[i].token) > bytes20(previousCollateralToken),
-                    "collaterals not sorted"
-                );
+                address currentCollateralToken = obligation.collaterals[i].token;
+                require(currentCollateralToken > previousCollateralToken, "collaterals not sorted");
                 uint256 price = IOracle(obligation.collaterals[i].oracle).price();
-                maxDebt += collateralOf[borrower][id][obligation.collaterals[i].token]
-                    .mulDivDown(price, ORACLE_PRICE_SCALE).mulDivDown(obligation.collaterals[i].lltv, 1e18);
-                previousCollateralToken = obligation.collaterals[i].token;
+                maxDebt += collateralOf[borrower][id][currentCollateralToken].mulDivDown(price, ORACLE_PRICE_SCALE)
+                    .mulDivDown(obligation.collaterals[i].lltv, 1e18);
+                previousCollateralToken = currentCollateralToken;
             }
 
             return debt <= maxDebt;
