@@ -112,8 +112,8 @@ abstract contract BaseTest is Test {
             expiry: block.timestamp,
             startPrice: 1 ether,
             expiryPrice: 1 ether,
+            group: 0,
             nonce: 0,
-            globalNonce: 0,
             callbackAddress: address(0),
             callbackData: ""
         });
@@ -162,8 +162,8 @@ abstract contract BaseTest is Test {
             expiry: block.timestamp + 200,
             startPrice: 1e18,
             expiryPrice: 1e18,
+            group: 0,
             nonce: 0,
-            globalNonce: 0,
             callbackAddress: address(0),
             callbackData: ""
         });

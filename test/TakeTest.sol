@@ -41,7 +41,6 @@ contract TakeTest is BaseTest {
         lendOffer.expiry = block.timestamp + 200;
         lendOffer.startPrice = 0.99 ether;
         lendOffer.expiryPrice = 0.99 ether;
-        lendOffer.nonce = 0;
 
         borrowOffer.buy = false;
         borrowOffer.maker = borrower;
@@ -50,7 +49,6 @@ contract TakeTest is BaseTest {
         borrowOffer.expiry = block.timestamp + 200;
         borrowOffer.startPrice = 0.99 ether;
         borrowOffer.expiryPrice = 0.99 ether;
-        borrowOffer.nonce = 0;
 
         deal(address(loanToken), address(this), 100);
         deal(address(loanToken), address(lender), 100);
@@ -176,7 +174,7 @@ contract TakeTest is BaseTest {
             hex""
         );
         lendOffer.maker = borrower;
-        lendOffer.nonce = 1;
+        lendOffer.group = 1;
         morphoV2.take(
             0,
             0,
@@ -195,7 +193,7 @@ contract TakeTest is BaseTest {
         assertEq(morphoV2.sharesOf(borrower, id), 0, "borrower obligation shares");
         assertEq(morphoV2.totalUnits(id), 0, "total obligations");
         assertEq(morphoV2.totalShares(id), 0, "total shares");
-        assertEq(morphoV2.consumed(borrower, 1), 99, "borrower nonce");
+        assertEq(morphoV2.consumed(borrower, 1), 99, "borrower consumed");
         assertEq(loanToken.balanceOf(lender), 99, "lender balance");
         assertEq(loanToken.balanceOf(borrower), 1, "borrower balance");
     }
@@ -242,7 +240,7 @@ contract TakeTest is BaseTest {
         assertEq(morphoV2.debtOf(otherBorrower, id), 101, "other borrower debt");
         assertEq(morphoV2.totalUnits(id), 101, "total obligations");
         assertEq(morphoV2.totalShares(id), 101, "total shares");
-        assertEq(morphoV2.consumed(otherBorrower, 0), 100, "other borrower nonce");
+        assertEq(morphoV2.consumed(otherBorrower, 0), 100, "other borrower consumed");
         assertEq(loanToken.balanceOf(borrower), 0, "borrower balance");
         assertEq(loanToken.balanceOf(otherBorrower), 100, "other borrower balance");
     }
@@ -263,7 +261,7 @@ contract TakeTest is BaseTest {
         );
 
         borrowOffer.maker = lender;
-        borrowOffer.nonce = 1;
+        borrowOffer.group = 1;
         morphoV2.take(
             100,
             0,
@@ -284,7 +282,7 @@ contract TakeTest is BaseTest {
         assertEq(morphoV2.debtOf(lender, id), 0, "lender debt");
         assertEq(morphoV2.totalUnits(id), 0, "total obligations");
         assertEq(morphoV2.totalShares(id), 0, "total shares");
-        assertEq(morphoV2.consumed(lender, 1), 100, "lender nonce");
+        assertEq(morphoV2.consumed(lender, 1), 100, "lender consumed");
         assertEq(loanToken.balanceOf(borrower), 0, "borrower balance");
         assertEq(loanToken.balanceOf(lender), 100, "lender balance");
     }
@@ -744,8 +742,8 @@ contract TakeTest is BaseTest {
         deal(obligation.collaterals[0].token, address(this), 135);
         morphoV2.supplyCollateral(obligation, obligation.collaterals[0].token, 135, otherBorrower);
 
-        uint256 initialNonce = lendOffer.nonce;
-        lendOffer.nonce = uint256(keccak256("random"));
+        uint256 initialGroup = lendOffer.group;
+        lendOffer.group = uint256(keccak256("group"));
 
         // realize some bad debt
         morphoV2.take(
@@ -766,7 +764,7 @@ contract TakeTest is BaseTest {
         morphoV2.liquidate(obligation, new Seizure[](1), otherBorrower, "");
 
         // reset
-        lendOffer.nonce = initialNonce;
+        lendOffer.group = initialGroup;
         Oracle(oracle).setPrice(ORACLE_PRICE_SCALE);
     }
 

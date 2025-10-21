@@ -24,11 +24,13 @@ contract MorphoV2 is IMorphoV2 {
     mapping(bytes32 => uint256) public totalShares;
     mapping(address => mapping(bytes32 => mapping(address => uint256))) public collateralOf;
 
-    /// @dev Multiple offers can have the same nonce. This allows to implement easy and efficient batch-cancelling and
-    /// OCO (One-Cancels-the-Other) orders. Note that OCO orders work better if all offers have the same amount,
-    /// otherwise one might not be takable anymore while an other one at the same nonce is still takeable.
-    mapping(address user => mapping(uint256 nonce => uint256)) public consumed;
-    mapping(address user => uint256) public globalNonce;
+    /// @dev Groups are useful to have a global offered amount shared accross multiple offers ("OCO").
+    /// @dev To work as expected, all offers in a same group should have the same amount and the same loan asset.
+    mapping(address user => mapping(uint256 group => uint256)) public consumed;
+
+    /// @dev Offers should have this exact nonce to be valid.
+    /// @dev The nonce can be shuffled by the user to cancel everything easily/efficiently.
+    mapping(address user => uint256) public nonce;
 
     /// @dev Cut on interest at each trade for a given obligation id.
     mapping(bytes32 id => uint256) public tradingFee;
@@ -102,7 +104,7 @@ contract MorphoV2 is IMorphoV2 {
         require(offer.maker != taker, "buyer and seller cannot be the same");
         require(_signer(root, sig) == offer.maker, "invalid signature");
         require(MathLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
-        require(offer.globalNonce == globalNonce[offer.maker], "invalid global nonce");
+        require(offer.nonce == nonce[offer.maker], "invalid nonce");
 
         (
             address buyer,
@@ -144,7 +146,7 @@ contract MorphoV2 is IMorphoV2 {
         }
 
         require(
-            (consumed[offer.maker][offer.nonce] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets, "consumed"
+            (consumed[offer.maker][offer.group] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets, "consumed"
         );
 
         if (debtOf[buyer][id] == 0 && sharesOf[seller][id] == 0) {
@@ -299,12 +301,12 @@ contract MorphoV2 is IMorphoV2 {
         return seizures;
     }
 
-    function consumeNonce(uint256 nonce, uint256 amount) external {
-        consumed[msg.sender][nonce] += amount;
+    function consume(uint256 group, uint256 amount) external {
+        consumed[msg.sender][group] += amount;
     }
 
-    function shuffleGlobalNonce(uint256 salt) external {
-        globalNonce[msg.sender] = uint256(keccak256(abi.encode(globalNonce[msg.sender], salt)));
+    function shuffleNonce(uint256 salt) external {
+        nonce[msg.sender] = uint256(keccak256(abi.encode(nonce[msg.sender], salt)));
     }
 
     /// INTERNAL ///
