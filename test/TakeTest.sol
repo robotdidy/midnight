@@ -343,13 +343,13 @@ contract TakeTest is BaseTest {
         );
     }
 
-    function testTakePastMaturity(uint elapsed) public {
-        uint expiry = obligation.maturity * 3;
+    function testTakePastMaturity(uint256 elapsed) public {
+        uint256 expiry = obligation.maturity * 3;
         lendOffer.expiry = expiry;
         borrowOffer.expiry = expiry;
-        vm.warp(bound(elapsed,vm.getBlockTimestamp(),obligation.maturity * 3));
+        vm.warp(bound(elapsed, vm.getBlockTimestamp(), obligation.maturity * 3));
 
-        uint snap = vm.snapshotState();
+        uint256 snap = vm.snapshotState();
 
         morphoV2.take(
             100,
@@ -381,7 +381,7 @@ contract TakeTest is BaseTest {
         );
     }
 
-    function testTakePartialFill(uint elapsed) public {
+    function testTakePartialFill(uint256 elapsed) public {
         morphoV2.take(
             50,
             0,
