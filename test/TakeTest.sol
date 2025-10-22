@@ -343,7 +343,45 @@ contract TakeTest is BaseTest {
         );
     }
 
-    function testTakePartialFill() public {
+    function testTakePastMaturity(uint elapsed) public {
+        uint expiry = obligation.maturity * 3;
+        lendOffer.expiry = expiry;
+        borrowOffer.expiry = expiry;
+        vm.warp(bound(elapsed,vm.getBlockTimestamp(),obligation.maturity * 3));
+
+        uint snap = vm.snapshotState();
+
+        morphoV2.take(
+            100,
+            0,
+            0,
+            0,
+            borrower,
+            lendOffer,
+            sig(root([lendOffer]), lenderSecretKey),
+            root([lendOffer]),
+            proof([lendOffer]),
+            address(0),
+            hex""
+        );
+
+        vm.revertToStateAndDelete(snap);
+        morphoV2.take(
+            100,
+            0,
+            0,
+            0,
+            lender,
+            borrowOffer,
+            sig(root([borrowOffer]), borrowerSecretKey),
+            root([borrowOffer]),
+            proof([borrowOffer]),
+            address(0),
+            hex""
+        );
+    }
+
+    function testTakePartialFill(uint elapsed) public {
         morphoV2.take(
             50,
             0,
