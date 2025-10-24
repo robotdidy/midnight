@@ -57,16 +57,6 @@ contract TakeTest is BaseTest {
         morphoV2.supplyCollateral(obligation, obligation.collaterals[0].token, 135, borrower);
     }
 
-    function testTakePostMaturity(uint256 maturity) public {
-        maturity = bound(maturity, 0, block.timestamp - 1);
-        obligation.maturity = maturity;
-        Offer memory offer;
-        offer.expiry = block.timestamp;
-        Signature memory sig;
-        vm.expectRevert("maturity");
-        morphoV2.take(100, 0, 0, 0, lender, offer, sig, root([offer]), proof([offer]), address(0), hex"");
-    }
-
     function testLend() public {
         morphoV2.take(
             100,
@@ -353,6 +343,44 @@ contract TakeTest is BaseTest {
         );
     }
 
+    function testTakePastMaturity(uint256 elapsed) public {
+        uint256 expiry = obligation.maturity * 3;
+        lendOffer.expiry = expiry;
+        borrowOffer.expiry = expiry;
+        vm.warp(bound(elapsed, vm.getBlockTimestamp(), obligation.maturity * 3));
+
+        uint256 snap = vm.snapshotState();
+
+        morphoV2.take(
+            100,
+            0,
+            0,
+            0,
+            borrower,
+            lendOffer,
+            sig(root([lendOffer]), lenderSecretKey),
+            root([lendOffer]),
+            proof([lendOffer]),
+            address(0),
+            hex""
+        );
+
+        vm.revertToStateAndDelete(snap);
+        morphoV2.take(
+            100,
+            0,
+            0,
+            0,
+            lender,
+            borrowOffer,
+            sig(root([borrowOffer]), borrowerSecretKey),
+            root([borrowOffer]),
+            proof([borrowOffer]),
+            address(0),
+            hex""
+        );
+    }
+
     function testTakePartialFill() public {
         morphoV2.take(
             50,
@@ -569,24 +597,6 @@ contract TakeTest is BaseTest {
         );
 
         assertEq(morphoV2.sharesOf(lender, id), 101, "lender shares");
-    }
-
-    function testTakeMaturityPassed() public {
-        vm.warp(block.timestamp + 101);
-        vm.expectRevert("maturity");
-        morphoV2.take(
-            100,
-            0,
-            0,
-            0,
-            lender,
-            lendOffer,
-            sig(root([lendOffer]), lenderSecretKey),
-            root([lendOffer]),
-            proof([lendOffer]),
-            address(0),
-            hex""
-        );
     }
 
     function testTakeSellerMakerNotHealthyMaker() public {

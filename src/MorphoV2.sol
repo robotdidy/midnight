@@ -97,7 +97,6 @@ contract MorphoV2 is IMorphoV2 {
         );
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
-        require(offer.obligation.maturity >= block.timestamp, "maturity");
         require(offer.obligation.chainId == block.chainid, "chain id mismatch");
         require(offer.start < offer.expiry || offer.expiryPrice == offer.startPrice, "inconsistent prices");
         require(offer.maker != taker, "buyer and seller cannot be the same");
