@@ -127,16 +127,15 @@ contract MorphoV2 is IMorphoV2 {
         TradingFee memory _tradingFee = tradingFee[id];
         uint256 buyerPrice = offer.buy
             ? offerPrice
-            : _tradingFee.slope.mulDivDown(WAD - offerPrice, offerPrice) <= _tradingFee.max
-                ? offerPrice.mulDivDown(WAD - _tradingFee.slope, WAD) + _tradingFee.slope
-                : offerPrice.mulDivDown(WAD + _tradingFee.max, WAD);
+            : UtilsLib.min(
+                offerPrice.mulDivDown(WAD - _tradingFee.slope, WAD) + _tradingFee.slope,
+                offerPrice.mulDivDown(WAD + _tradingFee.max, WAD)
+            );
         uint256 sellerPrice = offer.buy
-            ? _tradingFee.slope
-                        .mulDivDown(
-                            WAD + (WAD - _tradingFee.slope).mulDivDown(WAD, offerPrice - _tradingFee.slope), WAD
-                        ) <= _tradingFee.max
-                ? (offerPrice - _tradingFee.slope).mulDivDown(WAD, WAD - _tradingFee.slope)
-                : offerPrice.mulDivDown(WAD, WAD + _tradingFee.max)
+            ? UtilsLib.max(
+                (offerPrice - _tradingFee.slope).mulDivDown(WAD, WAD - _tradingFee.slope),
+                offerPrice.mulDivDown(WAD, WAD + _tradingFee.max)
+            )
             : offerPrice;
 
         if (buyerAssets > 0) {

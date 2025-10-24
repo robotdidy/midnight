@@ -176,6 +176,35 @@ contract TradingFeeTest is BaseTest {
         assertEq(loanToken.balanceOf(lender), lenderBalanceBefore - expectedBuyerAssets, "lender balance");
     }
 
+    function testTradingFeeWithMaxSellerAssetsInput() public {
+        morphoV2.setTradingFee(id, 0.05e18, 0.001e18); // max 10 bps
+        uint256 sellerAssets = 100 ether;
+        borrowOffer.startPrice = 0.9 ether;
+        borrowOffer.expiryPrice = 0.9 ether;
+
+        uint256 feeRecipientBalanceBefore = loanToken.balanceOf(feeRecipient);
+        uint256 borrowerBalanceBefore = loanToken.balanceOf(borrower);
+        uint256 lenderBalanceBefore = loanToken.balanceOf(lender);
+
+        uint256 expectedFee = sellerAssets / 1000;
+
+        morphoV2.take(
+            0,
+            sellerAssets,
+            0,
+            0,
+            lender,
+            borrowOffer,
+            sig(root([borrowOffer]), borrowerSecretKey),
+            root([borrowOffer]),
+            proof([borrowOffer]),
+            address(0),
+            hex""
+        );
+
+        assertEq(loanToken.balanceOf(feeRecipient), feeRecipientBalanceBefore + expectedFee, "fee recipient balance");
+    }
+
     function testZeroTradingFee() public {
         morphoV2.setTradingFee(id, 0, 0);
         uint256 buyerAssets = 100 ether;
