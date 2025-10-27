@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {MathLib} from "../src/libraries/MathLib.sol";
-import {Obligation, Offer, Collateral, TradingFee} from "../src/interfaces/IMorphoV2.sol";
+import {Obligation, Offer, Collateral} from "../src/interfaces/IMorphoV2.sol";
 
 import {BaseTest} from "./BaseTest.sol";
 
@@ -104,9 +104,6 @@ contract TradingFeeTest is BaseTest {
         uint256 expectedUnits = expectedSellerAssets.mulDivDown(1e18, price);
         uint256 expectedFee = (expectedUnits - expectedSellerAssets) * fee / 1e18;
 
-        uint256 borrowerBalanceBefore = loanToken.balanceOf(borrower);
-        uint256 lenderBalanceBefore = loanToken.balanceOf(lender);
-
         take(buyerAssets, 0, 0, 0, borrowOffer);
 
         assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
@@ -139,7 +136,6 @@ contract TradingFeeTest is BaseTest {
 
         uint256 expectedUnits = sellerAssets.mulDivDown(1e18, price);
         uint256 expectedFee = (expectedUnits - sellerAssets) * fee / 1e18;
-        uint256 expectedBuyerAssets = sellerAssets + expectedFee;
 
         take(0, sellerAssets, 0, 0, borrowOffer);
 
@@ -173,7 +169,6 @@ contract TradingFeeTest is BaseTest {
 
         uint256 expectedSellerAssets = obligationUnits * price / 1e18;
         uint256 expectedFee = (obligationUnits - expectedSellerAssets) * fee / 1e18;
-        uint256 expectedBuyerAssets = expectedSellerAssets + expectedFee;
 
         take(0, 0, obligationUnits, 0, borrowOffer);
 

@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import {BaseTest} from "./BaseTest.sol";
-import {TradingFee} from "../src/interfaces/IMorphoV2.sol";
 
 contract SettersTest is BaseTest {
     function testInitialOwner() public view {
