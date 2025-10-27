@@ -48,6 +48,19 @@ contract MorphoV2 is IMorphoV2 {
         owner = msg.sender;
     }
 
+    /// MULTICALL ///
+
+    function multicall(bytes[] calldata calls) external {
+        for (uint256 i = 0; i < calls.length; i++) {
+            (bool success, bytes memory returnData) = address(this).delegatecall(calls[i]);
+            if (!success) {
+                assembly ("memory-safe") {
+                    revert(add(returnData, 0x20), mload(returnData))
+                }
+            }
+        }
+    }
+
     /// ADMIN FUNCTIONS ///
 
     function setOwner(address newOwner) external {
