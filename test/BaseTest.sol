@@ -21,7 +21,8 @@ abstract contract BaseTest is Test {
     ERC20 internal loanToken;
     ERC20 internal collateralToken1;
     ERC20 internal collateralToken2;
-    Oracle internal oracle;
+    Oracle internal oracle1;
+    Oracle internal oracle2;
     address internal borrower;
     address internal lender;
     address internal otherBorrower;
@@ -47,7 +48,8 @@ abstract contract BaseTest is Test {
         collateralToken1 = new ERC20("collat1", "collat1");
         collateralToken2 = new ERC20("collat2", "collat2");
 
-        oracle = new Oracle();
+        oracle1 = new Oracle();
+        oracle2 = new Oracle();
 
         vm.prank(lender);
         loanToken.approve(address(morphoV2), type(uint256).max);
@@ -139,7 +141,7 @@ abstract contract BaseTest is Test {
 
         take(100, 0, 0, 0, unluckyLender, badBorrowerOffer);
 
-        Oracle(oracle).setPrice(ORACLE_PRICE_SCALE / 4);
+        Oracle(obligation.collaterals[0].oracle).setPrice(ORACLE_PRICE_SCALE / 4);
         morphoV2.liquidate(obligation, new Seizure[](0), badBorrower, "");
 
         assertNotEq(
@@ -152,7 +154,7 @@ abstract contract BaseTest is Test {
         assertEq(morphoV2.debtOf(badBorrower, toId(obligation)), 0, "debt");
 
         // reset the price.
-        Oracle(oracle).setPrice(ORACLE_PRICE_SCALE);
+        Oracle(obligation.collaterals[0].oracle).setPrice(ORACLE_PRICE_SCALE);
     }
 
     function toId(Obligation memory obligation) internal pure returns (bytes32) {
