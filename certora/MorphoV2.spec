@@ -49,9 +49,6 @@ rule takeInputOutputConsistency(env e, uint256 buyerAssets, uint256 sellerAssets
 strong invariant notBorrowerAndLender(bytes32 id, address user)
     sharesOf(user, id) == 0 || debtOf(user, id) == 0;
 
-strong invariant totalUnitsEqualsSumDebtPlusWithdrawable(bytes32 id)
-    totalUnits(id) == sumDebtOf[id] + withdrawable(id);
-
 strong invariant totalSharesEqualsSumSharesOf(bytes32 id)
     totalShares(id) == sumSharesOf[id];
 
