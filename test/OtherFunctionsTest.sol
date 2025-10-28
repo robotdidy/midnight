@@ -54,16 +54,14 @@ contract OtherFunctionsTest is BaseTest {
         assertEq(ERC20(collateralToken).balanceOf(address(this)), withdraw, "balance of this");
     }
 
-    function testWithdrawCollateralWithBorrowHealthy(
-        uint256 additionalCollateral,
-        uint256 withdraw,
-        uint256 obligations
-    ) public {
-        obligations = bound(obligations, 0, MAX_TEST_AMOUNT);
+    function testWithdrawCollateralWithBorrowHealthy(uint256 additionalCollateral, uint256 withdraw, uint256 units)
+        public
+    {
+        units = bound(units, 0, MAX_TEST_AMOUNT);
         additionalCollateral = bound(additionalCollateral, 0, MAX_TEST_AMOUNT);
         address collateralToken = obligation.collaterals[0].token;
-        collateralize(obligation, borrower, obligations);
-        setupObligation(obligation, obligations);
+        collateralize(obligation, borrower, units);
+        setupObligation(obligation, units);
         deal(collateralToken, address(this), additionalCollateral);
         morphoV2.supplyCollateral(obligation, collateralToken, additionalCollateral, borrower);
         withdraw = bound(withdraw, 0, additionalCollateral);
@@ -78,16 +76,14 @@ contract OtherFunctionsTest is BaseTest {
         assertEq(ERC20(collateralToken).balanceOf(address(this)), withdraw, "balance of this");
     }
 
-    function testWithdrawCollateralWithBorrowUnhealthy(
-        uint256 additionalCollateral,
-        uint256 withdraw,
-        uint256 obligations
-    ) public {
-        obligations = bound(obligations, 1, MAX_TEST_AMOUNT);
+    function testWithdrawCollateralWithBorrowUnhealthy(uint256 additionalCollateral, uint256 withdraw, uint256 units)
+        public
+    {
+        units = bound(units, 1, MAX_TEST_AMOUNT);
         additionalCollateral = bound(additionalCollateral, 0, MAX_TEST_AMOUNT);
         address collateralToken = obligation.collaterals[0].token;
-        collateralize(obligation, borrower, obligations);
-        setupObligation(obligation, obligations);
+        collateralize(obligation, borrower, units);
+        setupObligation(obligation, units);
         deal(collateralToken, address(this), additionalCollateral);
         morphoV2.supplyCollateral(obligation, collateralToken, additionalCollateral, borrower);
         uint256 initialCollateral = morphoV2.collateralOf(borrower, id, collateralToken);
@@ -97,54 +93,55 @@ contract OtherFunctionsTest is BaseTest {
         morphoV2.withdrawCollateral(obligation, collateralToken, withdraw, borrower);
     }
 
-    function testRepay(uint256 obligations, uint256 repaid) public {
+    function testRepay(uint256 units, uint256 repaid) public {
         // Note that if this changes the values when the input is in the bounds, it will break withdraw tests.
-        obligations = bound(obligations, 0, MAX_TEST_AMOUNT);
-        repaid = bound(repaid, 0, obligations);
-        collateralize(obligation, borrower, obligations);
-        setupObligation(obligation, obligations);
-        vm.warp(block.timestamp + 99);
+        units = bound(units, 0, MAX_TEST_AMOUNT);
+        repaid = bound(repaid, 0, units);
+        collateralize(obligation, borrower, units);
+        setupObligation(obligation, units);
+        skip(99);
         deal(address(loanToken), address(borrower), repaid);
 
         vm.prank(borrower);
         morphoV2.repay(obligation, repaid, borrower);
 
-        assertEq(morphoV2.debtOf(borrower, id), obligations - repaid);
+        assertEq(morphoV2.debtOf(borrower, id), units - repaid);
         assertEq(morphoV2.withdrawable(id), repaid);
         assertEq(loanToken.balanceOf(address(morphoV2)), repaid);
         assertEq(loanToken.balanceOf(borrower), 0);
     }
 
-    function testWithdrawInconsistentInput() public {
+    function testWithdrawInconsistentInput(uint256 units, uint256 shares) public {
+        vm.assume(units > 0 && shares > 0);
         vm.expectRevert("INCONSISTENT_INPUT");
-        morphoV2.withdraw(obligation, 1, 1, lender);
+        morphoV2.withdraw(obligation, units, shares, lender);
     }
 
-    function testWithdrawWithObligations(uint256 obligations, uint256 withdraw) public {
-        obligations = bound(obligations, 1, MAX_TEST_AMOUNT);
-        withdraw = bound(withdraw, 1, obligations);
-        testRepay(obligations, withdraw);
+    function testWithdrawWithObligations(uint256 units, uint256 withdraw) public {
+        units = bound(units, 1, MAX_TEST_AMOUNT);
+        withdraw = bound(withdraw, 1, units);
+        testRepay(units, withdraw);
 
         vm.prank(lender);
         morphoV2.withdraw(obligation, withdraw, 0, lender);
 
-        assertEq(morphoV2.sharesOf(lender, id), obligations - withdraw, "obligationSharesOf");
+        assertEq(morphoV2.sharesOf(lender, id), units - withdraw, "obligationSharesOf");
         assertEq(morphoV2.withdrawable(id), 0, "withdrawable");
-        assertEq(morphoV2.totalShares(id), obligations - withdraw, "totalShares");
+        assertEq(morphoV2.totalShares(id), units - withdraw, "totalShares");
         assertEq(loanToken.balanceOf(address(morphoV2)), 0, "balance of morphoV2");
         assertEq(loanToken.balanceOf(lender), withdraw, "balance of lender");
     }
 
-    function testWithdrawWithShares(uint256 obligations, uint256 shares) public {
-        obligations = bound(obligations, 1, MAX_TEST_AMOUNT);
-        shares = bound(shares, 1, obligations);
-        testRepay(obligations, shares);
+    function testWithdrawWithShares(uint256 units, uint256 shares) public {
+        units = bound(units, 1, MAX_TEST_AMOUNT);
+        shares = bound(shares, 1, units);
+        testRepay(units, shares);
 
         // TODO: sharesPrice != 1
         vm.prank(lender);
         morphoV2.withdraw(obligation, 0, shares, lender);
 
-        assertEq(morphoV2.sharesOf(lender, id), obligations - shares, "obligationSharesOf");
+        assertEq(morphoV2.sharesOf(lender, id), units - shares, "obligationSharesOf");
         assertEq(morphoV2.withdrawable(id), 0, "withdrawable");
         assertEq(loanToken.balanceOf(address(morphoV2)), 0, "balance of morphoV2");
         assertEq(loanToken.balanceOf(lender), shares, "balance of lender");
