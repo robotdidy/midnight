@@ -890,7 +890,8 @@ contract TakeTest is BaseTest {
         take(0, 0, units, 0, borrower, lenderOffer);
     }
 
-    function testTakeInconsistentPrices(uint256 price) public {
+    function testTakeInconsistentPrices(uint256 startPrice, uint256 expiryPrice) public {
+        vm.assume(startPrice != expiryPrice);
         lenderOffer.start = block.timestamp;
         lenderOffer.expiryPrice = price;
         lenderOffer.expiry = lenderOffer.start;
