@@ -25,7 +25,8 @@ contract MorphoV2 is IMorphoV2 {
     mapping(address => mapping(bytes32 => mapping(address => uint256))) public collateralOf;
 
     /// @dev Groups are useful to have a global offered amount shared accross multiple offers ("OCO").
-    /// @dev To work as expected, all offers in a same group should have the same amount and the same loan asset.
+    /// @dev To work as expected, all offers in a same group should have the same assets, obligationUnits,
+    /// obligationShares and loan token.
     mapping(address user => mapping(bytes32 group => uint256)) public consumed;
 
     /// @dev Offers should have this exact nonce to be valid.
@@ -108,6 +109,10 @@ contract MorphoV2 is IMorphoV2 {
             UtilsLib.atMostOneNonZero(buyerAssets, sellerAssets, obligationUnits, obligationShares),
             "inconsistent input"
         );
+        require(
+            UtilsLib.atMostOneNonZero(offer.assets, offer.obligationUnits, offer.obligationShares),
+            "inconsistent offer input"
+        );
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
         require(offer.obligation.chainId == block.chainid, "chain id mismatch");
@@ -157,9 +162,16 @@ contract MorphoV2 is IMorphoV2 {
             sellerAssets = obligationUnits.mulDivDown(sellerPrice, WAD);
         }
 
-        require(
-            (consumed[offer.maker][offer.group] += (offer.buy ? buyerAssets : sellerAssets)) <= offer.assets, "consumed"
-        );
+        if (offer.assets > 0) {
+            require(
+                (consumed[offer.maker][offer.group] += offer.buy ? buyerAssets : sellerAssets) <= offer.assets,
+                "consumed"
+            );
+        } else if (offer.obligationUnits > 0) {
+            require((consumed[offer.maker][offer.group] += obligationUnits) <= offer.obligationUnits, "consumed");
+        } else {
+            require((consumed[offer.maker][offer.group] += obligationShares) <= offer.obligationShares, "consumed");
+        }
 
         if (debtOf[buyer][id] == 0 && sharesOf[seller][id] == 0) {
             sharesOf[buyer][id] += obligationShares;

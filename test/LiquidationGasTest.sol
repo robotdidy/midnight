@@ -51,6 +51,7 @@ contract LiquidationTest is BaseTest {
         // Create and take offer
 
         id = toId(obligation);
+
         Offer memory borrowOffer;
         borrowOffer.obligation = obligation;
         borrowOffer.buy = false;

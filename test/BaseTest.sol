@@ -166,6 +166,7 @@ abstract contract BaseTest is Test {
 
         morphoV2.supplyCollateral(obligation, address(obligation.collaterals[0].token), collateral0, borrower);
         morphoV2.supplyCollateral(obligation, address(obligation.collaterals[1].token), collateral1, borrower);
+
         Offer memory borrowOffer;
         borrowOffer.buy = false;
         borrowOffer.maker = borrower;
