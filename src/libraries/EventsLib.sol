@@ -22,7 +22,11 @@ library EventsLib {
         Offer offer
     );
     event Withdraw(
-        address indexed caller, bytes32 indexed obligationId, address indexed onBehalf, uint256 obligationUnits, uint256 shares
+        address indexed caller,
+        bytes32 indexed obligationId,
+        address indexed onBehalf,
+        uint256 obligationUnits,
+        uint256 shares
     );
     event Repay(bytes32 indexed obligationId, address caller, uint256 obligationUnits, address indexed onBehalf);
     event SupplyCollateral(
