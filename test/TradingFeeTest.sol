@@ -59,7 +59,7 @@ contract TradingFeeTest is BaseTest {
 
     // Buy: the proportional trading fee is the limiting one iff tradingFee <= interestCutLimit * (1 - P_S)/P_S <=> P_S
     // <= interestCutLimit / (tradingFee + interestCutLimit)
-    
+
     // Sell: the proportional trading fee is the limiting one iff (P_B - interestCutLimit) / (1 - interestCutLimit) <=
     // P_B / (1+tradingFee) <=> P_B <= interestCutLimit * (1+tradingFee) / (tradingFee + interestCutLimit)
 
