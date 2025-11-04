@@ -944,11 +944,11 @@ contract TakeTest is BaseTest {
         take(0, 0, 0, 100, borrower, lenderOffer);
     }
 
-    function testNonce() public {
+    function testSession() public {
         vm.prank(lender);
-        morphoV2.shuffleNonce();
+        morphoV2.shuffleSession();
 
-        vm.expectRevert("invalid nonce");
+        vm.expectRevert("invalid session");
         take(100, 0, 0, 0, borrower, lenderOffer);
     }
 
@@ -1131,15 +1131,9 @@ contract TakeTest is BaseTest {
 contract BorrowCallback is ICallbacks {
     bytes public recordedData;
 
-    function onSell(
-        Obligation memory obligation,
-        address seller,
-        uint256,
-        uint256,
-        uint256,
-        uint256,
-        bytes memory data
-    ) external {
+    function onSell(Obligation memory obligation, address seller, uint256, uint256, uint256, uint256, bytes memory data)
+        external
+    {
         recordedData = data;
         (address collateralToken, uint256 amount) = abi.decode(data, (address, uint256));
         ERC20(collateralToken).approve(msg.sender, amount);
