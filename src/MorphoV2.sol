@@ -9,7 +9,6 @@ import {MathLib} from "./libraries/MathLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {IMorphoV2, Obligation, Offer, Signature, Seizure, TradingFeeParams} from "./interfaces/IMorphoV2.sol";
 import {ICallbacks, IFlashLoanCallback} from "./interfaces/ICallbacks.sol";
-import {console} from "forge-std/console.sol";
 
 /// OBLIGATIONS
 /// @dev Obligations' collaterals must be sorted by token address.
