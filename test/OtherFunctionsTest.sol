@@ -147,7 +147,7 @@ contract OtherFunctionsTest is BaseTest {
         assertEq(morphoV2.withdrawable(id), 0, "withdrawable");
         assertEq(loanToken.balanceOf(address(morphoV2)), 0, "balance of morphoV2");
         assertEq(loanToken.balanceOf(lender), shares, "balance of lender");
-        assertEq(returnedObligationUnits, 0, "returned obligation units");
+        assertEq(returnedObligationUnits, shares, "returned obligation units");
         assertEq(returnedShares, shares, "returned shares");
     }
 
