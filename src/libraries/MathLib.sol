@@ -2,6 +2,8 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
+import {WAD} from "./ConstantsLib.sol";
+
 library MathLib {
     /// @dev Returns (`x` * `y`) / `d` rounded down.
     function mulDivDown(uint256 x, uint256 y, uint256 d) internal pure returns (uint256) {
@@ -33,5 +35,13 @@ library MathLib {
     /// @dev Returns the concatenation of x and y, sorted lexicographically.
     function sort(bytes32 x, bytes32 y) internal pure returns (bytes memory) {
         return x < y ? abi.encodePacked(x, y) : abi.encodePacked(y, x);
+    }
+
+    function wExp(uint256 x) internal pure returns (uint256) {
+        uint256 firstTerm = x;
+        uint256 secondTerm = mulDivDown(firstTerm, firstTerm, 2 * WAD);
+        uint256 thirdTerm = mulDivDown(secondTerm, firstTerm, 3 * WAD);
+
+        return WAD + firstTerm + secondTerm + thirdTerm;
     }
 }

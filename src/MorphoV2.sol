@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 
 import {UtilsLib} from "./libraries/UtilsLib.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
-import {WAD, ORACLE_PRICE_SCALE, MAX_LIF, TIME_TO_MAX_LIF} from "./libraries/ConstantsLib.sol";
+import {WAD, ORACLE_PRICE_SCALE, MAX_LIF, TIME_TO_MAX_LIF, DELTA, P_0} from "./libraries/ConstantsLib.sol";
 import {MathLib} from "./libraries/MathLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {IMorphoV2, Obligation, Offer, Signature, Seizure, TradingFeeParams} from "./interfaces/IMorphoV2.sol";
@@ -119,7 +119,9 @@ contract MorphoV2 is IMorphoV2 {
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
         require(offer.obligation.chainId == block.chainid, "chain id mismatch");
-        require(offer.start < offer.expiry || offer.expiryPrice == offer.startPrice, "inconsistent prices");
+        require(offer.start < offer.expiry || offer.expiryTick == offer.startTick, "inconsistent prices");
+        require(offer.startTick < 10_000 || offer.startTick == type(uint256).max, "start tick too high");
+        require(offer.expiryTick < 10_000 || offer.expiryTick == type(uint256).max, "expiry tick too high");
         require(offer.maker != taker, "buyer and seller cannot be the same");
         require(_signer(root, sig) == offer.maker, "invalid signature");
         require(MathLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
@@ -137,11 +139,11 @@ contract MorphoV2 is IMorphoV2 {
             ? (offer.maker, offer.callback, offer.callbackData, taker, takerCallback, takerCallbackData)
             : (taker, takerCallback, takerCallbackData, offer.maker, offer.callback, offer.callbackData);
 
-        uint256 offerPrice = offer.expiry != offer.start
-            ? offer.startPrice + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start)
+        uint256 offerTick = offer.expiry != offer.start
+            ? offer.startTick + (offer.expiryTick - offer.startTick) * (block.timestamp - offer.start)
                 / (offer.expiry - offer.start)
-            : offer.startPrice;
-        require(offerPrice <= WAD, "price too high");
+            : offer.startTick;
+        uint256 offerPrice = tickToPrice(offerTick);
 
         TradingFeeParams memory _tradingFeeParams = tradingFeeParams[id];
         uint256 buyerPrice;
@@ -391,6 +393,15 @@ contract MorphoV2 is IMorphoV2 {
     }
 
     /// INTERNAL ///
+
+    function tickToPrice(uint256 tick) public pure returns (uint256) {
+        if (tick == type(uint256).max) {
+            return WAD;
+        } else {
+            return
+                WAD.mulDivDown(WAD, WAD + (WAD.mulDivDown(WAD - P_0, P_0)).mulDivDown(MathLib.wExp(DELTA * tick), WAD));
+        }
+    }
 
     function _id(Obligation memory obligation) internal pure returns (bytes32) {
         return keccak256(abi.encode(obligation));

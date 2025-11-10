@@ -80,6 +80,12 @@ contract MathLibTest is Test {
         assertTrue(MathLib.isLeaf(root, x, proof));
     }
 
+    function testWExp() public pure {
+        assertEq(MathLib.wExp(0), 1e18);
+        assertApproxEqRel(MathLib.wExp(1e18), 2.71828e18, 0.02e18);
+        assertApproxEqRel(MathLib.wExp(2e18), 7.38905e18, 0.15e18);
+    }
+
     function mulDivDown(uint256 x, uint256 y, uint256 d) external pure {
         MathLib.mulDivDown(x, y, d);
     }
