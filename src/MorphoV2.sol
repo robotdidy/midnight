@@ -4,7 +4,14 @@ pragma solidity 0.8.28;
 
 import {UtilsLib} from "./libraries/UtilsLib.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
-import {WAD, ORACLE_PRICE_SCALE, MAX_LIF, TIME_TO_MAX_LIF, EIP712_DOMAIN_TYPEHASH, ROOT_TYPEHASH} from "./libraries/ConstantsLib.sol";
+import {
+    WAD,
+    ORACLE_PRICE_SCALE,
+    MAX_LIF,
+    TIME_TO_MAX_LIF,
+    EIP712_DOMAIN_TYPEHASH,
+    ROOT_TYPEHASH
+} from "./libraries/ConstantsLib.sol";
 import {MathLib} from "./libraries/MathLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {
@@ -405,13 +412,7 @@ contract MorphoV2 is IMorphoV2 {
     /// INTERNAL ///
 
     function _domainSeparator() internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                EIP712_DOMAIN_TYPEHASH,
-                block.chainid,
-                address(this)
-            )
-        );
+        return keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(this)));
     }
 
     function _signer(bytes32 root, Signature memory signature) internal view returns (address) {
