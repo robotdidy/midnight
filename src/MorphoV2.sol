@@ -237,7 +237,6 @@ contract MorphoV2 is IMorphoV2 {
             obligationUnits,
             obligationShares,
             taker,
-            offer,
             buyerIsLender,
             sellerIsBorrower
         );
