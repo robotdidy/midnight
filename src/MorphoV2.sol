@@ -7,7 +7,15 @@ import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {WAD, ORACLE_PRICE_SCALE, MAX_LIF, TIME_TO_MAX_LIF} from "./libraries/ConstantsLib.sol";
 import {MathLib} from "./libraries/MathLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
-import {IMorphoV2, Obligation, Offer, Signature, Seizure, TradingFeeParams} from "./interfaces/IMorphoV2.sol";
+import {
+    IMorphoV2,
+    Obligation,
+    Offer,
+    Signature,
+    Collateral,
+    Seizure,
+    TradingFeeParams
+} from "./interfaces/IMorphoV2.sol";
 import {ICallbacks, IFlashLoanCallback} from "./interfaces/ICallbacks.sol";
 import {EventsLib} from "./libraries/EventsLib.sol";
 
@@ -273,6 +281,7 @@ contract MorphoV2 is IMorphoV2 {
     /// @dev Will revert if there is no withdrawable funds.
     function withdraw(Obligation memory obligation, uint256 obligationUnits, uint256 shares, address onBehalf)
         external
+        returns (uint256, uint256)
     {
         require(UtilsLib.atMostOneNonZero(obligationUnits, shares), "INCONSISTENT_INPUT");
         bytes32 id = _id(obligation);
@@ -289,6 +298,8 @@ contract MorphoV2 is IMorphoV2 {
         emit EventsLib.Withdraw(msg.sender, id, obligationUnits, shares, onBehalf);
 
         SafeTransferLib.safeTransfer(obligation.loanToken, msg.sender, obligationUnits);
+
+        return (obligationUnits, shares);
     }
 
     function repay(Obligation memory obligation, uint256 obligationUnits, address onBehalf) external {
@@ -348,11 +359,12 @@ contract MorphoV2 is IMorphoV2 {
         uint256[] memory prices = new uint256[](obligation.collaterals.length);
 
         for (uint256 i = 0; i < obligation.collaterals.length; i++) {
-            prices[i] = IOracle(obligation.collaterals[i].oracle).price();
-            uint256 collateralAmount = collateralOf[borrower][id][obligation.collaterals[i].token];
-            maxDebt += collateralAmount.mulDivDown(prices[i], ORACLE_PRICE_SCALE)
-                .mulDivDown(obligation.collaterals[i].lltv, WAD);
-            repayableDebt += collateralAmount.mulDivUp(WAD, MAX_LIF).mulDivUp(prices[i], ORACLE_PRICE_SCALE);
+            Collateral memory _collateral = obligation.collaterals[i];
+            uint256 price = IOracle(_collateral.oracle).price();
+            prices[i] = price;
+            uint256 _collateralOf = collateralOf[borrower][id][_collateral.token];
+            maxDebt += _collateralOf.mulDivDown(price, ORACLE_PRICE_SCALE).mulDivDown(_collateral.lltv, WAD);
+            repayableDebt += _collateralOf.mulDivUp(WAD, MAX_LIF).mulDivUp(price, ORACLE_PRICE_SCALE);
         }
 
         uint256 originalDebt = debtOf[borrower][id];
@@ -452,14 +464,14 @@ contract MorphoV2 is IMorphoV2 {
             uint256 maxDebt;
             address previousCollateralToken;
             for (uint256 i = 0; i < obligation.collaterals.length; i++) {
-                address currentCollateralToken = obligation.collaterals[i].token;
-                require(currentCollateralToken > previousCollateralToken, "collaterals not sorted");
-                uint256 price = IOracle(obligation.collaterals[i].oracle).price();
-                maxDebt += collateralOf[borrower][id][currentCollateralToken].mulDivDown(price, ORACLE_PRICE_SCALE)
-                    .mulDivDown(obligation.collaterals[i].lltv, WAD);
-                previousCollateralToken = currentCollateralToken;
+                Collateral memory _collateral = obligation.collaterals[i];
+                address collateralToken = _collateral.token;
+                require(collateralToken > previousCollateralToken, "collaterals not sorted");
+                maxDebt += collateralOf[borrower][id][collateralToken]
+                    .mulDivDown(IOracle(_collateral.oracle).price(), ORACLE_PRICE_SCALE)
+                    .mulDivDown(_collateral.lltv, WAD);
+                previousCollateralToken = collateralToken;
             }
-
             return debt <= maxDebt;
         }
     }
