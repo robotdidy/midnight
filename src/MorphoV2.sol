@@ -90,7 +90,7 @@ contract MorphoV2 is IMorphoV2 {
         require(msg.sender == feeSetter, "Only feeSetter");
         require(tradingFee <= type(uint128).max, "Trading fee too high");
         require(interestCutLimit < WAD, "Interest cut limit too high");
-        // Safe cast because values are below type(uint128).max.
+        // forge-lint: disable-next-item(unsafe-typecast) Safe cast because values are below type(uint128).max.
         tradingFeeParams[id] =
             TradingFeeParams({tradingFee: uint128(tradingFee), interestCutLimit: uint128(interestCutLimit)});
         emit EventsLib.SetTradingFee(id, tradingFee, interestCutLimit);
