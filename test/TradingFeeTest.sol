@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {WAD} from "../src/libraries/ConstantsLib.sol";
 import {MathLib} from "../src/libraries/MathLib.sol";
 import {Obligation, Offer, Collateral} from "../src/interfaces/IMorphoV2.sol";
-import {console} from "forge-std/console.sol";
+
 import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
 
 contract TradingFeeTest is BaseTest {

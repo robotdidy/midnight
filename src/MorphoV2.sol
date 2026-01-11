@@ -13,8 +13,7 @@ import {
     Offer,
     Signature,
     Collateral,
-    Seizure,
-    TradingFeeParams
+    Seizure
 } from "./interfaces/IMorphoV2.sol";
 import {ICallbacks, IFlashLoanCallback} from "./interfaces/ICallbacks.sol";
 import {EventsLib} from "./libraries/EventsLib.sol";
