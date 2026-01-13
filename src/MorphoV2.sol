@@ -36,11 +36,11 @@ contract MorphoV2 is IMorphoV2 {
     mapping(address user => bytes32) public session;
 
     /// @dev Obligation trading fees for a given obligation id.
-    /// @dev The slot contains the 5 trading fees packed (each takes 32 bits).
-    mapping(bytes32 id => uint256) private _obligationTradingFee;
+    /// @dev The slot contains the 6 trading fees packed (each takes 32 bits).
+    mapping(bytes32 obligationId => uint256) private _obligationTradingFee;
 
     /// @dev Default trading fees per loan token.
-    /// @dev The slot contains the 5 trading fees packed (each takes 32 bits).
+    /// @dev The slot contains the 6 trading fees packed (each takes 32 bits).
     /// @dev Used when obligation fee is not set (slot is empty).
     mapping(address loanToken => uint256) private _defaultTradingFee;
 
@@ -51,6 +51,8 @@ contract MorphoV2 is IMorphoV2 {
 
     /// @dev Address that can set trading fees.
     address public feeSetter;
+
+    /// GETTERS ///
 
     function tradingFeeIndex(uint256 ttm) public pure returns (uint256) {
         return ttm == 0 ? 0 : ttm < 1 days ? 1 : ttm < 7 days ? 2 : ttm < 30 days ? 3 : ttm < 90 days ? 4 : 5;
@@ -181,9 +183,9 @@ contract MorphoV2 is IMorphoV2 {
         uint256 tradingFee = _obligationTradingFee[id] != 0
             ? obligationTradingFee(id, ttm)
             : defaultTradingFee(offer.obligation.loanToken, ttm);
-        uint256 buyerPrice = offer.buy ? offerPrice : offerPrice + tradingFee;
+        uint256 sellerPrice = offer.buy ? offerPrice - tradingFee : offerPrice;
+        uint256 buyerPrice = sellerPrice + tradingFee;
         require(buyerPrice <= WAD, "cannot trade at price above one");
-        uint256 sellerPrice = buyerPrice - tradingFee;
 
         if (buyerAssets > 0) {
             obligationUnits = buyerAssets.mulDivDown(WAD, buyerPrice);
