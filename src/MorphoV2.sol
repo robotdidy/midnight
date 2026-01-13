@@ -56,7 +56,9 @@ contract MorphoV2 is IMorphoV2 {
         return uint256(
             uint32(
             _obligationTradingFee[id]
-                >> (ttm < 1 days ? 0 : ttm < 7 days ? 32 : ttm < 30 days ? 64 : ttm < 90 days ? 96 : 128)
+                >> (ttm == 0
+                        ? 0
+                        : ttm < 1 days ? 32 : ttm < 7 days ? 64 : ttm < 30 days ? 96 : ttm < 90 days ? 128 : 160)
         )
         ) * 1e9;
     }
@@ -65,7 +67,9 @@ contract MorphoV2 is IMorphoV2 {
         return uint256(
             uint32(
             _defaultTradingFee[loanToken]
-                >> (ttm < 1 days ? 0 : ttm < 7 days ? 32 : ttm < 30 days ? 64 : ttm < 90 days ? 96 : 128)
+                >> (ttm == 0
+                        ? 0
+                        : ttm < 1 days ? 32 : ttm < 7 days ? 64 : ttm < 30 days ? 96 : ttm < 90 days ? 128 : 160)
         )
         ) * 1e9;
     }
@@ -105,52 +109,23 @@ contract MorphoV2 is IMorphoV2 {
     }
 
     /// @dev Trading fees are truncated to the nearest 1e9.
-    function setObligationTradingFee(
-        bytes32 id,
-        uint256 zeroDaysTradingFee,
-        uint256 oneDaysTradingFee,
-        uint256 sevenDaysTradingFee,
-        uint256 thirtyDaysTradingFee,
-        uint256 ninetyDaysTradingFee
-    ) external {
+    function setObligationTradingFee(bytes32 id, uint256 index, uint256 newTradingFee) external {
         require(msg.sender == feeSetter, "Only feeSetter");
-        require(zeroDaysTradingFee <= WAD, "0days trading fee too high");
-        require(oneDaysTradingFee <= WAD, "1days trading fee too high");
-        require(sevenDaysTradingFee <= WAD, "7days trading fee too high");
-        require(thirtyDaysTradingFee <= WAD, "30days trading fee too high");
-        require(ninetyDaysTradingFee <= WAD, "90days trading fee too high");
-        _obligationTradingFee[id] = zeroDaysTradingFee / 1e9 | oneDaysTradingFee / 1e9 << 32 | sevenDaysTradingFee / 1e9
-            << 64 | thirtyDaysTradingFee / 1e9 << 96 | ninetyDaysTradingFee / 1e9 << 128;
-        emit EventsLib.SetObligationTradingFee(
-            id, zeroDaysTradingFee, oneDaysTradingFee, sevenDaysTradingFee, thirtyDaysTradingFee, ninetyDaysTradingFee
-        );
+        require(newTradingFee <= WAD, "Trading fee too high");
+        require(index < 6, "Invalid index");
+        _obligationTradingFee[id] =
+            _obligationTradingFee[id] & ~(0xFFFFFFFF << (index * 32)) | (newTradingFee / 1e9 << (index * 32));
+        emit EventsLib.SetObligationTradingFee(id, index, newTradingFee);
     }
 
     /// @dev Trading fees are truncated to the nearest 1e9.
-    function setDefaultTradingFee(
-        address loanToken,
-        uint256 zeroDaysTradingFee,
-        uint256 oneDaysTradingFee,
-        uint256 sevenDaysTradingFee,
-        uint256 thirtyDaysTradingFee,
-        uint256 ninetyDaysTradingFee
-    ) external {
+    function setDefaultTradingFee(address loanToken, uint256 index, uint256 newTradingFee) external {
         require(msg.sender == feeSetter, "Only feeSetter");
-        require(zeroDaysTradingFee <= WAD, "0days trading fee too high");
-        require(oneDaysTradingFee <= WAD, "1days trading fee too high");
-        require(sevenDaysTradingFee <= WAD, "7days trading fee too high");
-        require(thirtyDaysTradingFee <= WAD, "30days trading fee too high");
-        require(ninetyDaysTradingFee <= WAD, "90days trading fee too high");
-        _defaultTradingFee[loanToken] = zeroDaysTradingFee / 1e9 | oneDaysTradingFee / 1e9 << 32
-            | sevenDaysTradingFee / 1e9 << 64 | thirtyDaysTradingFee / 1e9 << 96 | ninetyDaysTradingFee / 1e9 << 128;
-        emit EventsLib.SetDefaultTradingFee(
-            loanToken,
-            zeroDaysTradingFee,
-            oneDaysTradingFee,
-            sevenDaysTradingFee,
-            thirtyDaysTradingFee,
-            ninetyDaysTradingFee
-        );
+        require(newTradingFee <= WAD, "Trading fee too high");
+        require(index < 6, "Invalid index");
+        _defaultTradingFee[loanToken] =
+            _defaultTradingFee[loanToken] & ~(0xFFFFFFFF << (index * 32)) | (newTradingFee / 1e9 << (index * 32));
+        emit EventsLib.SetDefaultTradingFee(loanToken, index, newTradingFee);
     }
 
     function setTradingFeeRecipient(address recipient) external {
@@ -215,7 +190,9 @@ contract MorphoV2 is IMorphoV2 {
         require(offerPrice <= WAD, "price too high");
 
         uint256 ttm = UtilsLib.zeroFloorSub(offer.obligation.maturity, block.timestamp);
-        uint256 tradingFee = obligationTradingFee(id, ttm);
+        uint256 tradingFee = _obligationTradingFee[id] != 0
+            ? obligationTradingFee(id, ttm)
+            : defaultTradingFee(offer.obligation.loanToken, ttm);
         uint256 buyerPrice = offer.buy ? offerPrice : offerPrice + tradingFee;
         uint256 sellerPrice = buyerPrice - tradingFee;
 
