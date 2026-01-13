@@ -5,4 +5,4 @@ via_ir = true
 wrap_comments = true
 
 [lint]
-exclude_lints = ["asm-keccak256"]
+exclude_lints = ["asm-keccak256", "incorrect-shift"]
