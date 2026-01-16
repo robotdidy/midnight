@@ -92,8 +92,8 @@ contract MorphoV2 is IMorphoV2 {
         require(msg.sender == feeSetter, "Only feeSetter");
         require(newTradingFee <= WAD, "Trading fee too high");
         require(index <= 5, "Invalid index");
-        require(newTradingFee % FeeLib.FEE_DIVISOR == 0, "fee should be a multiple of 1e12");
-        require(newTradingFee == 0 || FeeLib.getActivated(feeStorage), "fee must be activated");
+        require(newTradingFee % FeeLib.FEE_STEP == 0, "fee should be a multiple of 1e12");
+        require(FeeLib.getActivated(feeStorage), "fee must be activated");
         _obligationTradingFeeStorage[id] = FeeLib.setFee(feeStorage, index, newTradingFee);
         emit EventsLib.SetObligationTradingFee(id, index, newTradingFee);
     }
@@ -111,8 +111,8 @@ contract MorphoV2 is IMorphoV2 {
         require(msg.sender == feeSetter, "Only feeSetter");
         require(newTradingFee <= WAD, "Trading fee too high");
         require(index <= 5, "Invalid index");
-        require(newTradingFee % FeeLib.FEE_DIVISOR == 0, "fee should be a multiple of 1e12");
-        require(newTradingFee == 0 || FeeLib.getActivated(feeStorage), "fee must be activated");
+        require(newTradingFee % FeeLib.FEE_STEP == 0, "fee should be a multiple of 1e12");
+        require(FeeLib.getActivated(feeStorage), "fee must be activated");
         _defaultTradingFeeStorage[loanToken] = FeeLib.setFee(feeStorage, index, newTradingFee);
         emit EventsLib.SetDefaultTradingFee(loanToken, index, newTradingFee);
     }
@@ -498,17 +498,20 @@ contract MorphoV2 is IMorphoV2 {
             if (!FeeLib.getActivated(feeStorage)) return 0;
         }
 
-        uint256[6] memory breakpoints = [uint256(0), 1 days, 7 days, 30 days, 90 days, 180 days];
-        if (ttm >= breakpoints[5]) return FeeLib.getFee(feeStorage, 5);
+        if (ttm >= 180 days) return FeeLib.getFee(feeStorage, 5);
 
-        uint256 index = ttm < breakpoints[1]
-            ? 0
-            : ttm < breakpoints[2] ? 1 : ttm < breakpoints[3] ? 2 : ttm < breakpoints[4] ? 3 : 4;
+        // forgefmt: disable-start
+        (uint256 index, uint256 start, uint256 end) =
+            ttm < 1 days ? (0, 0 days, 1 days) :
+            ttm < 7 days ? (1, 1 days, 7 days) :
+            ttm < 30 days ? (2, 7 days, 30 days) :
+            ttm < 90 days ? (3, 30 days, 90 days) :
+            (4, 90 days, 180 days);
+        // forgefmt: disable-end
 
         uint256 feeLower = FeeLib.getFee(feeStorage, index);
         uint256 feeUpper = FeeLib.getFee(feeStorage, index + 1);
 
-        return (feeLower * (breakpoints[index + 1] - ttm) + feeUpper * (ttm - breakpoints[index]))
-            / (breakpoints[index + 1] - breakpoints[index]);
+        return (feeLower * (end - ttm) + feeUpper * (ttm - start)) / (end - start);
     }
 }

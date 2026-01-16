@@ -10,7 +10,7 @@ pragma solidity ^0.8.0;
 ///   - Fee indices: 0=0d, 1=1d, 2=7d, 3=30d, 4=90d, 5=180d
 /// @dev Fees are stored divided by 1e12 to fit in 24 bits.
 library FeeLib {
-    uint256 internal constant FEE_DIVISOR = 1e12;
+    uint256 internal constant FEE_STEP = 1e12;
     uint256 internal constant FEE_BITS = 24;
     uint256 internal constant FEE_MASK = 0xFFFFFF;
     uint256 internal constant ACTIVATED_MASK = 1 << 255;
@@ -22,7 +22,7 @@ library FeeLib {
 
     /// @dev Returns the fee at the given index, scaled back to WAD precision.
     function getFee(uint256 feeStorage, uint256 index) internal pure returns (uint256) {
-        return ((feeStorage >> (index * FEE_BITS)) & FEE_MASK) * FEE_DIVISOR;
+        return ((feeStorage >> (index * FEE_BITS)) & FEE_MASK) * FEE_STEP;
     }
 
     /// @dev Returns whether all fees are zero.
@@ -34,11 +34,10 @@ library FeeLib {
     function setFee(uint256 feeStorage, uint256 index, uint256 fee) internal pure returns (uint256) {
         uint256 shift = index * FEE_BITS;
         uint256 cleared = feeStorage & ~(FEE_MASK << shift);
-        uint256 packedFee = (fee / FEE_DIVISOR) << shift;
+        uint256 packedFee = (fee / FEE_STEP) << shift;
         return cleared | packedFee;
     }
 
-    /// @dev Sets the activated flag.
     function setActivated(uint256 feeStorage, bool activated) internal pure returns (uint256) {
         return (feeStorage & ~ACTIVATED_MASK) | boolToUint256(activated) << 255;
     }
