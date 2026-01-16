@@ -4,6 +4,7 @@ pragma solidity 0.8.31;
 
 import {UtilsLib} from "./libraries/UtilsLib.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
+import {FeeLib} from "./libraries/FeeLib.sol";
 import {WAD, ORACLE_PRICE_SCALE, MAX_LIF, TIME_TO_MAX_LIF} from "./libraries/ConstantsLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {IMorphoV2, Obligation, Offer, Signature, Collateral, Seizure} from "./interfaces/IMorphoV2.sol";
@@ -90,12 +91,10 @@ contract MorphoV2 is IMorphoV2 {
         require(msg.sender == feeSetter, "Only feeSetter");
         require(newTradingFee <= WAD, "Trading fee too high");
         require(index <= 5, "Invalid index");
-        require(newTradingFee % 1e12 == 0, "fee should be a multiple of 1e12");
+        require(newTradingFee % FeeLib.FEE_PRECISION == 0, "fee should be a multiple of 1e12");
 
-        uint256 flag = activated ? 1 : 0;
         _obligationTradingFeeStorage[id] =
-            (_obligationTradingFeeStorage[id] & ~(uint256(0xFFFFFF) << (1 + index * 24)) & ~uint256(1))
-                | (newTradingFee / 1e12 << (1 + index * 24)) | flag;
+            FeeLib.setFee(_obligationTradingFeeStorage[id], index, newTradingFee, activated);
         emit EventsLib.SetObligationTradingFee(id, index, newTradingFee);
     }
 
@@ -103,12 +102,10 @@ contract MorphoV2 is IMorphoV2 {
         require(msg.sender == feeSetter, "Only feeSetter");
         require(newTradingFee <= WAD, "Trading fee too high");
         require(index <= 5, "Invalid index");
-        require(newTradingFee % 1e12 == 0, "fee should be a multiple of 1e12");
+        require(newTradingFee % FeeLib.FEE_PRECISION == 0, "fee should be a multiple of 1e12");
 
-        uint256 flag = activated ? 1 : 0;
         _defaultTradingFeeStorage[loanToken] =
-            (_defaultTradingFeeStorage[loanToken] & ~(uint256(0xFFFFFF) << (1 + index * 24)) & ~uint256(1))
-                | (newTradingFee / 1e12 << (1 + index * 24)) | flag;
+            FeeLib.setFee(_defaultTradingFeeStorage[loanToken], index, newTradingFee, activated);
         emit EventsLib.SetDefaultTradingFee(loanToken, index, newTradingFee);
     }
 
@@ -479,26 +476,23 @@ contract MorphoV2 is IMorphoV2 {
     /// @dev Return the trading fee using piecewise linear interpolation between breakpoints.
     /// @dev Returns 0 if neither obligation nor default fee is activated.
     function tradingFee(bytes32 id, address loanToken, uint256 ttm) public view returns (uint256) {
-        uint256 tradingFeeStorage = _obligationTradingFeeStorage[id];
-        if (tradingFeeStorage & 1 == 0) {
-            tradingFeeStorage = _defaultTradingFeeStorage[loanToken];
-            if (tradingFeeStorage & 1 == 0) return 0;
+        uint256 feeStorage = _obligationTradingFeeStorage[id];
+        if (!FeeLib.isActivated(feeStorage)) {
+            feeStorage = _defaultTradingFeeStorage[loanToken];
+            if (!FeeLib.isActivated(feeStorage)) return 0;
         }
 
         uint256[6] memory breakpoints = [uint256(0), 1 days, 7 days, 30 days, 90 days, 180 days];
-        // forge-lint: disable-next-line(unsafe-typecast)
-        if (ttm >= breakpoints[5]) return uint256(uint24(tradingFeeStorage >> 121)) * 1e12;
+        if (ttm >= breakpoints[5]) return FeeLib.getFee(feeStorage, 5);
 
         uint256 index = ttm < breakpoints[1]
             ? 0
             : ttm < breakpoints[2] ? 1 : ttm < breakpoints[3] ? 2 : ttm < breakpoints[4] ? 3 : 4;
 
-        // forge-lint: disable-next-line(unsafe-typecast)
-        uint256 feeLower = uint24(tradingFeeStorage >> (1 + index * 24));
-        // forge-lint: disable-next-line(unsafe-typecast)
-        uint256 feeUpper = uint24(tradingFeeStorage >> (1 + (index + 1) * 24));
+        uint256 feeLower = FeeLib.getFee(feeStorage, index);
+        uint256 feeUpper = FeeLib.getFee(feeStorage, index + 1);
 
-        return (feeLower * (breakpoints[index + 1] - ttm) + feeUpper * (ttm - breakpoints[index])) * 1e12
+        return (feeLower * (breakpoints[index + 1] - ttm) + feeUpper * (ttm - breakpoints[index]))
             / (breakpoints[index + 1] - breakpoints[index]);
     }
 }
