@@ -152,7 +152,6 @@ contract MorphoV2 is IMorphoV2 {
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
         require(offer.obligation.chainId == block.chainid, "chain id mismatch");
-        require(offer.start < offer.expiry || offer.expiryPrice == offer.startPrice, "inconsistent prices");
         require(offer.maker != taker, "buyer and seller cannot be the same");
         require(signer(root, sig) == offer.maker, "invalid signature");
         require(UtilsLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
@@ -170,13 +169,9 @@ contract MorphoV2 is IMorphoV2 {
             ? (offer.maker, offer.callback, offer.callbackData, taker, takerCallback, takerCallbackData)
             : (taker, takerCallback, takerCallbackData, offer.maker, offer.callback, offer.callbackData);
 
-        uint256 offerPrice = offer.expiry != offer.start
-            ? offer.startPrice + (offer.expiryPrice - offer.startPrice) * (block.timestamp - offer.start)
-                / (offer.expiry - offer.start)
-            : offer.startPrice;
         uint256 timeToMaturity = UtilsLib.zeroFloorSub(offer.obligation.maturity, block.timestamp);
         uint256 _tradingFee = tradingFee(id, offer.obligation.loanToken, timeToMaturity);
-        uint256 sellerPrice = offer.buy ? offerPrice - _tradingFee : offerPrice;
+        uint256 sellerPrice = offer.buy ? offer.price - _tradingFee : offer.price;
         uint256 buyerPrice = sellerPrice + _tradingFee;
         require(buyerPrice <= WAD, "cannot trade at price above one");
 

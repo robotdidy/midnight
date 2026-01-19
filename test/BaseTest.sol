@@ -110,8 +110,7 @@ abstract contract BaseTest is Test {
         lenderOffer.assets = units;
         lenderOffer.group = keccak256(abi.encode("non zero group"));
         lenderOffer.expiry = block.timestamp + 200;
-        lenderOffer.startPrice = 1 ether;
-        lenderOffer.expiryPrice = 1 ether;
+        lenderOffer.price = 1 ether;
 
         collateralize(obligation, otherBorrower, units);
         take(0, 0, units, 0, otherBorrower, lenderOffer);
@@ -131,8 +130,7 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.assets = 100;
         badBorrowerOffer.start = block.timestamp;
         badBorrowerOffer.expiry = block.timestamp + 200;
-        badBorrowerOffer.startPrice = 1 ether;
-        badBorrowerOffer.expiryPrice = 1 ether;
+        badBorrowerOffer.price = 1 ether;
 
         deal(obligation.collaterals[0].token, address(this), 135);
         morphoV2.supplyCollateral(obligation, obligation.collaterals[0].token, 135, badBorrower);
@@ -219,8 +217,7 @@ abstract contract BaseTest is Test {
         borrowerOffer.assets = obligationUnits;
         borrowerOffer.start = block.timestamp;
         borrowerOffer.expiry = block.timestamp;
-        borrowerOffer.startPrice = 1 ether;
-        borrowerOffer.expiryPrice = 1 ether;
+        borrowerOffer.price = 1 ether;
 
         morphoV2.take(
             0,
