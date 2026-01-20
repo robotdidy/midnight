@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import {Obligation, Offer, Signature, Collateral, Seizure} from "../src/interfaces/IMorphoV2.sol";
+import {Obligation, Offer, Signature, Collateral} from "../src/interfaces/IMorphoV2.sol";
 import {MorphoV2} from "../src/MorphoV2.sol";
 import {WAD} from "../src/libraries/ConstantsLib.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
@@ -1336,7 +1336,7 @@ contract BorrowCallback is ICallbacks {
         bytes memory data
     ) external {}
 
-    function onLiquidate(Seizure[] memory seizures, address borrower, address liquidator, bytes memory data) external {}
+    function onLiquidate(uint256 repaidAssets, bytes memory data) external {}
 }
 
 contract LendCallback is ICallbacks {
@@ -1364,5 +1364,6 @@ contract LendCallback is ICallbacks {
         uint256 obligationShares,
         bytes memory data
     ) external {}
-    function onLiquidate(Seizure[] memory seizures, address borrower, address liquidator, bytes memory data) external {}
+
+    function onLiquidate(uint256 repaidAssets, bytes memory data) external {}
 }

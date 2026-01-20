@@ -7,7 +7,7 @@ import {ERC20} from "./helpers/ERC20.sol";
 import {Oracle} from "./helpers/Oracle.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 import {WAD, ORACLE_PRICE_SCALE} from "../src/libraries/ConstantsLib.sol";
-import {Obligation, Offer, Signature, Collateral, Seizure} from "../src/interfaces/IMorphoV2.sol";
+import {Obligation, Offer, Signature, Collateral} from "../src/interfaces/IMorphoV2.sol";
 import {MorphoV2} from "../src/MorphoV2.sol";
 
 uint256 constant MAX_TEST_AMOUNT = 1e36;
@@ -142,7 +142,7 @@ abstract contract BaseTest is Test {
         take(100, 0, 0, 0, unluckyLender, badBorrowerOffer);
 
         Oracle(obligation.collaterals[0].oracle).setPrice(ORACLE_PRICE_SCALE / 4);
-        morphoV2.liquidate(obligation, new Seizure[](0), badBorrower, "");
+        morphoV2.liquidate(obligation, 0, 0, 0, badBorrower, "");
 
         assertNotEq(
             morphoV2.totalUnits(toId(obligation)), morphoV2.totalShares(toId(obligation)), "total units != total shares"

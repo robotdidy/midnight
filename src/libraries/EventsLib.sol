@@ -2,8 +2,6 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import {Seizure} from "../interfaces/IMorphoV2.sol";
-
 library EventsLib {
     event Constructor(address indexed owner);
 
@@ -55,9 +53,10 @@ library EventsLib {
     event Liquidate(
         address indexed caller,
         bytes32 indexed obligationId,
-        Seizure[] seizures,
+        uint256 collateralIndex,
+        uint256 seizedAssets,
+        uint256 repaidAssets,
         address indexed borrower,
-        uint256 totalRepaid,
         uint256 badDebt
     );
 

@@ -40,7 +40,7 @@ library FeeLib {
     }
 
     function boolToUint256(bool b) internal pure returns (uint256 res) {
-        assembly {
+        assembly ("memory-safe") {
             res := b
         }
     }

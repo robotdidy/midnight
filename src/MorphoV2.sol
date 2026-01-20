@@ -7,7 +7,7 @@ import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {FeeLib} from "./libraries/FeeLib.sol";
 import {WAD, ORACLE_PRICE_SCALE, MAX_LIF, TIME_TO_MAX_LIF} from "./libraries/ConstantsLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
-import {IMorphoV2, Obligation, Offer, Signature, Collateral, Seizure} from "./interfaces/IMorphoV2.sol";
+import {IMorphoV2, Obligation, Offer, Signature, Collateral} from "./interfaces/IMorphoV2.sol";
 import {ICallbacks, IFlashLoanCallback} from "./interfaces/ICallbacks.sol";
 import {EventsLib} from "./libraries/EventsLib.sol";
 
@@ -342,29 +342,30 @@ contract MorphoV2 is IMorphoV2 {
         SafeTransferLib.safeTransfer(collateral, msg.sender, assets);
     }
 
-    /// @dev On each seizure at least one of `repaid` or `seized` should be equal to zero.
+    /// @dev At least one of `repaidUnits` or `seizedAssets` should be equal to zero.
     /// @dev Accounts are liquidatable if they are unhealthy or if the maturity is reached.
+    /// @dev Before maturity, the liquidation cannot put the borrower back into health (recovery close factory).
     /// @dev If an account is healthy, the LIF grows linearly from 1 at maturity to MAX_LIF at maturity +
     /// TIME_TO_MAX_LIF.
-    /// @param obligation The obligation.
-    /// @param seizures An array of amounts of debt to repay or assets to seize with the index of the collateral in the
-    /// obligation's collateral assets.
-    /// @param borrower The debtor of the loan.
-    /// @param data Arbitrary data to pass to the callback. Pass empty data if not needed.
-    /// @return A collection of the actual amounts of debt repaid or asset seized with the collateral index.
-    function liquidate(Obligation memory obligation, Seizure[] memory seizures, address borrower, bytes calldata data)
-        external
-        returns (Seizure[] memory)
-    {
+    /// @dev Returns repaid units and seized assets.
+    function liquidate(
+        Obligation calldata obligation,
+        uint256 collateralIndex,
+        uint256 repaidUnits,
+        uint256 seizedAssets,
+        address borrower,
+        bytes calldata data
+    ) external returns (uint256, uint256) {
+        require(UtilsLib.atMostOneNonZero(repaidUnits, seizedAssets), "INCONSISTENT_INPUT");
+        bytes32 id = toId(obligation);
+
         uint256 repayableDebt;
         uint256 maxDebt;
-        bytes32 id = toId(obligation);
-        uint256[] memory prices = new uint256[](obligation.collaterals.length);
-
+        uint256 liquidatedCollateralPrice;
         for (uint256 i = 0; i < obligation.collaterals.length; i++) {
             Collateral memory _collateral = obligation.collaterals[i];
             uint256 price = IOracle(_collateral.oracle).price();
-            prices[i] = price;
+            if (i == collateralIndex) liquidatedCollateralPrice = price;
             uint256 _collateralOf = collateralOf[borrower][id][_collateral.token];
             maxDebt += _collateralOf.mulDivDown(price, ORACLE_PRICE_SCALE).mulDivDown(_collateral.lltv, WAD);
             repayableDebt += _collateralOf.mulDivUp(WAD, MAX_LIF).mulDivUp(price, ORACLE_PRICE_SCALE);
@@ -373,52 +374,47 @@ contract MorphoV2 is IMorphoV2 {
         uint256 originalDebt = debtOf[borrower][id];
         require(block.timestamp > obligation.maturity || originalDebt > maxDebt, "position is not liquidatable");
 
-        uint256 lif = originalDebt > maxDebt
-            ? MAX_LIF
-            : UtilsLib.min(MAX_LIF, WAD + (MAX_LIF - WAD) * (block.timestamp - obligation.maturity) / TIME_TO_MAX_LIF);
-
         uint256 badDebt = originalDebt.zeroFloorSub(repayableDebt);
         if (badDebt > 0) {
             debtOf[borrower][id] -= badDebt;
             totalUnits[id] -= badDebt;
         }
 
-        uint256 totalRepaid;
+        if (repaidUnits > 0 || seizedAssets > 0) {
+            uint256 lif = originalDebt > maxDebt
+                ? MAX_LIF
+                : UtilsLib.min(
+                    MAX_LIF, WAD + (MAX_LIF - WAD) * (block.timestamp - obligation.maturity) / TIME_TO_MAX_LIF
+                );
 
-        for (uint256 i = 0; i < seizures.length; i++) {
-            Seizure memory seizure = seizures[i];
-            require(UtilsLib.atMostOneNonZero(seizure.repaid, seizure.seized), "INCONSISTENT_INPUT");
-
-            if (seizure.seized > 0) {
-                seizure.repaid =
-                    seizure.seized.mulDivUp(WAD, lif).mulDivUp(prices[seizure.collateralIndex], ORACLE_PRICE_SCALE);
+            if (seizedAssets > 0) {
+                repaidUnits = seizedAssets.mulDivUp(WAD, lif).mulDivUp(liquidatedCollateralPrice, ORACLE_PRICE_SCALE);
             } else {
-                seizure.seized =
-                    seizure.repaid.mulDivDown(ORACLE_PRICE_SCALE, prices[seizure.collateralIndex]).mulDivDown(lif, WAD);
+                seizedAssets =
+                    repaidUnits.mulDivDown(ORACLE_PRICE_SCALE, liquidatedCollateralPrice).mulDivDown(lif, WAD);
             }
 
-            totalRepaid += seizure.repaid;
-            address collateralToken = obligation.collaterals[seizure.collateralIndex].token;
-            collateralOf[borrower][id][collateralToken] -= seizure.seized;
-        }
-
-        withdrawable[id] += totalRepaid;
-        debtOf[borrower][id] -= totalRepaid;
-
-        emit EventsLib.Liquidate(msg.sender, id, seizures, borrower, totalRepaid, badDebt);
-
-        for (uint256 i = 0; i < seizures.length; i++) {
-            Seizure memory seizure = seizures[i];
-            SafeTransferLib.safeTransfer(
-                obligation.collaterals[seizure.collateralIndex].token, msg.sender, seizure.seized
+            uint256 newMaxDebt = maxDebt
+                - seizedAssets.mulDivDown(liquidatedCollateralPrice, ORACLE_PRICE_SCALE)
+                    .mulDivDown(obligation.collaterals[collateralIndex].lltv, WAD);
+            require(
+                block.timestamp > obligation.maturity || originalDebt - repaidUnits >= newMaxDebt,
+                "recovery close factory violated"
             );
+
+            collateralOf[borrower][id][obligation.collaterals[collateralIndex].token] -= seizedAssets;
+            withdrawable[id] += repaidUnits;
+            debtOf[borrower][id] -= repaidUnits;
+
+            SafeTransferLib.safeTransfer(obligation.collaterals[collateralIndex].token, msg.sender, seizedAssets);
+            SafeTransferLib.safeTransferFrom(obligation.loanToken, msg.sender, address(this), repaidUnits);
         }
 
-        if (data.length > 0) ICallbacks(msg.sender).onLiquidate(seizures, borrower, msg.sender, data);
+        emit EventsLib.Liquidate(msg.sender, id, collateralIndex, seizedAssets, repaidUnits, borrower, badDebt);
 
-        SafeTransferLib.safeTransferFrom(obligation.loanToken, msg.sender, address(this), totalRepaid);
+        if (data.length > 0) ICallbacks(msg.sender).onLiquidate(repaidUnits, data);
 
-        return seizures;
+        return (repaidUnits, seizedAssets);
     }
 
     function consume(bytes32 group, uint256 amount) external {
