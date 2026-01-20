@@ -405,16 +405,17 @@ contract MorphoV2 is IMorphoV2 {
             collateralOf[borrower][id][obligation.collaterals[collateralIndex].token] -= seizedAssets;
             withdrawable[id] += repaidUnits;
             debtOf[borrower][id] -= repaidUnits;
-
-            SafeTransferLib.safeTransfer(obligation.collaterals[collateralIndex].token, msg.sender, seizedAssets);
-            SafeTransferLib.safeTransferFrom(obligation.loanToken, msg.sender, address(this), repaidUnits);
         }
 
         emit EventsLib.Liquidate(msg.sender, id, collateralIndex, seizedAssets, repaidUnits, borrower, badDebt);
 
+        SafeTransferLib.safeTransfer(obligation.collaterals[collateralIndex].token, msg.sender, seizedAssets);
+
         if (data.length > 0) {
             ICallbacks(msg.sender).onLiquidate(obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
         }
+
+        SafeTransferLib.safeTransferFrom(obligation.loanToken, msg.sender, address(this), repaidUnits);
 
         return (repaidUnits, seizedAssets);
     }
