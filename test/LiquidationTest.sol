@@ -299,7 +299,9 @@ contract LiquidationTest is BaseTest {
 
     // helpers.
 
-    function onLiquidate(uint256 _repaidAssets, bytes memory data) public {
+    function onLiquidate(Obligation memory, uint256, uint256, uint256 _repaidAssets, address, bytes memory data)
+        public
+    {
         recordedRepaidAssets = _repaidAssets;
         recordedData = data;
     }

@@ -1336,7 +1336,7 @@ contract BorrowCallback is ICallbacks {
         bytes memory data
     ) external {}
 
-    function onLiquidate(uint256 repaidAssets, bytes memory data) external {}
+    function onLiquidate(Obligation memory, uint256, uint256, uint256, address, bytes memory) external {}
 }
 
 contract LendCallback is ICallbacks {
@@ -1365,5 +1365,5 @@ contract LendCallback is ICallbacks {
         bytes memory data
     ) external {}
 
-    function onLiquidate(uint256 repaidAssets, bytes memory data) external {}
+    function onLiquidate(Obligation memory, uint256, uint256, uint256, address, bytes memory) external {}
 }

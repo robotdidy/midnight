@@ -412,7 +412,9 @@ contract MorphoV2 is IMorphoV2 {
 
         emit EventsLib.Liquidate(msg.sender, id, collateralIndex, seizedAssets, repaidUnits, borrower, badDebt);
 
-        if (data.length > 0) ICallbacks(msg.sender).onLiquidate(repaidUnits, data);
+        if (data.length > 0) {
+            ICallbacks(msg.sender).onLiquidate(obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
+        }
 
         return (repaidUnits, seizedAssets);
     }

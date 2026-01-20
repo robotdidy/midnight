@@ -23,7 +23,14 @@ interface ICallbacks {
         uint256 obligationShares,
         bytes memory data
     ) external;
-    function onLiquidate(uint256 repaidAssets, bytes memory data) external;
+    function onLiquidate(
+        Obligation memory obligation,
+        uint256 collateralIndex,
+        uint256 seizedAssets,
+        uint256 repaidAssets,
+        address borrower,
+        bytes memory data
+    ) external;
 }
 
 interface IFlashLoanCallback {
