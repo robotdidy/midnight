@@ -7,6 +7,7 @@ import {Obligation, Collateral} from "../src/interfaces/IMorphoV2.sol";
 import {ERC20} from "./helpers/ERC20.sol";
 import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
 
+import {console} from "../lib/forge-std/src/console.sol";
 import {WAD, DELTA} from "../src/libraries/ConstantsLib.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 
@@ -167,14 +168,18 @@ contract OtherFunctionsTest is BaseTest {
         assertEq(morphoV2.session(user), keccak256(abi.encode(0, blockhash(block.number - 1))), "session");
     }
 
-    function testTickToPrice() public view {
-        uint256 P_0 = 0.9999999e18;
-        assertEq(morphoV2.tickToPrice(0), P_0, "tick 0");
+    function testTickToPriceMinMax() public view {
+        assertEq(morphoV2.tickToPrice(0), 0.000001e18, "tick 0");
+        assertEq(morphoV2.tickToPrice(1140), 0.999999e18, "tick max - 1");
+        assertEq(morphoV2.tickToPrice(1141), WAD, "tick max");
+    }
 
-        uint256 previousReturn = _return(P_0);
-        for (uint256 i = 1; i <= 1000; i++) {
+    function testReturnJumps() public view {
+        uint256 price = morphoV2.tickToPrice(205);
+        uint256 previousReturn = _return(price);
+        for (uint256 i = 205; i <= 400; i++) {
             assertApproxEqRel(
-                _return(morphoV2.tickToPrice(i)), previousReturn.mulDivDown(WAD + DELTA, WAD), 0.05e18, "tick i"
+                _return(morphoV2.tickToPrice(i)), previousReturn.mulDivDown(WAD + uint256(DELTA), WAD), 0.1e18, "tick i"
             );
             previousReturn = _return(morphoV2.tickToPrice(i));
         }
@@ -182,5 +187,11 @@ contract OtherFunctionsTest is BaseTest {
 
     function _return(uint256 price) internal pure returns (uint256) {
         return (WAD - price).mulDivDown(WAD, price);
+    }
+
+    function testTickToPriceRange() public view {
+        for (uint256 i = 0; i <= 1176; i++) {
+            console.log(morphoV2.tickToPrice(i));
+        }
     }
 }

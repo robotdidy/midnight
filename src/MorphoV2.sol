@@ -12,8 +12,7 @@ import {
     TIME_TO_MAX_LIF,
     EIP712_DOMAIN_TYPEHASH,
     ROOT_TYPEHASH,
-    DELTA,
-    P_0
+    DELTA
 } from "./libraries/ConstantsLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {IMorphoV2, Obligation, Offer, Signature, Collateral, Seizure} from "./interfaces/IMorphoV2.sol";
@@ -161,8 +160,8 @@ contract MorphoV2 is IMorphoV2 {
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
         require(offer.start < offer.expiry || offer.expiryTick == offer.startTick, "inconsistent prices");
-        require(offer.startTick < 10_000 || offer.startTick == type(uint256).max, "start tick too high");
-        require(offer.expiryTick < 10_000 || offer.expiryTick == type(uint256).max, "expiry tick too high");
+        require(offer.startTick <= 1176, "start tick too high");
+        require(offer.expiryTick <= 1176, "expiry tick too high");
         require(offer.maker != taker, "buyer and seller cannot be the same");
         require(signer(root, sig) == offer.maker, "invalid signature");
         require(UtilsLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
@@ -459,12 +458,7 @@ contract MorphoV2 is IMorphoV2 {
     /// VIEW FUNCTIONS ///
 
     function tickToPrice(uint256 tick) public pure returns (uint256) {
-        if (tick == type(uint256).max) {
-            return WAD;
-        } else {
-            return
-                WAD.mulDivDown(WAD, WAD + (WAD.mulDivDown(WAD - P_0, P_0)).mulDivDown(UtilsLib.wExp(DELTA * tick), WAD));
-        }
+        return (WAD.mulDivUp(WAD, WAD + UtilsLib.wExp(DELTA * (588 - int256(tick))))).mulDivUp(1, 1e12) * 1e12;
     }
 
     function toId(Obligation memory obligation) public view returns (bytes32) {

@@ -50,7 +50,7 @@ contract TradingFeeTest is BaseTest {
 
     function testBuyBuyerAssets(uint256 buyerAssets, uint256 sellerTick, uint256 tradingFee) public {
         buyerAssets = bound(buyerAssets, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, WAD - sellerPrice) / 1e12 * 1e12;
@@ -71,7 +71,7 @@ contract TradingFeeTest is BaseTest {
 
     function testSellBuyerAssets(uint256 tradingFee, uint256 buyerTick, uint256 buyerAssets) public {
         buyerAssets = bound(buyerAssets, 0, MAX_TEST_AMOUNT);
-        buyerTick = bound(buyerTick, 0, 1000);
+        buyerTick = bound(buyerTick, 0, 1176);
         uint256 buyerPrice = morphoV2.tickToPrice(buyerTick);
         vm.assume(buyerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, buyerPrice) / 1e12 * 1e12;
@@ -94,7 +94,7 @@ contract TradingFeeTest is BaseTest {
 
     function testBuySellerAssets(uint256 tradingFee, uint256 sellerTick, uint256 sellerAssets) public {
         sellerAssets = bound(sellerAssets, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, WAD - sellerPrice) / 1e12 * 1e12;
@@ -115,7 +115,7 @@ contract TradingFeeTest is BaseTest {
 
     function testSellSellerAssets(uint256 tradingFee, uint256 buyerTick, uint256 sellerAssets) public {
         sellerAssets = bound(sellerAssets, 0, MAX_TEST_AMOUNT);
-        buyerTick = bound(buyerTick, 0, 1000);
+        buyerTick = bound(buyerTick, 0, 1176);
         uint256 buyerPrice = morphoV2.tickToPrice(buyerTick);
         vm.assume(buyerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, 0.05 ether) / 1e12 * 1e12;
@@ -136,7 +136,7 @@ contract TradingFeeTest is BaseTest {
 
     function testBuyObligationUnits(uint256 tradingFee, uint256 sellerTick, uint256 obligationUnits) public {
         obligationUnits = bound(obligationUnits, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.01e18);
         tradingFee = bound(tradingFee, 0, WAD - sellerPrice) / 1e12 * 1e12;
@@ -158,7 +158,7 @@ contract TradingFeeTest is BaseTest {
 
     function testSellObligationUnits(uint256 tradingFee, uint256 buyerTick, uint256 obligationUnits) public {
         obligationUnits = bound(obligationUnits, 0, MAX_TEST_AMOUNT);
-        buyerTick = bound(buyerTick, 0, 1000);
+        buyerTick = bound(buyerTick, 0, 1176);
         uint256 buyerPrice = morphoV2.tickToPrice(buyerTick);
         vm.assume(buyerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, 0.5 ether) / 1e12 * 1e12;
@@ -180,7 +180,7 @@ contract TradingFeeTest is BaseTest {
 
     function testBuyObligationShares(uint256 tradingFee, uint256 sellerTick, uint256 obligationShares) public {
         obligationShares = bound(obligationShares, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, WAD - sellerPrice) / 1e12 * 1e12;
@@ -202,7 +202,7 @@ contract TradingFeeTest is BaseTest {
 
     function testSellObligationShares(uint256 tradingFee, uint256 buyerTick, uint256 obligationShares) public {
         obligationShares = bound(obligationShares, 0, MAX_TEST_AMOUNT);
-        buyerTick = bound(buyerTick, 0, 1000);
+        buyerTick = bound(buyerTick, 0, 1176);
         uint256 buyerPrice = morphoV2.tickToPrice(buyerTick);
         vm.assume(buyerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, 0.05 ether) / 1e12 * 1e12;
@@ -224,7 +224,7 @@ contract TradingFeeTest is BaseTest {
 
     function testDefaultFee(uint256 buyerAssets, uint256 sellerTick, uint256 tradingFee) public {
         buyerAssets = bound(buyerAssets, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.5e18);
         tradingFee = bound(tradingFee, 0, WAD - sellerPrice) / 1e12 * 1e12;
@@ -245,7 +245,7 @@ contract TradingFeeTest is BaseTest {
 
     function testSevenDayTtmFee(uint256 buyerAssets, uint256 sellerTick, uint256 fee1Day, uint256 fee7Days) public {
         buyerAssets = bound(buyerAssets, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.5e18);
         fee1Day = bound(fee1Day, 0, (WAD - sellerPrice) / 2) / 1e12 * 1e12;
@@ -278,7 +278,7 @@ contract TradingFeeTest is BaseTest {
 
     function testBuyerPriceTooHighFees() public {
         uint256 tradingFee = 0.6 ether;
-        uint256 sellerTick = 0; // tick 0 gives price close to 0.5e18
+        uint256 sellerTick = 588;
 
         morphoV2.setObligationTradingFeeActivated(id, true);
         morphoV2.setObligationTradingFee(id, 1, tradingFee);
@@ -293,7 +293,7 @@ contract TradingFeeTest is BaseTest {
 
     function testPostMaturityFee(uint256 buyerAssets, uint256 sellerTick, uint256 fee0Day, uint256 maturity) public {
         buyerAssets = bound(buyerAssets, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.5e18);
         fee0Day = bound(fee0Day, 0, (WAD - sellerPrice) / 2) / 1e12 * 1e12;
@@ -322,7 +322,7 @@ contract TradingFeeTest is BaseTest {
 
     function testEarlyFee(uint256 buyerAssets, uint256 sellerTick, uint256 fee180Days, uint256 maturity) public {
         buyerAssets = bound(buyerAssets, 0, MAX_TEST_AMOUNT);
-        sellerTick = bound(sellerTick, 0, 1000);
+        sellerTick = bound(sellerTick, 0, 1176);
         uint256 sellerPrice = morphoV2.tickToPrice(sellerTick);
         vm.assume(sellerPrice >= 0.5e18);
         fee180Days = bound(fee180Days, 0, (WAD - sellerPrice) / 2) / 1e12 * 1e12;
