@@ -164,11 +164,7 @@ contract MorphoV2 is IMorphoV2 {
         require(UtilsLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
         require(offer.session == session[offer.maker], "invalid session");
         bytes32 id = toId(offer.obligation);
-
-        if (!obligationCreated[id]) {
-            emit EventsLib.CreateObligation(id, offer.obligation);
-            obligationCreated[id] = true;
-        }
+        touchObligation(offer.obligation);
 
         (
             address buyer,
@@ -327,11 +323,7 @@ contract MorphoV2 is IMorphoV2 {
         external
     {
         bytes32 id = toId(obligation);
-
-        if (!obligationCreated[id]) {
-            emit EventsLib.CreateObligation(id, obligation);
-            obligationCreated[id] = true;
-        }
+        touchObligation(obligation);
 
         collateralOf[onBehalf][id][collateral] += assets;
 
@@ -455,6 +447,14 @@ contract MorphoV2 is IMorphoV2 {
         IFlashLoanCallback(callback).onFlashLoan(token, assets, data);
 
         SafeTransferLib.safeTransferFrom(token, msg.sender, address(this), assets);
+    }
+
+    function touchObligation(Obligation memory obligation) internal {
+        bytes32 id = toId(obligation);
+        if (!obligationCreated[id]) {
+            emit EventsLib.ObligationCreated(id, obligation);
+            obligationCreated[id] = true;
+        }
     }
 
     /// VIEW FUNCTIONS ///
