@@ -11,8 +11,6 @@ library EventsLib {
     event SetFeeSetter(address indexed feeSetter);
     event SetObligationTradingFee(bytes32 indexed obligationId, uint256 indexed index, uint256 newTradingFee);
     event SetDefaultTradingFee(address indexed loanToken, uint256 indexed index, uint256 newTradingFee);
-    event SetObligationTradingFeeActivated(bytes32 indexed obligationId, bool activated);
-    event SetDefaultTradingFeeActivated(address indexed loanToken, bool activated);
     event SetTradingFeeRecipient(address indexed recipient);
 
     event ObligationCreated(bytes32 indexed obligationId, Obligation obligation);
