@@ -97,11 +97,8 @@ contract MorphoV2 is IMorphoV2 {
     function setObligationTradingFee(bytes32 id, uint256 index, uint256 newTradingFee) external {
         require(msg.sender == feeSetter, "Only feeSetter");
         require(index <= 5, "Invalid index");
+        require(newTradingFee <= MAX_FEE, "Trading fee too high");
         require(newTradingFee % FEE_STEP == 0, "fee should be a multiple of FEE_STEP");
-        require(
-            newTradingFee <= uint256(obligationStorage[id].fees[index]) * FEE_STEP,
-            "New trading fee is higher than current"
-        );
         // forge-lint: disable-next-line(unsafe-typecast) as newTradingFee is less than MAX_FEE
         obligationStorage[id].fees[index] = uint16(newTradingFee / FEE_STEP);
         emit EventsLib.SetObligationTradingFee(id, index, newTradingFee);
@@ -110,8 +107,8 @@ contract MorphoV2 is IMorphoV2 {
     /// @dev Doesn't change the fee of already created obligations.
     function setDefaultTradingFee(address loanToken, uint256 index, uint256 newTradingFee) external {
         require(msg.sender == feeSetter, "Only feeSetter");
-        require(newTradingFee <= MAX_FEE, "Trading fee too high");
         require(index <= 5, "Invalid index");
+        require(newTradingFee <= MAX_FEE, "Trading fee too high");
         require(newTradingFee % FEE_STEP == 0, "fee should be a multiple of FEE_STEP");
         // forge-lint: disable-next-line(unsafe-typecast) as newTradingFee is less than MAX_FEE
         defaultFees[loanToken][index] = uint16(newTradingFee / FEE_STEP);
