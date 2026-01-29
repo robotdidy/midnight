@@ -72,14 +72,16 @@ library UtilsLib {
             int256 secondTerm = r * r / (2 * 1e18);
             int256 thirdTerm = secondTerm * r / (3 * 1e18);
             int256 expR = 1e18 + r + secondTerm + thirdTerm;
-            // forge-lint: disable-next-line(unsafe-typecast)
+            // forge-lint: disable-next-item(unsafe-typecast)
+            // - q is positive because x is positive in this branch
+            // - expR is positive?? (TODO)
             return uint256(expR) << uint256(q);
         }
     }
 
     function toUint128(uint256 x) internal pure returns (uint128) {
         require(x <= type(uint128).max, "uint256 overflows uint128");
-        // forge-lint: disable-next-line(unsafe-typecast) as x is less than type(uint128).max
+        // forge-lint: disable-next-item(unsafe-typecast) as x is less than type(uint128).max
         return uint128(x);
     }
 }
