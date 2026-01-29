@@ -13,7 +13,8 @@ import {
     TIME_TO_MAX_LIF,
     EIP712_DOMAIN_TYPEHASH,
     ROOT_TYPEHASH,
-    LN_ONE_PLUS_DELTA
+    LN_ONE_PLUS_DELTA,
+    TICK_RANGE
 } from "./libraries/ConstantsLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {
@@ -155,7 +156,7 @@ contract MorphoV2 is IMorphoV2 {
         );
         require(block.timestamp >= offer.start, "offer not started");
         require(block.timestamp <= offer.expiry, "offer expired");
-        require(offer.tick <= 1176, "tick too high");
+        require(offer.tick <= TICK_RANGE, "tick too high");
         require(offer.maker != taker, "buyer and seller cannot be the same");
         require(signer(root, sig) == offer.maker, "invalid signature");
         require(UtilsLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
@@ -476,9 +477,9 @@ contract MorphoV2 is IMorphoV2 {
     /// VIEW FUNCTIONS ///
 
     function tickToPrice(uint256 tick) public pure returns (uint256) {
-        // forge-lint: disable-next-item(unsafe-typecast) tick is always less than 1176
+        // forge-lint: disable-next-item(unsafe-typecast) tick is always less than 990
         return
-            (WAD.mulDivUp(WAD, WAD + UtilsLib.wExp(LN_ONE_PLUS_DELTA * (588 - int256(tick))))).mulDivUp(1, 1e12) * 1e12;
+            (WAD.mulDivUp(WAD, WAD + UtilsLib.wExp(LN_ONE_PLUS_DELTA * (495 - int256(tick))))).mulDivUp(1, 1e13) * 1e13;
     }
 
     function totalUnits(bytes32 id) external view returns (uint256) {

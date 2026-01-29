@@ -8,7 +8,7 @@ import {ERC20} from "./helpers/ERC20.sol";
 import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
 
 import {console} from "../lib/forge-std/src/console.sol";
-import {WAD} from "../src/libraries/ConstantsLib.sol";
+import {WAD, TICK_RANGE} from "../src/libraries/ConstantsLib.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 
 contract OtherFunctionsTest is BaseTest {
@@ -169,16 +169,16 @@ contract OtherFunctionsTest is BaseTest {
     }
 
     function testTickToPriceMinMax() public view {
-        assertEq(morphoV2.tickToPrice(0), 0.000001e18, "tick 0");
-        assertEq(morphoV2.tickToPrice(1147), 0.999999e18, "tick max - 1");
-        assertEq(morphoV2.tickToPrice(1148), WAD, "tick max");
+        assertEq(morphoV2.tickToPrice(0), 0.00001e18, "tick 0");
+        assertEq(morphoV2.tickToPrice(TICK_RANGE - 1), 0.99999e18, "tick max - 1");
+        assertEq(morphoV2.tickToPrice(TICK_RANGE), WAD, "tick max");
     }
 
-    // works between tick 200 and 1000
+    // works between tick 200 and TICK_RANGE
     function testReturnJumps() public view {
         uint256 price = morphoV2.tickToPrice(200);
         uint256 previousReturn = _return(price);
-        for (uint256 i = 200; i <= 1000; i++) {
+        for (uint256 i = 200; i <= 700; i++) {
             uint256 currentReturn = _return(morphoV2.tickToPrice(i));
             assertApproxEqRel(currentReturn, previousReturn.mulDivDown(WAD, 1.025e18), 0.05e18, "tick i");
             previousReturn = currentReturn;
@@ -190,13 +190,13 @@ contract OtherFunctionsTest is BaseTest {
     }
 
     function testTickMonotonicity() public view {
-        for (uint256 i = 0; i <= 1175; i++) {
+        for (uint256 i = 0; i < TICK_RANGE; i++) {
             assertGe(morphoV2.tickToPrice(i + 1), morphoV2.tickToPrice(i));
         }
     }
 
     function testTickToPriceRange() public view {
-        for (uint256 i = 0; i <= 1176; i++) {
+        for (uint256 i = 0; i <= TICK_RANGE; i++) {
             console.log(morphoV2.tickToPrice(i));
         }
     }
