@@ -477,7 +477,7 @@ contract MorphoV2 is IMorphoV2 {
             require(_idToObligationContract != address(0), "obligation deploy failed");
             idToObligationContract[id] = _idToObligationContract;
 
-            emit EventsLib.ObligationCreated(id, obligation);
+            emit EventsLib.ObligationCreated(id, obligation, _idToObligationContract);
         }
         return id;
     }
