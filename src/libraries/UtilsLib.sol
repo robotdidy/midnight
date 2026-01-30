@@ -85,8 +85,8 @@ library UtilsLib {
                 int256 thirdTerm = secondTerm * r / (3 * 1e18);
                 int256 expR = 1e18 + r + secondTerm + thirdTerm;
                 // forge-lint: disable-next-item(unsafe-typecast)
-                // - q is positive because x is positive in this branch
-                // - expR is positive?? (TODO)
+                // - q is non-negative because x is non-negative in this branch
+                // - expR is positive because |r| < ln2 < 1e18 and |secondTerm| > |thirdTerm|
                 return uint256(expR) << uint256(q);
             }
         }
