@@ -6,7 +6,7 @@ import {Test} from "../lib/forge-std/src/Test.sol";
 import {ERC20} from "./helpers/ERC20.sol";
 import {Oracle} from "./helpers/Oracle.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
-import {TickLib, TICK_RANGE} from "../src/libraries/TickLib.sol";
+import {TICK_RANGE} from "../src/libraries/TickLib.sol";
 import {WAD, ORACLE_PRICE_SCALE, EIP712_DOMAIN_TYPEHASH, ROOT_TYPEHASH} from "../src/libraries/ConstantsLib.sol";
 import {Obligation, Offer, Signature, Collateral, Seizure} from "../src/interfaces/IMorphoV2.sol";
 import {MorphoV2} from "../src/MorphoV2.sol";
