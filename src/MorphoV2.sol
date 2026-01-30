@@ -12,8 +12,7 @@ import {
     MAX_LIF,
     TIME_TO_MAX_LIF,
     EIP712_DOMAIN_TYPEHASH,
-    ROOT_TYPEHASH,
-    OBLIGATION_DEPLOYER_PREFIX
+    ROOT_TYPEHASH
 } from "./libraries/ConstantsLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {
@@ -27,6 +26,7 @@ import {
 } from "./interfaces/IMorphoV2.sol";
 import {ICallbacks, IFlashLoanCallback} from "./interfaces/ICallbacks.sol";
 import {EventsLib} from "./libraries/EventsLib.sol";
+import {ObligationDeployer} from "./ObligationDeployer.sol";
 
 /// OBLIGATIONS
 /// @dev Obligations' collaterals must be sorted by token address.
@@ -39,8 +39,6 @@ contract MorphoV2 is IMorphoV2 {
     mapping(bytes32 id => mapping(address user => uint256)) public debtOf;
     mapping(bytes32 id => mapping(address user => mapping(address collateralToken => uint256))) public collateralOf;
     mapping(bytes32 id => ObligationState) public obligationState;
-    /// @dev Address of a contract whose bytecode is abi.encode(obligation)
-    mapping(bytes32 id => address) internal idToObligationContract;
 
     /// @dev Groups are useful to have a global offered amount shared accross multiple offers ("OCO").
     /// @dev To work as expected, all offers in a same group should have the same assets, obligationUnits,
@@ -454,6 +452,47 @@ contract MorphoV2 is IMorphoV2 {
         SafeTransferLib.safeTransferFrom(token, msg.sender, address(this), assets);
     }
 
+    function setObligationCreation(Obligation memory obligation) internal {
+        uint256 collateralLength = obligation.collaterals.length;
+        assembly ("memory-safe") {
+            tstore(0, mload(obligation))
+            tstore(0x20, mload(add(obligation, 0x20)))
+            tstore(0x40, collateralLength)
+        }
+        for (uint256 i = 0; i < obligation.collaterals.length; i++) {
+            Collateral memory collateral = obligation.collaterals[i];
+            assembly ("memory-safe") {
+                let transientOffset := add(0x60, mul(i, 0x60))
+                tstore(transientOffset, mload(collateral))
+                tstore(add(transientOffset, 0x20), mload(add(collateral, 0x20)))
+                tstore(add(transientOffset, 0x40), mload(add(collateral, 0x40)))
+            }
+        }
+    }
+
+    function obligationBeingCreated() external view returns (Obligation memory) {
+        Obligation memory obligation;
+        uint256 collateralLength;
+        assembly ("memory-safe") {
+            mstore(obligation, tload(0))
+            mstore(add(obligation, 0x20), tload(0x20))
+            collateralLength := tload(0x40)
+        }
+        Collateral[] memory collaterals = new Collateral[](collateralLength);
+        for (uint256 i = 0; i < collateralLength; i++) {
+            Collateral memory collateral;
+            assembly ("memory-safe") {
+                let transientOffset := add(0x60, mul(i, 0x60))
+                mstore(collateral, tload(transientOffset))
+                mstore(add(collateral, 0x20), tload(add(transientOffset, 0x20)))
+                mstore(add(collateral, 0x40), tload(add(transientOffset, 0x40)))
+            }
+            collaterals[i] = collateral;
+        }
+        obligation.collaterals = collaterals;
+        return obligation;
+    }
+
     /// @dev Returns the obligation id and creates the obligation if it doesn't exist yet.
     function touchObligation(Obligation memory obligation) public returns (bytes32) {
         bytes32 id = toId(obligation);
@@ -468,36 +507,24 @@ contract MorphoV2 is IMorphoV2 {
             obligationState[id].created = true;
             obligationState[id].fees = defaultFees[obligation.loanToken];
 
-            bytes memory obligationData = abi.encode(obligation);
-            bytes memory creationCode = abi.encodePacked(OBLIGATION_DEPLOYER_PREFIX, obligationData);
-            address _idToObligationContract;
-            assembly ("memory-safe") {
-                _idToObligationContract := create(0, add(creationCode, 0x20), mload(creationCode))
-            }
-            require(_idToObligationContract != address(0), "obligation deploy failed");
-            idToObligationContract[id] = _idToObligationContract;
+            setObligationCreation(obligation);
+            new ObligationDeployer{salt: id}();
 
-            emit EventsLib.ObligationCreated(id, obligation, _idToObligationContract);
+            emit EventsLib.ObligationCreated(id, obligation);
         }
         return id;
     }
 
     /// VIEW FUNCTIONS ///
 
+    function idToObligationContract(bytes32 id) public view returns (address) {
+        bytes32 creationCodeHash = keccak256(abi.encodePacked(type(ObligationDeployer).creationCode));
+        return address(uint160(uint256(keccak256(abi.encodePacked(uint8(0xff), address(this), id, creationCodeHash)))));
+    }
+
     function idToObligation(bytes32 id) external view returns (Obligation memory) {
-        address _idToObligationContract = idToObligationContract[id];
-        if (_idToObligationContract == address(0)) {
-            return Obligation({loanToken: address(0), collaterals: new Collateral[](0), maturity: 0});
-        }
-        uint256 size;
-        assembly ("memory-safe") {
-            size := extcodesize(_idToObligationContract)
-        }
-        bytes memory data = new bytes(size);
-        assembly ("memory-safe") {
-            extcodecopy(_idToObligationContract, add(data, 0x20), 0, size)
-        }
-        return abi.decode(data, (Obligation));
+        address obligationContract = idToObligationContract(id);
+        return abi.decode(obligationContract.code, (Obligation));
     }
 
     function totalUnits(bytes32 id) external view returns (uint256) {

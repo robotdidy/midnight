@@ -4,9 +4,9 @@ pragma solidity >=0.5.0;
 
 struct Obligation {
     address loanToken;
+    uint256 maturity;
     // Must be sorted by address.
     Collateral[] collaterals;
-    uint256 maturity;
 }
 
 struct Collateral {
@@ -56,4 +56,6 @@ struct ObligationState {
     uint16[6] fees;
 }
 
-interface IMorphoV2 {}
+interface IMorphoV2 {
+    function obligationBeingCreated() external view returns (Obligation memory);
+}
