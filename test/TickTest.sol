@@ -29,11 +29,11 @@ contract TickTest is Test {
     }
 
     function testReturnJumps() public pure {
-        uint256 price = UtilsLib.tickToPrice(200);
+        uint256 price = UtilsLib.tickToPrice(150);
         uint256 previousReturn = _return(price);
-        for (uint256 i = 200; i <= 700; i++) {
+        for (uint256 i = 150; i <= 815; i++) {
             uint256 currentReturn = _return(UtilsLib.tickToPrice(i));
-            assertApproxEqRel(currentReturn, previousReturn.mulDivDown(WAD, 1.025e18), 0.05e18, "tick i");
+            assertApproxEqRel(currentReturn, previousReturn.mulDivDown(WAD, 1.025e18), 0.03e18, "tick i");
             previousReturn = currentReturn;
         }
     }
