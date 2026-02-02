@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {console} from "../lib/forge-std/src/console.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 import {IdLib, SSTORE2_BYTECODE} from "../src/libraries/IdLib.sol";
-import {Obligation} from "../src/interfaces/IMorphoV2.sol";
+import {Obligation, Collateral} from "../src/interfaces/IMorphoV2.sol";
 import {SStore2} from "../src/SStore2.sol";
 
 // idToObligation is tested in OtherFunctionsTest.sol, to test actual implementation (avoid introducing mocks).
@@ -57,5 +58,11 @@ contract IdLibTest is Test {
 
     function testSStore2Bytecode() public pure {
         assertEq(SSTORE2_BYTECODE, type(SStore2).creationCode, "SStore2 bytecode mismatch");
+    }
+
+    function testShowSStore2Data() public view {
+        Obligation memory obligation =
+            Obligation({loanToken: address(42), maturity: 8, collaterals: new Collateral[](0)});
+        console.logBytes(abi.encode(abi.encode(obligation, block.chainid, address(this))));
     }
 }

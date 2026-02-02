@@ -18,8 +18,8 @@ library IdLib {
     function idToObligation(address morphoV2, bytes32 id) internal view returns (Obligation memory) {
         address create2Address =
             address(uint160(uint256(keccak256(abi.encodePacked(uint8(0xff), morphoV2, bytes32(0), id)))));
-        // The SStore2 contract code of an obligation also contains chainid and morphoV2, which are discarded.
-        return abi.decode(create2Address.code, (Obligation));
+        (Obligation memory obligation,,) = abi.decode(create2Address.code, (Obligation, uint256, address));
+        return obligation;
     }
 
     function sstore2(Obligation memory obligation) internal {
