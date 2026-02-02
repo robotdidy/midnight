@@ -17,4 +17,8 @@ library IdLib {
             address(uint160(uint256(keccak256(abi.encodePacked(uint8(0xff), morphoV2, bytes32(0), id)))));
         return abi.decode(create2Address.code, (Obligation));
     }
+
+    function deployObligation(Obligation memory obligation) internal {
+        new ObligationDeployer{salt: bytes32(0)}(obligation, block.chainid, address(this));
+    }
 }
