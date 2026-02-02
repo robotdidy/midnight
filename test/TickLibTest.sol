@@ -78,7 +78,7 @@ contract TickLibTest is BaseTest {
         TickLib.priceToTick(price);
     }
 
-    function loadExactPrices() internal returns (uint256[] memory) {
+    function loadExactPrices() internal view returns (uint256[] memory) {
         uint256[] memory exactPrices = new uint256[](TICK_RANGE + 1);
         string memory json = vm.readFile("test/ticks_exact.json");
         string[] memory priceStrings = vm.parseJsonStringArray(json, ".prices");
@@ -88,7 +88,7 @@ contract TickLibTest is BaseTest {
         return exactPrices;
     }
 
-    function testTickToPriceAccuracy() public {
+    function testTickToPriceAccuracy() public view {
         uint256[] memory exactPrices = loadExactPrices();
         uint256 maxAbsErrorWad;
         uint256 maxRelErrorWad;
