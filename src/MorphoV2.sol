@@ -340,7 +340,7 @@ contract MorphoV2 is IMorphoV2 {
 
     /// @dev At least one of `repaidUnits` or `seizedAssets` should be equal to zero.
     /// @dev Accounts are liquidatable if they are unhealthy or if the maturity is reached.
-    /// @dev Before maturity, the liquidation cannot put the borrower back into health (recovery close factory).
+    /// @dev Before maturity, the liquidation cannot put the borrower back into health (recovery close factor).
     /// @dev If an account is healthy, the LIF grows linearly from 1 at maturity to MAX_LIF at maturity +
     /// TIME_TO_MAX_LIF.
     /// @dev Returns repaid units and seized assets.
@@ -355,6 +355,8 @@ contract MorphoV2 is IMorphoV2 {
         require(UtilsLib.atMostOneNonZero(repaidUnits, seizedAssets), "INCONSISTENT_INPUT");
         bytes32 id = touchObligation(obligation);
         ObligationState storage _obligationState = obligationState[id];
+        // Reverts if collateralIndex is out of bounds.
+        address liquidatedCollateralToken = obligation.collaterals[collateralIndex].token;
 
         uint256 repayableDebt;
         uint256 maxDebt;
@@ -378,7 +380,6 @@ contract MorphoV2 is IMorphoV2 {
         }
 
         if (repaidUnits > 0 || seizedAssets > 0) {
-            uint256 lltv = obligation.collaterals[collateralIndex].lltv;
             uint256 lif = originalDebt > maxDebt
                 ? MAX_LIF
                 : UtilsLib.min(
@@ -393,22 +394,23 @@ contract MorphoV2 is IMorphoV2 {
             }
 
             if (block.timestamp <= obligation.maturity) {
-                uint256 _collateralOf = collateralOf[id][borrower][obligation.collaterals[collateralIndex].token];
+                uint256 lltv = obligation.collaterals[collateralIndex].lltv;
+                uint256 _collateralOf = collateralOf[id][borrower][liquidatedCollateralToken];
                 uint256 newMaxDebt = maxDebt
                     - _collateralOf.mulDivDown(liquidatedCollateralPrice, ORACLE_PRICE_SCALE).mulDivDown(lltv, WAD)
                     + (_collateralOf - seizedAssets).mulDivDown(liquidatedCollateralPrice, ORACLE_PRICE_SCALE)
                         .mulDivDown(lltv, WAD);
-                require(originalDebt - repaidUnits >= newMaxDebt, "recovery close factory violated");
+                require(originalDebt - repaidUnits >= newMaxDebt, "recovery close factor violated");
             }
 
-            collateralOf[id][borrower][obligation.collaterals[collateralIndex].token] -= seizedAssets;
+            collateralOf[id][borrower][liquidatedCollateralToken] -= seizedAssets;
             _obligationState.withdrawable += repaidUnits;
             debtOf[id][borrower] -= repaidUnits;
         }
 
         emit EventsLib.Liquidate(msg.sender, id, collateralIndex, seizedAssets, repaidUnits, borrower, badDebt);
 
-        SafeTransferLib.safeTransfer(obligation.collaterals[collateralIndex].token, msg.sender, seizedAssets);
+        SafeTransferLib.safeTransfer(liquidatedCollateralToken, msg.sender, seizedAssets);
 
         if (data.length > 0) {
             ICallbacks(msg.sender).onLiquidate(obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
