@@ -3,6 +3,7 @@
 pragma solidity 0.8.31;
 
 import {UtilsLib} from "./libraries/UtilsLib.sol";
+import {IdLib} from "./libraries/IdLib.sol";
 import {TickLib} from "./libraries/TickLib.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {
@@ -269,7 +270,7 @@ contract MorphoV2 is IMorphoV2 {
                 );
         }
 
-        require(isHealthy(offer.obligation, seller), "Seller is unhealthy");
+        require(isHealthy(offer.obligation, id, seller), "Seller is unhealthy");
 
         return (buyerAssets, sellerAssets, obligationUnits, obligationShares);
     }
@@ -331,7 +332,7 @@ contract MorphoV2 is IMorphoV2 {
 
         collateralOf[id][onBehalf][collateral] -= assets;
 
-        require(isHealthy(obligation, onBehalf), "Unhealthy borrower");
+        require(isHealthy(obligation, id, onBehalf), "Unhealthy borrower");
 
         emit EventsLib.WithdrawCollateral(msg.sender, id, collateral, assets, onBehalf);
 
@@ -447,7 +448,7 @@ contract MorphoV2 is IMorphoV2 {
 
     /// @dev Returns the obligation id and creates the obligation if it doesn't exist yet.
     function touchObligation(Obligation memory obligation) public returns (bytes32) {
-        bytes32 id = toId(obligation);
+        bytes32 id = IdLib.toId(obligation, block.chainid, address(this));
         if (!obligationState[id].created) {
             address previousCollateralToken;
             for (uint256 i = 0; i < obligation.collaterals.length; i++) {
@@ -458,6 +459,7 @@ contract MorphoV2 is IMorphoV2 {
 
             obligationState[id].created = true;
             obligationState[id].fees = defaultFees[obligation.loanToken];
+            IdLib.storeInCode(obligation);
 
             emit EventsLib.ObligationCreated(id, obligation);
         }
@@ -486,12 +488,8 @@ contract MorphoV2 is IMorphoV2 {
         return obligationState[id].fees;
     }
 
-    function toId(Obligation memory obligation) public view returns (bytes32) {
-        return keccak256(abi.encode(block.chainid, address(this), obligation));
-    }
-
-    function isHealthy(Obligation memory obligation, address borrower) public view returns (bool) {
-        bytes32 id = toId(obligation);
+    /// @dev This function should be called with the id corresponding to the obligation.
+    function isHealthy(Obligation memory obligation, bytes32 id, address borrower) public view returns (bool) {
         uint256 debt = debtOf[id][borrower];
         uint256 maxDebt;
         for (uint256 i = 0; i < obligation.collaterals.length && maxDebt < debt; i++) {
