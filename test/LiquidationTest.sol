@@ -6,6 +6,7 @@ import {MAX_LIF, WAD, ORACLE_PRICE_SCALE, TIME_TO_MAX_LIF} from "../src/librarie
 import {Obligation, Collateral} from "../src/interfaces/IMorphoV2.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 import {Oracle} from "./helpers/Oracle.sol";
+import {ERC20} from "./helpers/ERC20.sol";
 import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
 import {stdError} from "../lib/forge-std/src/StdError.sol";
 
@@ -313,6 +314,52 @@ contract LiquidationTest is BaseTest {
 
         vm.expectRevert("recovery close factor violated");
         morphoV2.liquidate(obligation, 0, units, 0, borrower, "");
+    }
+
+    // gas tests
+
+    /// forge-config: default.isolate = true
+    function testGasLiquidateMultipleCollaterals() public {
+        uint256 units = 1000e18;
+        uint256 collateralAmount = units.mulDivUp(WAD, obligation.collaterals[0].lltv);
+
+        // Supply both collaterals.
+        for (uint256 i = 0; i < 2; i++) {
+            address token = obligation.collaterals[i].token;
+            deal(token, address(this), collateralAmount);
+            ERC20(token).approve(address(morphoV2), collateralAmount);
+            morphoV2.supplyCollateral(obligation, token, collateralAmount, borrower);
+        }
+
+        setupObligation(obligation, units);
+
+        // Make position liquidatable.
+        oracle1.setPrice(0.5e36);
+        oracle2.setPrice(0.5e36);
+        vm.warp(obligation.maturity + TIME_TO_MAX_LIF);
+        deal(address(loanToken), address(this), units);
+        uint256 repay = units / 2;
+
+        uint256 snapshot = vm.snapshotState();
+
+        // Multicall with 1 liquidation.
+        bytes[] memory calls1 = new bytes[](1);
+        calls1[0] = abi.encodeCall(morphoV2.liquidate, (obligation, 0, repay, 0, borrower, ""));
+        uint256 gasBefore1 = gasleft();
+        morphoV2.multicall(calls1);
+        uint256 gas1 = gasBefore1 - gasleft();
+        vm.revertToState(snapshot);
+
+        // Multicall with 2 liquidations.
+        bytes[] memory calls2 = new bytes[](2);
+        calls2[0] = abi.encodeCall(morphoV2.liquidate, (obligation, 0, repay, 0, borrower, ""));
+        calls2[1] = abi.encodeCall(morphoV2.liquidate, (obligation, 1, repay, 0, borrower, ""));
+        uint256 gasBefore2 = gasleft();
+        morphoV2.multicall(calls2);
+        uint256 gas2 = gasBefore2 - gasleft();
+
+        emit log_named_uint("Gas 1st seizure (cold)", gas1);
+        emit log_named_uint("Gas 2nd seizure (warm)", gas2 - gas1);
     }
 
     // helpers.
