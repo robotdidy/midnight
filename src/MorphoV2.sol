@@ -401,7 +401,7 @@ contract MorphoV2 is IMorphoV2 {
                     - _collateralOf.mulDivDown(liquidatedCollateralPrice, ORACLE_PRICE_SCALE).mulDivDown(lltv, WAD)
                     + (_collateralOf - seizedAssets).mulDivDown(liquidatedCollateralPrice, ORACLE_PRICE_SCALE)
                         .mulDivDown(lltv, WAD);
-                require(originalDebt - repaidUnits >= newMaxDebt, "recovery close factor violated");
+                require(originalDebt - badDebt - repaidUnits >= newMaxDebt, "recovery close factor violated");
             }
 
             collateralOf[id][borrower][liquidatedCollateralToken] -= seizedAssets;
