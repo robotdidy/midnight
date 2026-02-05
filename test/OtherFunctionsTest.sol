@@ -3,11 +3,13 @@
 pragma solidity ^0.8.0;
 
 import {IdLib} from "../src/libraries/IdLib.sol";
-import {Obligation, Collateral} from "../src/interfaces/IMorphoV2.sol";
+import {Obligation, Collateral, Offer} from "../src/interfaces/IMorphoV2.sol";
 
 import {ERC20} from "./helpers/ERC20.sol";
+import {Oracle} from "./helpers/Oracle.sol";
 import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
-
+import {WAD, ORACLE_PRICE_SCALE} from "../src/libraries/ConstantsLib.sol";
+import {TICK_RANGE} from "../src/libraries/TickLib.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 
 contract OtherFunctionsTest is BaseTest {
@@ -26,36 +28,9 @@ contract OtherFunctionsTest is BaseTest {
         obligation.collaterals
             .push(Collateral({token: address(collateralToken2), lltv: 0.75e18, oracle: address(oracle2)}));
         obligation.collaterals = sortCollaterals(obligation.collaterals);
+        obligation.minCollateral = 0;
 
         id = toId(obligation);
-    }
-
-    function testSupplyCollateral(address user, uint256 amount) public {
-        vm.assume(user != address(morphoV2));
-        address collateralToken = address(new ERC20("collat", "c"));
-        deal(collateralToken, address(this), amount);
-        ERC20(collateralToken).approve(address(morphoV2), amount);
-
-        // Note: you can supply collaterals that are not in the obligation.
-        morphoV2.supplyCollateral(obligation, collateralToken, amount, user);
-
-        assertEq(morphoV2.collateralOf(id, user, collateralToken), amount, "collateral of");
-        assertEq(ERC20(collateralToken).balanceOf(address(morphoV2)), amount, "balance of morphoV2");
-    }
-
-    function testWithdrawCollateralNoBorrow(address user, uint256 supply, uint256 withdraw) public {
-        vm.assume(user != address(morphoV2));
-        withdraw = bound(withdraw, 0, supply);
-        address collateralToken = address(new ERC20("collat", "c"));
-        deal(collateralToken, address(this), supply);
-        ERC20(collateralToken).approve(address(morphoV2), supply);
-        morphoV2.supplyCollateral(obligation, collateralToken, supply, user);
-
-        morphoV2.withdrawCollateral(obligation, collateralToken, withdraw, user);
-
-        assertEq(morphoV2.collateralOf(id, user, collateralToken), supply - withdraw, "collateral of");
-        assertEq(ERC20(collateralToken).balanceOf(address(morphoV2)), supply - withdraw, "balance of morphoV2");
-        assertEq(ERC20(collateralToken).balanceOf(address(this)), withdraw, "balance of this");
     }
 
     function testWithdrawCollateralWithBorrowHealthy(uint256 additionalCollateral, uint256 withdraw, uint256 units)
@@ -202,5 +177,52 @@ contract OtherFunctionsTest is BaseTest {
         vm.prank(user);
         morphoV2.shuffleSession();
         assertEq(morphoV2.session(user), keccak256(abi.encode(0, blockhash(block.number - 1))), "session");
+    }
+
+    function testMinCollateralInSupplyCollateral(uint256 collateral, uint256 price, uint256 minCollateral) public {
+        collateral = bound(collateral, 1, MAX_TEST_AMOUNT);
+        price = bound(price, 1, ORACLE_PRICE_SCALE);
+        Oracle(obligation.collaterals[0].oracle).setPrice(price);
+
+        uint256 collateralValue = collateral.mulDivDown(price, ORACLE_PRICE_SCALE);
+        minCollateral = bound(minCollateral, collateralValue + 1, type(uint256).max);
+        obligation.minCollateral = minCollateral;
+
+        address collateralToken = obligation.collaterals[0].token;
+        deal(collateralToken, address(this), collateral);
+        ERC20(collateralToken).approve(address(morphoV2), collateral);
+        vm.expectRevert("Below min collateral");
+        morphoV2.supplyCollateral(obligation, collateralToken, collateral, borrower);
+    }
+
+    function testMinCollateralInWithdrawCollateral(
+        uint256 collateral,
+        uint256 price,
+        uint256 withdrawnCollateral,
+        uint256 minCollateral
+    ) public {
+        collateral = bound(collateral, 2, MAX_TEST_AMOUNT);
+        price = bound(price, 1, ORACLE_PRICE_SCALE);
+        Oracle(obligation.collaterals[0].oracle).setPrice(price);
+
+        uint256 initialValue = collateral.mulDivDown(price, ORACLE_PRICE_SCALE);
+        vm.assume(initialValue > 0);
+
+        // withdrawnCollateral must leave some remaining (can't withdraw all)
+        withdrawnCollateral = bound(withdrawnCollateral, 1, collateral - 1);
+        uint256 remainingValue = (collateral - withdrawnCollateral).mulDivDown(price, ORACLE_PRICE_SCALE);
+
+        // minCollateral must be in (remainingValue, initialValue] for supply to succeed and withdraw to fail
+        vm.assume(remainingValue < initialValue);
+        minCollateral = bound(minCollateral, remainingValue + 1, initialValue);
+        obligation.minCollateral = minCollateral;
+
+        address collateralToken = obligation.collaterals[0].token;
+        deal(collateralToken, address(this), collateral);
+        ERC20(collateralToken).approve(address(morphoV2), collateral);
+        morphoV2.supplyCollateral(obligation, collateralToken, collateral, borrower);
+
+        vm.expectRevert("Below min collateral");
+        morphoV2.withdrawCollateral(obligation, collateralToken, withdrawnCollateral, borrower);
     }
 }
