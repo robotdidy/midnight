@@ -313,30 +313,50 @@ contract MorphoV2 is IMorphoV2 {
         SafeTransferLib.safeTransferFrom(obligation.loanToken, msg.sender, address(this), obligationUnits);
     }
 
-    function supplyCollateral(Obligation memory obligation, address collateral, uint256 assets, address onBehalf)
+    /// @dev This function does not call the oracle if the collateral balance is 0 after the update.
+    function supplyCollateral(Obligation memory obligation, uint256 collateralIndex, uint256 assets, address onBehalf)
         external
     {
         bytes32 id = touchObligation(obligation);
+        address collateralToken = obligation.collaterals[collateralIndex].token;
 
-        collateralOf[id][onBehalf][collateral] += assets;
+        collateralOf[id][onBehalf][collateralToken] += assets;
 
-        emit EventsLib.SupplyCollateral(msg.sender, id, collateral, assets, onBehalf);
+        address oracle = obligation.collaterals[collateralIndex].oracle;
+        uint256 _collateralOf = collateralOf[id][onBehalf][collateralToken];
+        require(
+            _collateralOf == 0
+                || _collateralOf.mulDivDown(IOracle(oracle).price(), ORACLE_PRICE_SCALE) >= obligation.minCollateral,
+            "Below min collateral"
+        );
 
-        SafeTransferLib.safeTransferFrom(collateral, msg.sender, address(this), assets);
+        emit EventsLib.SupplyCollateral(msg.sender, id, collateralToken, assets, onBehalf);
+
+        SafeTransferLib.safeTransferFrom(collateralToken, msg.sender, address(this), assets);
     }
 
-    function withdrawCollateral(Obligation memory obligation, address collateral, uint256 assets, address onBehalf)
+    /// @dev This function does not call the oracle if the collateral balance is 0 after the update.
+    function withdrawCollateral(Obligation memory obligation, uint256 collateralIndex, uint256 assets, address onBehalf)
         external
     {
         bytes32 id = touchObligation(obligation);
+        address collateralToken = obligation.collaterals[collateralIndex].token;
 
-        collateralOf[id][onBehalf][collateral] -= assets;
+        collateralOf[id][onBehalf][collateralToken] -= assets;
 
         require(isHealthy(obligation, id, onBehalf), "Unhealthy borrower");
 
-        emit EventsLib.WithdrawCollateral(msg.sender, id, collateral, assets, onBehalf);
+        address oracle = obligation.collaterals[collateralIndex].oracle;
+        uint256 _collateralOf = collateralOf[id][onBehalf][collateralToken];
+        require(
+            _collateralOf == 0
+                || _collateralOf.mulDivDown(IOracle(oracle).price(), ORACLE_PRICE_SCALE) >= obligation.minCollateral,
+            "Below min collateral"
+        );
 
-        SafeTransferLib.safeTransfer(collateral, msg.sender, assets);
+        emit EventsLib.WithdrawCollateral(msg.sender, id, collateralToken, assets, onBehalf);
+
+        SafeTransferLib.safeTransfer(collateralToken, msg.sender, assets);
     }
 
     /// @dev At least one of `repaidUnits` or `seizedAssets` should be equal to zero.
@@ -489,6 +509,7 @@ contract MorphoV2 is IMorphoV2 {
     }
 
     /// @dev This function should be called with the id corresponding to the obligation.
+    /// @dev This function does not call the oracle if debt is 0.
     function isHealthy(Obligation memory obligation, bytes32 id, address borrower) public view returns (bool) {
         uint256 debt = debtOf[id][borrower];
         uint256 maxDebt;

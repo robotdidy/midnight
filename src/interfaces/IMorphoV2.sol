@@ -7,6 +7,8 @@ struct Obligation {
     // Must be sorted by address.
     Collateral[] collaterals;
     uint256 maturity;
+    // Minimum collateral value (quoted in loan token) to be left on supply & withdraw collateral.
+    uint256 minCollateral;
 }
 
 struct Collateral {

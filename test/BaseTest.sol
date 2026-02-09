@@ -75,7 +75,7 @@ abstract contract BaseTest is Test {
         uint256 collateral = debt.mulDivUp(WAD, obligation.collaterals[0].lltv);
         deal(address(obligation.collaterals[0].token), address(this), collateral);
         collateralToken1.approve(address(morphoV2), collateral);
-        morphoV2.supplyCollateral(obligation, address(obligation.collaterals[0].token), collateral, _borrower);
+        morphoV2.supplyCollateral(obligation, 0, collateral, _borrower);
     }
 
     // hardcodes the right root, signature, proof, and callback (no callback)
@@ -135,7 +135,7 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.tick = TICK_RANGE;
 
         deal(obligation.collaterals[0].token, address(this), 135);
-        morphoV2.supplyCollateral(obligation, obligation.collaterals[0].token, 135, badBorrower);
+        morphoV2.supplyCollateral(obligation, 0, 135, badBorrower);
 
         deal(address(loanToken), unluckyLender, 100);
 

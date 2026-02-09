@@ -36,6 +36,7 @@ contract TakeTest is BaseTest {
         obligation.collaterals
             .push(Collateral({token: address(collateralToken2), lltv: 0.75e18, oracle: address(oracle2)}));
         obligation.collaterals = sortCollaterals(obligation.collaterals);
+        obligation.minCollateral = 0;
 
         id = toId(obligation);
 
@@ -1223,7 +1224,7 @@ contract TakeTest is BaseTest {
         assets = bound(assets, 0, maxAssets);
         uint256 collateral = assets.mulDivUp(WAD, obligation.collaterals[0].lltv);
         borrowerOffer.callback = address(new BorrowCallback());
-        borrowerOffer.callbackData = abi.encode(obligation.collaterals[0].token, collateral);
+        borrowerOffer.callbackData = abi.encode(0, collateral);
         borrowerOffer.assets = assets;
         borrowerOffer.tick = TICK_RANGE;
         deal(address(loanToken), lender, assets);
@@ -1256,10 +1257,10 @@ contract TakeTest is BaseTest {
             root([lenderOffer]),
             proof([lenderOffer]),
             callback,
-            abi.encode(obligation.collaterals[0].token, collateral)
+            abi.encode(0, collateral)
         );
         assertEq(morphoV2.collateralOf(id, borrower, obligation.collaterals[0].token), collateral);
-        assertEq(BorrowCallback(callback).recordedData(), abi.encode(obligation.collaterals[0].token, collateral));
+        assertEq(BorrowCallback(callback).recordedData(), abi.encode(0, collateral));
     }
 
     function testSellBuyerCallback(uint256 assets) public {
@@ -1312,9 +1313,10 @@ contract BorrowCallback is ICallbacks {
         external
     {
         recordedData = data;
-        (address collateralToken, uint256 amount) = abi.decode(data, (address, uint256));
+        (uint256 collateralIndex, uint256 amount) = abi.decode(data, (uint256, uint256));
+        address collateralToken = obligation.collaterals[collateralIndex].token;
         ERC20(collateralToken).approve(msg.sender, amount);
-        MorphoV2(msg.sender).supplyCollateral(obligation, collateralToken, amount, seller);
+        MorphoV2(msg.sender).supplyCollateral(obligation, collateralIndex, amount, seller);
     }
 
     function onBuy(
