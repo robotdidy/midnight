@@ -48,7 +48,7 @@ contract TakeTest is BaseTest {
 
         otherLenderOffer.buy = false;
         otherLenderOffer.maker = otherLender;
-        otherLenderOffer.recipientIfSeller = otherLender;
+        otherLenderOffer.receiverIfMakerIsSeller = otherLender;
         otherLenderOffer.assets = type(uint256).max;
         otherLenderOffer.obligation = obligation;
         otherLenderOffer.expiry = block.timestamp + 200;
@@ -56,7 +56,7 @@ contract TakeTest is BaseTest {
 
         borrowerOffer.buy = false;
         borrowerOffer.maker = borrower;
-        borrowerOffer.recipientIfSeller = borrower;
+        borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.assets = type(uint256).max;
         borrowerOffer.obligation = obligation;
         borrowerOffer.expiry = block.timestamp + 200;

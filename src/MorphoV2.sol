@@ -117,10 +117,10 @@ contract MorphoV2 is IMorphoV2 {
         emit EventsLib.SetDefaultTradingFee(loanToken, index, newTradingFee);
     }
 
-    function setTradingFeeRecipient(address recipient) external {
+    function setTradingFeeRecipient(address receiver) external {
         require(msg.sender == owner, "Only owner");
-        tradingFeeRecipient = recipient;
-        emit EventsLib.SetTradingFeeRecipient(recipient);
+        tradingFeeRecipient = receiver;
+        emit EventsLib.SetTradingFeeRecipient(receiver);
     }
 
     /// ENTRY-POINTS ///
@@ -139,7 +139,7 @@ contract MorphoV2 is IMorphoV2 {
         address taker,
         address takerCallback,
         bytes memory takerCallbackData,
-        address recipientIfSeller,
+        address receiverIfTakerIsSeller,
         Offer memory offer,
         Signature memory sig,
         bytes32 root,
@@ -169,7 +169,7 @@ contract MorphoV2 is IMorphoV2 {
             address seller,
             address sellerCallback,
             bytes memory sellerCallbackData,
-            address recipient
+            address receiver
         ) = offer.buy
             ? (
                 offer.maker,
@@ -178,7 +178,7 @@ contract MorphoV2 is IMorphoV2 {
                 taker,
                 takerCallback,
                 takerCallbackData,
-                recipientIfSeller
+                receiverIfTakerIsSeller
             )
             : (
                 taker,
@@ -187,7 +187,7 @@ contract MorphoV2 is IMorphoV2 {
                 offer.maker,
                 offer.callback,
                 offer.callbackData,
-                offer.recipientIfSeller
+                offer.receiverIfMakerIsSeller
             );
 
         uint256 offerPrice = TickLib.tickToPrice(offer.tick);
@@ -266,7 +266,7 @@ contract MorphoV2 is IMorphoV2 {
             obligationShares,
             buyerIsLender,
             sellerIsBorrower,
-            recipient,
+            receiver,
             offer.group,
             newConsumed
         );
@@ -287,7 +287,7 @@ contract MorphoV2 is IMorphoV2 {
         SafeTransferLib.safeTransferFrom(
             offer.obligation.loanToken, buyer, tradingFeeRecipient, buyerAssets - sellerAssets
         );
-        SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, recipient, sellerAssets);
+        SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, receiver, sellerAssets);
 
         if (sellerCallback != address(0)) {
             ICallbacks(sellerCallback)
@@ -313,7 +313,7 @@ contract MorphoV2 is IMorphoV2 {
         uint256 obligationUnits,
         uint256 shares,
         address onBehalf,
-        address recipient
+        address receiver
     ) external returns (uint256, uint256) {
         require(UtilsLib.atMostOneNonZero(obligationUnits, shares), "INCONSISTENT_INPUT");
         bytes32 id = touchObligation(obligation);
@@ -330,9 +330,9 @@ contract MorphoV2 is IMorphoV2 {
         _obligationState.totalShares -= UtilsLib.toUint128(shares);
         _obligationState.totalUnits -= UtilsLib.toUint128(obligationUnits);
 
-        emit EventsLib.Withdraw(msg.sender, id, obligationUnits, shares, onBehalf, recipient);
+        emit EventsLib.Withdraw(msg.sender, id, obligationUnits, shares, onBehalf, receiver);
 
-        SafeTransferLib.safeTransfer(obligation.loanToken, recipient, obligationUnits);
+        SafeTransferLib.safeTransfer(obligation.loanToken, receiver, obligationUnits);
 
         return (obligationUnits, shares);
     }
@@ -365,7 +365,7 @@ contract MorphoV2 is IMorphoV2 {
         address collateral,
         uint256 assets,
         address onBehalf,
-        address recipient
+        address receiver
     ) external {
         bytes32 id = touchObligation(obligation);
 
@@ -373,9 +373,9 @@ contract MorphoV2 is IMorphoV2 {
 
         require(isHealthy(obligation, id, onBehalf), "Unhealthy borrower");
 
-        emit EventsLib.WithdrawCollateral(msg.sender, id, collateral, assets, onBehalf, recipient);
+        emit EventsLib.WithdrawCollateral(msg.sender, id, collateral, assets, onBehalf, receiver);
 
-        SafeTransferLib.safeTransfer(collateral, recipient, assets);
+        SafeTransferLib.safeTransfer(collateral, receiver, assets);
     }
 
     /// @dev On each seizure at least one of `repaid` or `seized` should be equal to zero.

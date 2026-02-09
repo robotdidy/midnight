@@ -20,7 +20,7 @@ contract TradingFeeTest is BaseTest {
     bytes32 internal id;
     Offer internal lenderOffer;
     Offer internal borrowerOffer;
-    address internal feeRecipient = makeAddr("feeRecipient");
+    address internal feeReceiver = makeAddr("feeReceiver");
 
     function setUp() public override {
         super.setUp();
@@ -47,13 +47,13 @@ contract TradingFeeTest is BaseTest {
         borrowerOffer.obligation = obligation;
         borrowerOffer.buy = false;
         borrowerOffer.maker = borrower;
-        borrowerOffer.recipientIfSeller = borrower;
+        borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.assets = type(uint256).max;
         borrowerOffer.expiry = block.timestamp + 200;
 
         deal(address(loanToken), address(lender), MAX_TEST_AMOUNT * 10000);
 
-        morphoV2.setTradingFeeRecipient(feeRecipient);
+        morphoV2.setTradingFeeRecipient(feeReceiver);
     }
 
     function testBuyBuyerAssets(uint256 buyerAssets, uint256 sellerTick, uint256 tradingFee) public {
@@ -72,7 +72,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(buyerAssets, 0, 0, 0, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testSellBuyerAssets(uint256 tradingFee, uint256 buyerTick, uint256 buyerAssets) public {
@@ -92,7 +92,7 @@ contract TradingFeeTest is BaseTest {
         take(buyerAssets, 0, 0, 0, borrower, lenderOffer);
 
         assertApproxEqAbs(
-            loanToken.balanceOf(feeRecipient), expectedFee, buyerAssets / 1e6 + 100, "fee recipient balance"
+            loanToken.balanceOf(feeReceiver), expectedFee, buyerAssets / 1e6 + 100, "fee recipient balance"
         );
     }
 
@@ -112,7 +112,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(0, sellerAssets, 0, 0, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testSellSellerAssets(uint256 tradingFee, uint256 buyerTick, uint256 sellerAssets) public {
@@ -131,7 +131,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 10);
         take(0, sellerAssets, 0, 0, borrower, lenderOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testBuyObligationUnits(uint256 tradingFee, uint256 sellerTick, uint256 obligationUnits) public {
@@ -151,7 +151,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 10);
         take(0, 0, obligationUnits, 0, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testSellObligationUnits(uint256 tradingFee, uint256 buyerTick, uint256 obligationUnits) public {
@@ -171,7 +171,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(0, 0, obligationUnits, 0, borrower, lenderOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testBuyObligationShares(uint256 tradingFee, uint256 sellerTick, uint256 obligationShares) public {
@@ -191,7 +191,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(0, 0, 0, obligationShares, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testSellObligationShares(uint256 tradingFee, uint256 buyerTick, uint256 obligationShares) public {
@@ -211,7 +211,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(0, 0, 0, obligationShares, borrower, lenderOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testDefaultFee(uint256 buyerAssets, uint256 sellerTick, uint256 tradingFee) public {
@@ -230,7 +230,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(buyerAssets, 0, 0, 0, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testSevenDayTtmFee(uint256 buyerAssets, uint256 sellerTick, uint256 fee1Day, uint256 fee7Days) public {
@@ -261,7 +261,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(buyerAssets, 0, 0, 0, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testPostMaturityFee(uint256 buyerAssets, uint256 sellerTick, uint256 fee0Day, uint256 maturity) public {
@@ -288,7 +288,7 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(buyerAssets, 0, 0, 0, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 
     function testEarlyFee(uint256 buyerAssets, uint256 sellerTick, uint256 fee180Days, uint256 maturity) public {
@@ -316,6 +316,6 @@ contract TradingFeeTest is BaseTest {
         collateralize(obligation, borrower, MAX_TEST_AMOUNT * 3);
         take(buyerAssets, 0, 0, 0, lender, borrowerOffer);
 
-        assertApproxEqAbs(loanToken.balanceOf(feeRecipient), expectedFee, 100, "fee recipient balance");
+        assertApproxEqAbs(loanToken.balanceOf(feeReceiver), expectedFee, 100, "fee recipient balance");
     }
 }

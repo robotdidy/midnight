@@ -87,8 +87,8 @@ abstract contract BaseTest is Test {
         address taker,
         Offer memory offer
     ) internal returns (uint256, uint256, uint256, uint256) {
-        // sellerRecipient param is for taker (when offer.buy == true)
-        // offer.recipientIfSeller is for maker (when offer.buy == false)
+        // receiverIfTakerIsSeller param is for taker (when offer.buy == true)
+        // offer.receiverIfMakerIsSeller is for maker (when offer.buy == false)
         return morphoV2.take(
             buyerAssets,
             sellerAssets,
@@ -132,7 +132,7 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.obligation = obligation;
         badBorrowerOffer.buy = false;
         badBorrowerOffer.maker = badBorrower;
-        badBorrowerOffer.recipientIfSeller = badBorrower;
+        badBorrowerOffer.receiverIfMakerIsSeller = badBorrower;
         badBorrowerOffer.assets = 100;
         badBorrowerOffer.start = block.timestamp;
         badBorrowerOffer.expiry = block.timestamp + 200;
@@ -242,7 +242,7 @@ abstract contract BaseTest is Test {
         borrowerOffer.obligation = obligation;
         borrowerOffer.buy = false;
         borrowerOffer.maker = borrower;
-        borrowerOffer.recipientIfSeller = borrower;
+        borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.assets = obligationUnits;
         borrowerOffer.start = block.timestamp;
         borrowerOffer.expiry = block.timestamp;
