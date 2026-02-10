@@ -16,7 +16,7 @@ contract LiquidationTest is BaseTest {
     Obligation internal obligation;
     bytes32 internal id;
 
-    uint256 internal recordedRepaidAssets;
+    uint256 internal recordedRepaidUnits;
     bytes internal recordedData;
 
     function setUp() public override {
@@ -105,14 +105,14 @@ contract LiquidationTest is BaseTest {
         vm.warp(obligation.maturity + TIME_TO_MAX_LIF); // Warp to post-maturity to bypass recovery close factor.
         deal(address(loanToken), address(this), repaid);
 
-        (uint256 repaidAssets, uint256 seizedAssets) = morphoV2.liquidate(obligation, 0, repaid, 0, borrower, "");
+        (uint256 repaidUnits, uint256 seizedAssets) = morphoV2.liquidate(obligation, 0, repaid, 0, borrower, "");
 
-        assertEq(repaidAssets, repaid, "repaid units");
+        assertEq(repaidUnits, repaid, "repaid units");
         assertEq(
             seizedAssets, repaid.mulDivDown(ORACLE_PRICE_SCALE, 1e36 - 1).mulDivDown(MAX_LIF, WAD), "seized assets"
         );
 
-        assertEq(morphoV2.debtOf(id, borrower), units - repaidAssets);
+        assertEq(morphoV2.debtOf(id, borrower), units - repaidUnits);
         assertEq(morphoV2.collateralOf(id, borrower, obligation.collaterals[0].token), initialCollateral - seizedAssets);
         assertEq(loanToken.balanceOf(address(this)), 0);
     }
@@ -128,13 +128,13 @@ contract LiquidationTest is BaseTest {
         uint256 repaid = seized.mulDivUp(WAD, MAX_LIF).mulDivUp(1e36 - 1, ORACLE_PRICE_SCALE);
         deal(address(loanToken), address(this), repaid);
 
-        (uint256 repaidAssets, uint256 seizedAssets) = morphoV2.liquidate(obligation, 0, 0, seized, borrower, "");
+        (uint256 repaidUnits, uint256 seizedAssets) = morphoV2.liquidate(obligation, 0, 0, seized, borrower, "");
 
-        assertEq(repaidAssets, seized.mulDivUp(WAD, MAX_LIF).mulDivUp(1e36 - 1, ORACLE_PRICE_SCALE), "repaid units");
+        assertEq(repaidUnits, seized.mulDivUp(WAD, MAX_LIF).mulDivUp(1e36 - 1, ORACLE_PRICE_SCALE), "repaid units");
         assertEq(seizedAssets, seized, "seized assets");
 
         assertEq(loanToken.balanceOf(address(this)), 0, "loan token balance");
-        assertEq(morphoV2.debtOf(id, borrower), units - repaidAssets, "debt");
+        assertEq(morphoV2.debtOf(id, borrower), units - repaidUnits, "debt");
         assertEq(
             morphoV2.collateralOf(id, borrower, obligation.collaterals[0].token),
             initialCollateral - seizedAssets,
@@ -154,7 +154,7 @@ contract LiquidationTest is BaseTest {
 
         morphoV2.liquidate(obligation, 0, repaid, 0, borrower, data);
 
-        assertEq(recordedRepaidAssets, repaid, "repaid units");
+        assertEq(recordedRepaidUnits, repaid, "repaid units");
         assertEq(recordedData, data, "data");
     }
 
@@ -364,10 +364,8 @@ contract LiquidationTest is BaseTest {
 
     // helpers.
 
-    function onLiquidate(Obligation memory, uint256, uint256, uint256 _repaidAssets, address, bytes memory data)
-        public
-    {
-        recordedRepaidAssets = _repaidAssets;
+    function onLiquidate(Obligation memory, uint256, uint256, uint256 _repaidUnits, address, bytes memory data) public {
+        recordedRepaidUnits = _repaidUnits;
         recordedData = data;
     }
 }

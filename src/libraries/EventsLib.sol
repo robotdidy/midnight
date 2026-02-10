@@ -57,7 +57,7 @@ library EventsLib {
         bytes32 indexed id,
         uint256 collateralIndex,
         uint256 seizedAssets,
-        uint256 repaidAssets,
+        uint256 repaidUnits,
         address indexed borrower,
         uint256 badDebt
     );
