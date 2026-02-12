@@ -452,9 +452,8 @@ contract MorphoV2 is IMorphoV2 {
             if (block.timestamp <= obligation.maturity) {
                 uint256 lltv = obligation.collaterals[collateralIndex].lltv;
                 uint256 _collateralOf = collateralOf[id][borrower][liquidatedCollatToken];
-                uint256 maxSeized = (debtOf[id][borrower].mulDivUp(ORACLE_PRICE_SCALE, liquidatedCollatPrice)
-                        - _collateralOf.mulDivDown(lltv, WAD))
-                .mulDivUp(WAD, WAD.mulDivDown(WAD, lif) - lltv);
+                uint256 maxSeized = (debtOf[id][borrower] - maxDebt)
+                .mulDivUp(WAD, (WAD.mulDivDown(WAD, lif) - lltv).mulDivDown(liquidatedCollatPrice, ORACLE_PRICE_SCALE));
                 require(seizedAssets <= maxSeized, "recovery close factor violated");
             }
 
