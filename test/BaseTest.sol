@@ -9,7 +9,7 @@ import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 import {IdLib} from "../src/libraries/IdLib.sol";
 import {TICK_RANGE} from "../src/libraries/TickLib.sol";
 import {WAD, ORACLE_PRICE_SCALE, EIP712_DOMAIN_TYPEHASH, ROOT_TYPEHASH} from "../src/libraries/ConstantsLib.sol";
-import {Obligation, Offer, Signature, Collateral, Seizure} from "../src/interfaces/IMorphoV2.sol";
+import {Obligation, Offer, Signature, Collateral} from "../src/interfaces/IMorphoV2.sol";
 import {MorphoV2} from "../src/MorphoV2.sol";
 
 uint256 constant MAX_TEST_AMOUNT = 1e36;
@@ -75,7 +75,7 @@ abstract contract BaseTest is Test {
         uint256 collateral = debt.mulDivUp(WAD, obligation.collaterals[0].lltv);
         deal(address(obligation.collaterals[0].token), address(this), collateral);
         collateralToken1.approve(address(morphoV2), collateral);
-        morphoV2.supplyCollateral(obligation, address(obligation.collaterals[0].token), collateral, _borrower);
+        morphoV2.supplyCollateral(obligation, 0, collateral, _borrower);
     }
 
     // hardcodes the right root, signature, proof, and callback (no callback)
@@ -87,18 +87,22 @@ abstract contract BaseTest is Test {
         address taker,
         Offer memory offer
     ) internal returns (uint256, uint256, uint256, uint256) {
+        // receiverIfTakerIsSeller param is for taker (when offer.buy == true)
+        // offer.receiverIfMakerIsSeller is for maker (when offer.buy == false)
+        vm.prank(taker);
         return morphoV2.take(
             buyerAssets,
             sellerAssets,
             obligationUnits,
             obligationShares,
             taker,
+            address(0),
+            hex"",
+            taker,
             offer,
             sig([offer]),
             root([offer]),
-            proof([offer]),
-            address(0),
-            hex""
+            proof([offer])
         );
     }
 
@@ -129,20 +133,21 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.obligation = obligation;
         badBorrowerOffer.buy = false;
         badBorrowerOffer.maker = badBorrower;
+        badBorrowerOffer.receiverIfMakerIsSeller = badBorrower;
         badBorrowerOffer.assets = 100;
         badBorrowerOffer.start = block.timestamp;
         badBorrowerOffer.expiry = block.timestamp + 200;
         badBorrowerOffer.tick = TICK_RANGE;
 
         deal(obligation.collaterals[0].token, address(this), 135);
-        morphoV2.supplyCollateral(obligation, obligation.collaterals[0].token, 135, badBorrower);
+        morphoV2.supplyCollateral(obligation, 0, 135, badBorrower);
 
         deal(address(loanToken), unluckyLender, 100);
 
         take(100, 0, 0, 0, unluckyLender, badBorrowerOffer);
 
         Oracle(obligation.collaterals[0].oracle).setPrice(ORACLE_PRICE_SCALE / 4);
-        morphoV2.liquidate(obligation, new Seizure[](0), badBorrower, "");
+        morphoV2.liquidate(obligation, 0, 0, 0, badBorrower, "");
 
         assertNotEq(
             morphoV2.totalUnits(toId(obligation)), morphoV2.totalShares(toId(obligation)), "total units != total shares"
@@ -238,23 +243,26 @@ abstract contract BaseTest is Test {
         borrowerOffer.obligation = obligation;
         borrowerOffer.buy = false;
         borrowerOffer.maker = borrower;
+        borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.assets = obligationUnits;
         borrowerOffer.start = block.timestamp;
         borrowerOffer.expiry = block.timestamp;
         borrowerOffer.tick = TICK_RANGE;
 
+        vm.prank(lender);
         morphoV2.take(
             0,
             0,
             obligationUnits,
             0,
             lender,
+            address(0),
+            hex"",
+            borrower,
             borrowerOffer,
             sig([borrowerOffer]),
             root([borrowerOffer]),
-            proof([borrowerOffer]),
-            address(0),
-            hex""
+            proof([borrowerOffer])
         );
     }
 
