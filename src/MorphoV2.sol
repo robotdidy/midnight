@@ -361,20 +361,21 @@ contract MorphoV2 is IMorphoV2 {
         bytes32 id = touchObligation(obligation);
         address collateralToken = obligation.collaterals[collateralIndex].token;
 
-        collateralOf[id][onBehalf][collateralToken] += assets;
+        uint256 newCollateralOf = collateralOf[id][onBehalf][collateralToken] + assets;
+        collateralOf[id][onBehalf][collateralToken] = newCollateralOf;
 
-        if (collateralOf[id][onBehalf][collateralToken] != 0) {
+        if (newCollateralOf != assets && assets != 0) {
             // forge-lint: disable-next-item(unsafe-typecast) as collateralIndex < MAX_COLLATERALS (128)
             uint128 newBitmap = borrowerState[id][onBehalf].activatedCollaterals | uint128(1 << collateralIndex);
             borrowerState[id][onBehalf].activatedCollaterals = newBitmap;
             require(UtilsLib.countBits(newBitmap) <= MAX_COLLATERALS_PER_BORROWER, "too many collaterals per borrower");
         }
 
-        address oracle = obligation.collaterals[collateralIndex].oracle;
-        uint256 _collateralOf = collateralOf[id][onBehalf][collateralToken];
         require(
-            _collateralOf == 0
-                || _collateralOf.mulDivDown(IOracle(oracle).price(), ORACLE_PRICE_SCALE) >= obligation.minCollatValue,
+            newCollateralOf == 0
+                || newCollateralOf.mulDivDown(
+                        IOracle(obligation.collaterals[collateralIndex].oracle).price(), ORACLE_PRICE_SCALE
+                    ) >= obligation.minCollatValue,
             "Below min collateral"
         );
 
@@ -395,19 +396,20 @@ contract MorphoV2 is IMorphoV2 {
         bytes32 id = touchObligation(obligation);
         address collateralToken = obligation.collaterals[collateralIndex].token;
 
-        collateralOf[id][onBehalf][collateralToken] -= assets;
-        if (collateralOf[id][onBehalf][collateralToken] == 0) {
+        uint256 newCollateralOf = collateralOf[id][onBehalf][collateralToken] - assets;
+        collateralOf[id][onBehalf][collateralToken] = newCollateralOf;
+
+        if (newCollateralOf == 0 && assets != 0) {
             // forge-lint: disable-next-item(unsafe-typecast) as collateralIndex < MAX_COLLATERALS (128)
             borrowerState[id][onBehalf].activatedCollaterals &= ~uint128(1 << collateralIndex);
         }
 
         require(isHealthy(obligation, id, onBehalf), "Unhealthy borrower");
-
-        address oracle = obligation.collaterals[collateralIndex].oracle;
-        uint256 _collateralOf = collateralOf[id][onBehalf][collateralToken];
         require(
-            _collateralOf == 0
-                || _collateralOf.mulDivDown(IOracle(oracle).price(), ORACLE_PRICE_SCALE) >= obligation.minCollatValue,
+            newCollateralOf == 0
+                || newCollateralOf.mulDivDown(
+                        IOracle(obligation.collaterals[collateralIndex].oracle).price(), ORACLE_PRICE_SCALE
+                    ) >= obligation.minCollatValue,
             "Below min collateral"
         );
 
@@ -589,11 +591,11 @@ contract MorphoV2 is IMorphoV2 {
     /// @dev This function should be called with the id corresponding to the obligation.
     /// @dev This function does not call any oracle if debt is 0.
     function isHealthy(Obligation memory obligation, bytes32 id, address borrower) public view returns (bool) {
-        BorrowerState storage _state = borrowerState[id][borrower];
-        uint256 debt = _state.debt;
+        BorrowerState storage _borrowerState = borrowerState[id][borrower];
+        uint256 debt = _borrowerState.debt;
         uint256 maxDebt;
-        uint256 bitmap = _state.activatedCollaterals;
-        while (bitmap != 0 && maxDebt < debt) {
+        uint256 bitmap = _borrowerState.activatedCollaterals;
+        while (maxDebt < debt && bitmap != 0) {
             uint256 i = UtilsLib.ctz(bitmap);
             Collateral memory collateral = obligation.collaterals[i];
             uint256 price = IOracle(collateral.oracle).price();
