@@ -364,7 +364,7 @@ contract MorphoV2 is IMorphoV2 {
         uint256 newCollateralOf = collateralOf[id][onBehalf][collateralToken] + assets;
         collateralOf[id][onBehalf][collateralToken] = newCollateralOf;
 
-        if (newCollateralOf != assets && assets != 0) {
+        if (newCollateralOf == assets && assets > 0) {
             // forge-lint: disable-next-item(unsafe-typecast) as collateralIndex < MAX_COLLATERALS (128)
             uint128 newBitmap = borrowerState[id][onBehalf].activatedCollaterals | uint128(1 << collateralIndex);
             borrowerState[id][onBehalf].activatedCollaterals = newBitmap;
@@ -399,7 +399,7 @@ contract MorphoV2 is IMorphoV2 {
         uint256 newCollateralOf = collateralOf[id][onBehalf][collateralToken] - assets;
         collateralOf[id][onBehalf][collateralToken] = newCollateralOf;
 
-        if (newCollateralOf == 0 && assets != 0) {
+        if (newCollateralOf == 0) {
             // forge-lint: disable-next-item(unsafe-typecast) as collateralIndex < MAX_COLLATERALS (128)
             borrowerState[id][onBehalf].activatedCollaterals &= ~uint128(1 << collateralIndex);
         }
