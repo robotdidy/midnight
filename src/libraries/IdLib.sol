@@ -17,7 +17,7 @@ library IdLib {
     /// 5f        PUSH0           [0, 11, len, len]  mem offset = 0
     /// 39        CODECOPY        [len]              mem[0:len] <- code[11:11+len]
     /// 5f        PUSH0           [0, len]           return offset = 0
-    /// f3        RETURN          []                 return mem[0:len]
+    /// f3        RETURN          []                 mem[0:len] is returned
     function creationCode(Obligation memory obligation) internal pure returns (bytes memory) {
         return abi.encodePacked(hex"600b380380600b5f395ff3", abi.encode(obligation));
     }
