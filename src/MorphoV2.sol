@@ -29,6 +29,7 @@ import {
     ObligationState
 } from "./interfaces/IMorphoV2.sol";
 import {ICallbacks, IFlashLoanCallback} from "./interfaces/ICallbacks.sol";
+import {ILenderGate, IBorrowerGate, ILiquidatorGate} from "./interfaces/IGate.sol";
 import {EventsLib} from "./libraries/EventsLib.sol";
 
 /// OBLIGATIONS
@@ -238,6 +239,16 @@ contract MorphoV2 is IMorphoV2 {
 
         bool buyerIsLender = (borrowerState[id][buyer].debt == 0);
         bool sellerIsBorrower = (sharesOf[id][seller] == 0);
+        require(
+            !buyerIsLender || offer.obligation.lenderGate == address(0)
+                || ILenderGate(offer.obligation.lenderGate).canLend(buyer),
+            "lender gated from lending"
+        );
+        require(
+            !sellerIsBorrower || offer.obligation.borrowerGate == address(0)
+                || IBorrowerGate(offer.obligation.borrowerGate).canBorrow(seller),
+            "borrower gated from borrowing"
+        );
         if (buyerIsLender && sellerIsBorrower) {
             // Lender enters + borrower enters.
             sharesOf[id][buyer] += obligationShares;
@@ -438,6 +449,11 @@ contract MorphoV2 is IMorphoV2 {
         bytes32 id = touchObligation(obligation);
         ObligationState storage _obligationState = obligationState[id];
         address liquidatedCollatToken = obligation.collaterals[collateralIndex].token;
+        require(
+            obligation.liquidatorGate == address(0)
+                || ILiquidatorGate(obligation.liquidatorGate).canLiquidate(msg.sender),
+            "liquidator gated from liquidating"
+        );
 
         uint256 repayableDebt;
         uint256 maxDebt;
@@ -604,6 +620,19 @@ contract MorphoV2 is IMorphoV2 {
             bitmap ^= (1 << i);
         }
         return maxDebt >= debt;
+    }
+
+    function canLend(Obligation memory obligation, address account) public view returns (bool) {
+        return obligation.lenderGate == address(0) || ILenderGate(obligation.lenderGate).canLend(account);
+    }
+
+    function canBorrow(Obligation memory obligation, address account) public view returns (bool) {
+        return obligation.borrowerGate == address(0) || IBorrowerGate(obligation.borrowerGate).canBorrow(account);
+    }
+
+    function canLiquidate(Obligation calldata obligation, address account) public view returns (bool) {
+        return obligation.liquidatorGate == address(0)
+            || ILiquidatorGate(obligation.liquidatorGate).canLiquidate(account);
     }
 
     function domainSeparator() internal view returns (bytes32) {

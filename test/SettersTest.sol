@@ -64,7 +64,10 @@ contract SettersTest is BaseTest {
             loanToken: loanToken,
             maturity: block.timestamp + 1 days,
             collaterals: new Collateral[](0),
-            minCollatValue: 0
+            minCollatValue: 0,
+            lenderGate: address(0),
+            borrowerGate: address(0),
+            liquidatorGate: address(0)
         });
         bytes32 id = toId(obligation);
         morphoV2.touchObligation(obligation);
@@ -143,7 +146,10 @@ contract SettersTest is BaseTest {
             loanToken: loanToken,
             maturity: block.timestamp + 1 days,
             collaterals: new Collateral[](0),
-            minCollatValue: 0
+            minCollatValue: 0,
+            lenderGate: address(0),
+            borrowerGate: address(0),
+            liquidatorGate: address(0)
         });
         bytes32 id = toId(obligation);
         morphoV2.touchObligation(obligation);
@@ -186,7 +192,10 @@ contract SettersTest is BaseTest {
             loanToken: loanToken,
             maturity: block.timestamp + 1 days,
             collaterals: new Collateral[](0),
-            minCollatValue: 0
+            minCollatValue: 0,
+            lenderGate: address(0),
+            borrowerGate: address(0),
+            liquidatorGate: address(0)
         });
         bytes32 id = toId(obligation);
         morphoV2.touchObligation(obligation);
@@ -230,7 +239,10 @@ contract SettersTest is BaseTest {
             loanToken: loanToken,
             maturity: block.timestamp + 1 days,
             collaterals: new Collateral[](0),
-            minCollatValue: 0
+            minCollatValue: 0,
+            lenderGate: address(0),
+            borrowerGate: address(0),
+            liquidatorGate: address(0)
         });
         bytes32 id = toId(obligation);
         morphoV2.touchObligation(obligation);

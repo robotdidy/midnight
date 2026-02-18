@@ -9,6 +9,10 @@ struct Obligation {
     uint256 maturity;
     // Minimum collateral value (quoted in loan token) to be left on supply & withdraw collateral.
     uint256 minCollatValue;
+    // Optional gates (address(0) = unrestricted).
+    address lenderGate;
+    address borrowerGate;
+    address liquidatorGate;
 }
 
 struct Collateral {
