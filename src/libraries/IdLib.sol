@@ -23,10 +23,7 @@ library IdLib {
     function toId(Obligation memory obligation, uint256 chainId, address morphoV2) internal pure returns (bytes20) {
         bytes32 create2Hash = keccak256(
             abi.encodePacked(
-                uint8(0xff),
-                morphoV2,
-                chainId,
-                keccak256(abi.encodePacked(UtilsLib.SSTORE2_PREFIX, abi.encode(obligation)))
+                uint8(0xff), morphoV2, chainId, keccak256(abi.encodePacked(SSTORE2_PREFIX, abi.encode(obligation)))
             )
         );
         // forge-lint: disable-next-line(unsafe-typecast) unsafe casting made on purpose.
