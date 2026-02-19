@@ -91,9 +91,9 @@ library UtilsLib {
         return 0;
     }
 
-    /// @dev Deploys a contract with the given creation code and salt.
+    /// @dev Stores the data in the code of the contract at the given address.
     /// @dev It is recommended to give data that starts with STOP (0x00).
-    function create2Deploy(bytes memory data, uint256 salt) internal returns (address addr) {
+    function storeInCode(bytes memory data, uint256 salt) internal returns (address addr) {
         bytes memory creationCode = abi.encodePacked(SSTORE2_PREFIX, data);
         assembly ("memory-safe") {
             addr := create2(0, add(creationCode, 0x20), mload(creationCode), salt)

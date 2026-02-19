@@ -195,9 +195,17 @@ contract OtherFunctionsTest is BaseTest {
         }
     }
 
-    function testIdToObligationRevertsIfNotCreated(bytes32 _id) public {
+    function testToId(Obligation memory _obligation) public {
+        _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
+
+        bytes32 expected = toId(_obligation);
+        bytes32 actual = morphoV2.toId(_obligation);
+        assertEq(actual, expected, "toId mismatch");
+    }
+
+    function testToObligationRevertsIfNotCreated(bytes32 _id) public {
         vm.expectRevert();
-        morphoV2.idToObligation(_id);
+        morphoV2.toObligation(_id);
     }
 
     function testSstore2CodeStartsWithStop(Obligation memory _obligation) public {

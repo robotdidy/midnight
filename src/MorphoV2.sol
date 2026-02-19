@@ -551,8 +551,7 @@ contract MorphoV2 is IMorphoV2 {
 
             obligationState[id].created = true;
             obligationState[id].fees = defaultFees[obligation.loanToken];
-            // The deployed code begins with 0x00 (STOP), because the first word is the offset of the obligation.
-            UtilsLib.create2Deploy(abi.encode(obligation), block.chainid);
+            UtilsLib.storeInCode(abi.encode(obligation), block.chainid);
 
             emit EventsLib.ObligationCreated(id, obligation);
         }
@@ -561,8 +560,14 @@ contract MorphoV2 is IMorphoV2 {
 
     /// VIEW FUNCTIONS ///
 
-    function idToObligation(bytes32 id) public view returns (Obligation memory) {
+    /// @dev Returns the obligation with the given id if it was touched before.
+    /// @dev Reverts otherwise.
+    function toObligation(bytes32 id) public view returns (Obligation memory) {
         return IdLib.toObligation(id);
+    }
+
+    function toId(Obligation memory obligation) public view returns (bytes32) {
+        return IdLib.toId(obligation, block.chainid, address(this));
     }
 
     function debtOf(bytes32 id, address user) external view returns (uint256) {
