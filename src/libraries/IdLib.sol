@@ -20,16 +20,6 @@ library IdLib {
     /// f3        RETURN          []                 mem[0:len] is returned
     bytes constant SSTORE2_PREFIX = hex"600b380380600b5f395ff3";
 
-    /// @dev Stores the data in the code of the contract at the given address.
-    /// @dev It is recommended to give data that starts with STOP (0x00).
-    function storeInCode(bytes memory data, uint256 salt) internal returns (address addr) {
-        bytes memory creationCode = abi.encodePacked(SSTORE2_PREFIX, data);
-        assembly ("memory-safe") {
-            addr := create2(0, add(creationCode, 0x20), mload(creationCode), salt)
-        }
-        require(addr != address(0), "create2 failed");
-    }
-
     function toId(Obligation memory obligation, uint256 chainId, address morphoV2) internal pure returns (bytes32) {
         return keccak256(
             abi.encodePacked(
@@ -41,5 +31,15 @@ library IdLib {
     /// @dev Attempts to decode the data at the last 20 bytes of id into an obligation.
     function toObligation(bytes32 id) internal view returns (Obligation memory) {
         return abi.decode(address(uint160(uint256(id))).code, (Obligation));
+    }
+
+    /// @dev Stores the data in the code of the contract at the given address.
+    /// @dev It is recommended to give data that starts with STOP (0x00).
+    function storeInCode(bytes memory data, uint256 salt) internal returns (address addr) {
+        bytes memory creationCode = abi.encodePacked(SSTORE2_PREFIX, data);
+        assembly ("memory-safe") {
+            addr := create2(0, add(creationCode, 0x20), mload(creationCode), salt)
+        }
+        require(addr != address(0), "create2 failed");
     }
 }
