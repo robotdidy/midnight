@@ -38,9 +38,15 @@ library EventsLib {
         address indexed onBehalf,
         address indexed receiver
     );
-    event Repay(address indexed caller, bytes32 indexed obligationId, uint256 obligationUnits, address indexed onBehalf);
+    event Repay(
+        address indexed caller, bytes32 indexed obligationId, uint256 obligationUnits, address indexed onBehalf
+    );
     event SupplyCollateral(
-        address caller, bytes32 indexed obligationId, address indexed collateral, uint256 assets, address indexed onBehalf
+        address caller,
+        bytes32 indexed obligationId,
+        address indexed collateral,
+        uint256 assets,
+        address indexed onBehalf
     );
 
     event WithdrawCollateral(
