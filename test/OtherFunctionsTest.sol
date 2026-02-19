@@ -16,7 +16,7 @@ contract OtherFunctionsTest is BaseTest {
     using UtilsLib for uint256;
 
     Obligation internal obligation;
-    bytes32 internal id;
+    bytes20 internal id;
 
     function setUp() public override {
         super.setUp();
@@ -172,7 +172,7 @@ contract OtherFunctionsTest is BaseTest {
     function testTouchObligation(Obligation memory _obligation) public {
         _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
 
-        bytes32 _id = morphoV2.touchObligation(_obligation);
+        bytes20 _id = morphoV2.touchObligation(_obligation);
         assertEq(morphoV2.obligationCreated(_id), true, "obligation created");
         uint16[6] memory fees = morphoV2.fees(_id);
         for (uint256 i = 0; i < 6; i++) {
@@ -183,7 +183,7 @@ contract OtherFunctionsTest is BaseTest {
     function testToObligation(Obligation memory _obligation) public {
         _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
 
-        bytes32 _id = morphoV2.touchObligation(_obligation);
+        bytes20 _id = morphoV2.touchObligation(_obligation);
         Obligation memory obligationFromId = IdLib.toObligation(_id);
         assertEq(_obligation.loanToken, obligationFromId.loanToken, "loanToken");
         assertEq(_obligation.maturity, obligationFromId.maturity, "maturity");
@@ -198,12 +198,12 @@ contract OtherFunctionsTest is BaseTest {
     function testToId(Obligation memory _obligation) public view {
         _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
 
-        bytes32 expected = toId(_obligation);
-        bytes32 actual = morphoV2.toId(_obligation);
+        bytes20 expected = toId(_obligation);
+        bytes20 actual = morphoV2.toId(_obligation);
         assertEq(actual, expected, "toId mismatch");
     }
 
-    function testToObligationRevertsIfNotCreated(bytes32 _id) public {
+    function testToObligationRevertsIfNotCreated(bytes20 _id) public {
         vm.expectRevert();
         morphoV2.toObligation(_id);
     }
@@ -211,8 +211,8 @@ contract OtherFunctionsTest is BaseTest {
     function testSstore2CodeStartsWithStop(Obligation memory _obligation) public {
         _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
 
-        bytes32 _id = morphoV2.touchObligation(_obligation);
-        address sstore2Address = address(uint160(uint256(_id)));
+        bytes20 _id = morphoV2.touchObligation(_obligation);
+        address sstore2Address = address(_id);
 
         assertGt(sstore2Address.code.length, 0, "code should exist");
         assertEq(uint8(sstore2Address.code[0]), 0x00, "first byte should be STOP opcode");
@@ -307,7 +307,7 @@ contract OtherFunctionsTest is BaseTest {
         deal(address(collateralToken1), address(this), collateral);
         morphoV2.supplyCollateral(obligationWithRevertingOracle, 0, collateral, borrower);
 
-        bytes32 _id = toId(obligationWithRevertingOracle);
+        bytes20 _id = toId(obligationWithRevertingOracle);
         assertEq(morphoV2.collateralOf(_id, borrower, 0), collateral, "collateral should be set");
 
         revertingOracle.stopOracle();
@@ -395,7 +395,7 @@ contract OtherFunctionsTest is BaseTest {
             morphoV2.supplyCollateral(_obligation, i, 1e18, borrower);
         }
 
-        bytes32 _id = toId(_obligation);
+        bytes20 _id = toId(_obligation);
         uint128 bitmap = morphoV2.activatedCollaterals(_id, borrower);
         assertEq(UtilsLib.countBits(bitmap), k, "countBits should equal number of supplied collaterals");
         assertEq(UtilsLib.msb(bitmap), k - 1, "msb should equal number of supplied collaterals - 1");
@@ -414,7 +414,7 @@ contract OtherFunctionsTest is BaseTest {
             morphoV2.supplyCollateral(_obligation, i, 1e18, borrower);
         }
 
-        bytes32 _id = toId(_obligation);
+        bytes20 _id = toId(_obligation);
         assertEq(UtilsLib.countBits(morphoV2.activatedCollaterals(_id, borrower)), numCollaterals, "all bits set");
 
         // Withdraw one collateral fully.

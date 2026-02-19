@@ -14,7 +14,7 @@ contract LiquidationTest is BaseTest {
     using UtilsLib for uint256;
 
     Obligation internal obligation;
-    bytes32 internal id;
+    bytes20 internal id;
 
     uint256 internal recordedRepaidUnits;
     bytes internal recordedData;
