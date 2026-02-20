@@ -418,6 +418,7 @@ contract LiquidationTest is BaseTest {
         uint256 collatAmount = units.mulDivUp(WAD, lltv);
         uint256 _maxDebt = collatAmount.mulDivDown(liquidationOraclePrice, ORACLE_PRICE_SCALE).mulDivDown(lltv, WAD);
         uint256 maxRepaid = (units - _maxDebt).mulDivUp(WAD, WAD - MAX_LIF.mulDivUp(lltv, WAD));
+        vm.assume(maxRepaid < units); // needed because of the round up.
 
         obligation.rcfThreshold = bound(rcfThreshold, 0, units.zeroFloorSub(maxRepaid));
 
