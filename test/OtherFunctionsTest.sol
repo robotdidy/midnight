@@ -225,7 +225,7 @@ contract OtherFunctionsTest is BaseTest {
     }
 
     function testSupplyCollateralDoesNotCallOracle(uint256 collateral) public {
-        collateral = bound(collateral, 1, MAX_TEST_AMOUNT);
+        collateral = bound(collateral, 0, MAX_TEST_AMOUNT);
         RevertingOracle revertingOracle = new RevertingOracle();
         Collateral[] memory collaterals = new Collateral[](1);
         collaterals[0] = Collateral({token: address(collateralToken1), lltv: 0.75e18, oracle: address(revertingOracle)});
@@ -243,7 +243,7 @@ contract OtherFunctionsTest is BaseTest {
     }
 
     function testWithdrawCollateralToZeroDoesNotCallOracle(uint256 collateral) public {
-        collateral = bound(collateral, 1, MAX_TEST_AMOUNT);
+        collateral = bound(collateral, 0, MAX_TEST_AMOUNT);
 
         RevertingOracle revertingOracle = new RevertingOracle();
         Collateral[] memory collaterals = new Collateral[](1);

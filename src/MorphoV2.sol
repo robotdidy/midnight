@@ -405,9 +405,10 @@ contract MorphoV2 is IMorphoV2 {
 
     /// @dev At least one of `seizedAssets` or `repaidUnits` should be equal to zero.
     /// @dev Accounts are liquidatable if they are unhealthy or if the maturity has passed.
-    /// @dev Before maturity, the liquidation cannot put the borrower back into health (recovery close factor).
-    /// @dev In that case, we want debtOf - repaidUnits >= maxDebt - repaidUnits*LIF*LLTV, which is equivalent to
-    /// repaidUnits <= (debtOf-maxDebt) / (1 - LIF*LLTV).
+    /// @dev Before maturity, the liquidation cannot put the borrower back into health (recovery close factor),
+    /// @dev unless doing so would bring the debt below the rcfThreshold.
+    /// @dev Recovery close factor means that debtOf - repaidUnits >= maxDebt - repaidUnits*LIF*LLTV, which is
+    /// equivalent to repaidUnits <= (debtOf-maxDebt) / (1 - LIF*LLTV).
     /// @dev If an account is healthy, the LIF grows linearly from 1 at maturity to MAX_LIF at maturity +
     /// TIME_TO_MAX_LIF.
     /// @dev Returns the seized assets and the repaid units.
@@ -463,13 +464,12 @@ contract MorphoV2 is IMorphoV2 {
 
             if (block.timestamp <= obligation.maturity) {
                 uint256 lltv = obligation.collaterals[collateralIndex].lltv;
-                uint256 debt = _state.debt;
                 // Rounded up to avoid consecutive max liquidations.
                 // Acknowledged that the position could be slightly healthy after a liquidation.
-                uint256 maxRepaid = (debt - maxDebt).mulDivUp(WAD, WAD - lif.mulDivUp(lltv, WAD));
+                uint256 maxRepaid = (_state.debt - maxDebt).mulDivUp(WAD, WAD - lif.mulDivUp(lltv, WAD));
                 require(
-                    repaidUnits <= maxRepaid || debt.zeroFloorSub(maxRepaid) < obligation.rcfThreshold,
-                    "recovery close factor violated"
+                    repaidUnits <= maxRepaid || uint256(_state.debt).zeroFloorSub(maxRepaid) < obligation.rcfThreshold,
+                    "recovery close factor conditions violated"
                 );
             }
 
