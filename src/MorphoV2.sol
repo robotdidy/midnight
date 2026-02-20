@@ -481,7 +481,8 @@ contract MorphoV2 is IMorphoV2 {
                 uint256 lltv = obligation.collaterals[collateralIndex].lltv;
                 // Rounded up to avoid consecutive max liquidations.
                 // Acknowledged that the position could be slightly healthy after a liquidation.
-                uint256 maxRepaid = uint256(_state.debt).zeroFloorSub(maxDebt).mulDivUp(WAD, WAD - lif.mulDivUp(lltv, WAD));
+                uint256 maxRepaid =
+                    uint256(_state.debt).zeroFloorSub(maxDebt).mulDivUp(WAD, WAD - lif.mulDivUp(lltv, WAD));
                 require(repaidUnits <= maxRepaid, "recovery close factor violated");
             }
 
