@@ -362,10 +362,10 @@ contract MorphoV2 is IMorphoV2 {
         bytes20 id = touchObligation(obligation);
         address collateralToken = obligation.collaterals[collateralIndex].token;
 
-        uint256 newCollateralOf = collateralOf[id][onBehalf][collateralIndex] + assets;
-        collateralOf[id][onBehalf][collateralIndex] = UtilsLib.toUint128(newCollateralOf);
+        uint256 oldCollateralOf = collateralOf[id][onBehalf][collateralIndex];
+        collateralOf[id][onBehalf][collateralIndex] = UtilsLib.toUint128(oldCollateralOf + assets);
 
-        if (newCollateralOf == assets && assets > 0) {
+        if (oldCollateralOf == 0 && assets > 0) {
             // forge-lint: disable-next-item(unsafe-typecast) as collateralIndex < MAX_COLLATERALS (128)
             uint128 newBitmap = borrowerState[id][onBehalf].activatedCollaterals | uint128(1 << collateralIndex);
             borrowerState[id][onBehalf].activatedCollaterals = newBitmap;
