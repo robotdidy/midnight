@@ -2,63 +2,70 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity ^0.8.0;
 
-import {Obligation, Seizure, Offer} from "../interfaces/IMorphoV2.sol";
+import {Obligation} from "../interfaces/IMorphoV2.sol";
 
+/// @dev id_ is used to avoid naming conflicts in indexers.
 library EventsLib {
     event Constructor(address indexed owner);
 
     event SetOwner(address indexed owner);
     event SetFeeSetter(address indexed feeSetter);
-    event SetTradingFee(bytes32 indexed obligationId, uint256 tradingFee, uint256 interestCutLimit);
-    event SetTradingFeeRecipient(address indexed recipient);
+    event SetObligationTradingFee(bytes20 indexed id_, uint256 indexed index, uint256 newTradingFee);
+    event SetDefaultTradingFee(address indexed loanToken, uint256 indexed index, uint256 newTradingFee);
+    event SetTradingFeeRecipient(address indexed feeRecipient);
 
+    event ObligationCreated(bytes20 indexed id_, Obligation obligation);
     event Take(
-        address indexed caller,
-        bytes32 indexed obligationId,
+        address caller,
+        bytes20 indexed id_,
+        address indexed maker,
+        address indexed taker,
+        bool offerIsBuy,
         uint256 buyerAssets,
         uint256 sellerAssets,
         uint256 obligationUnits,
         uint256 obligationShares,
-        address indexed taker,
         bool buyerIsLender,
-        bool sellerIsBorrower
+        bool sellerIsBorrower,
+        address sellerReceiver,
+        bytes32 group,
+        uint256 consumed
     );
     event Withdraw(
-        address indexed caller,
-        bytes32 indexed obligationId,
+        address caller,
+        bytes20 indexed id_,
         uint256 obligationUnits,
         uint256 shares,
-        address indexed onBehalf
+        address indexed onBehalf,
+        address indexed receiver
     );
-    event Repay(
-        address indexed caller, bytes32 indexed obligationId, uint256 obligationUnits, address indexed onBehalf
-    );
+    event Repay(address indexed caller, bytes20 indexed id_, uint256 obligationUnits, address indexed onBehalf);
     event SupplyCollateral(
-        address caller,
-        bytes32 indexed obligationId,
-        address indexed collateral,
-        uint256 assets,
-        address indexed onBehalf
+        address caller, bytes20 indexed id_, address indexed collateral, uint256 assets, address indexed onBehalf
     );
 
     event WithdrawCollateral(
         address caller,
-        bytes32 indexed obligationId,
+        bytes20 indexed id_,
         address indexed collateral,
         uint256 assets,
-        address indexed onBehalf
+        address indexed onBehalf,
+        address receiver
     );
 
     event Liquidate(
         address indexed caller,
-        bytes32 indexed obligationId,
-        Seizure[] seizures,
+        bytes20 indexed id_,
+        uint256 collateralIndex,
+        uint256 seizedAssets,
+        uint256 repaidUnits,
         address indexed borrower,
-        uint256 totalRepaid,
         uint256 badDebt
     );
 
     event Consume(address indexed user, bytes32 indexed group, uint256 amount);
     event ShuffleSession(address indexed user, bytes32 session);
     event FlashLoan(address indexed caller, address indexed token, uint256 assets);
+
+    event SetIsAuthorized(address indexed authorizer, address indexed authorized, bool newIsAuthorized);
 }

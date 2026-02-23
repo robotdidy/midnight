@@ -31,9 +31,64 @@ library UtilsLib {
         }
     }
 
-    function max(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function zeroFloorSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         assembly {
-            z := xor(x, mul(xor(x, y), gt(y, x)))
+            z := mul(gt(x, y), sub(x, y))
         }
+    }
+
+    /// @dev Returns (`x` * `y`) / `d` rounded down.
+    function mulDivDown(uint256 x, uint256 y, uint256 d) internal pure returns (uint256) {
+        return (x * y) / d;
+    }
+
+    /// @dev Returns (`x` * `y`) / `d` rounded up.
+    function mulDivUp(uint256 x, uint256 y, uint256 d) internal pure returns (uint256) {
+        return (x * y + (d - 1)) / d;
+    }
+
+    /// @dev Returns (`x` * `y`) / `d` rounded up or down.
+    function mulDiv(uint256 x, uint256 y, uint256 d, bool roundDown) internal pure returns (uint256) {
+        return roundDown ? mulDivDown(x, y, d) : mulDivUp(x, y, d);
+    }
+
+    /// @dev Returns hash(... hash(leafHash, proof[0]), ..., proof[n]) == root.
+    /// @dev Hash sorts the inputs lexicographically.
+    function isLeaf(bytes32 root, bytes32 leafHash, bytes32[] memory proof) internal pure returns (bool) {
+        bytes32 currentHash = leafHash;
+        for (uint256 i = 0; i < proof.length; i++) {
+            currentHash = keccak256(sort(currentHash, proof[i]));
+        }
+        return currentHash == root;
+    }
+
+    /// @dev Returns the concatenation of x and y, sorted lexicographically.
+    function sort(bytes32 x, bytes32 y) internal pure returns (bytes memory) {
+        return x < y ? abi.encodePacked(x, y) : abi.encodePacked(y, x);
+    }
+
+    function toUint128(uint256 x) internal pure returns (uint128) {
+        require(x <= type(uint128).max, "uint256 overflows uint128");
+        // forge-lint: disable-next-item(unsafe-typecast) as x is less than type(uint128).max
+        return uint128(x);
+    }
+
+    function countBits(uint128 x) internal pure returns (uint256) {
+        unchecked {
+            x = x - ((x >> 1) & 0x55555555555555555555555555555555);
+            x = (x & 0x33333333333333333333333333333333) + ((x >> 2) & 0x33333333333333333333333333333333);
+            x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f;
+            return (x * 0x01010101010101010101010101010101) >> 120;
+        }
+    }
+
+    function msb(uint256 bitmap) internal pure returns (uint256) {
+        // Temporary workaround for the Certora pipeline.
+        // TODO: restore the clz-based implementation once the pipeline issue is fixed.
+        for (uint256 i = 256; i > 0; i--) {
+            uint256 bit = i - 1;
+            if ((bitmap & (1 << bit)) != 0) return bit;
+        }
+        return 0;
     }
 }

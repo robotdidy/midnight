@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (c) 2025 Morpho Association
-pragma solidity ^0.8.0;
+pragma solidity >=0.5.0;
 
 struct Obligation {
-    uint256 chainId;
     address loanToken;
     // Must be sorted by address.
     Collateral[] collaterals;
     uint256 maturity;
+    // Minimum collateral value (quoted in loan token) to be left on supply & withdraw collateral.
+    uint256 minCollatValue;
 }
 
 struct Collateral {
@@ -25,12 +26,12 @@ struct Offer {
     uint256 obligationShares;
     uint256 start;
     uint256 expiry;
-    uint256 startPrice;
-    uint256 expiryPrice;
+    uint256 tick;
     bytes32 group;
     bytes32 session;
     address callback;
     bytes callbackData;
+    address receiverIfMakerIsSeller;
 }
 
 struct Signature {
@@ -39,18 +40,19 @@ struct Signature {
     bytes32 s;
 }
 
-struct Seizure {
-    // Index of the collateral in the obligation's collateral assets.
-    uint256 collateralIndex;
-    // Amount of obligation units to repay.
-    uint256 repaid;
-    // Amount of collateral to seize.
-    uint256 seized;
+struct BorrowerState {
+    uint128 debt;
+    uint128 activatedCollaterals;
 }
 
-struct TradingFeeParams {
-    uint128 tradingFee;
-    uint128 interestCutLimit;
+/// @dev Fee indices: 0=0d, 1=1d, 2=7d, 3=30d, 4=90d, 5=180d TTM buckets.
+/// @dev Fees are stored divided by FEE_STEP (1e12) to fit in 16 bits. Max fee is 1% (0.01e18).
+struct ObligationState {
+    uint128 totalUnits;
+    uint128 totalShares;
+    uint256 withdrawable;
+    bool created;
+    uint16[6] fees;
 }
 
 interface IMorphoV2 {}
