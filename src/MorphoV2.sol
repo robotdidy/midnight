@@ -620,8 +620,9 @@ contract MorphoV2 is IMorphoV2 {
         return tentativeSigner;
     }
 
+    /// @dev 50bps for ttm=360 days, scaled linearly. For post maturity, 1.4bps.
     function maxTradingFee(uint256 index) public pure returns (uint256) {
-        return [uint256(0.000014e18), 0.000014e18, 0.000098e18, 0.000417e18, 0.00125e18, 0.0025e18][index];
+        return [0.000014e18, 0.000014e18, 0.000098e18, 0.000417e18, 0.00125e18, 0.0025e18][index];
     }
 
     /// @dev Returns the trading fee using piecewise linear interpolation between breakpoints.
