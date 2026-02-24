@@ -92,18 +92,14 @@ rule obligationIsCreatedAfterLiquidate(env e, MorphoV2.Obligation obligation, ui
 invariant obligationStateIsEmptyIfNotCreated(bytes20 id)
     !MorphoV2.obligationCreated(id) => obligationStateIsEmpty(id);
 
-function obligationStateIsEmpty(bytes20 id) returns (bool) {
-    if (MorphoV2.totalUnits(id) != 0) return false;
-    if (MorphoV2.totalShares(id) != 0) return false;
-    if (MorphoV2.withdrawable(id) != 0) return false;
+definition obligationStateIsEmpty(bytes20 id) returns bool = MorphoV2.totalUnits(id) == 0 && MorphoV2.totalShares(id) == 0 && MorphoV2.withdrawable(id) == 0 && noFeesAreSet(id) && noUserHaveShares(id) && noUserHaveDebt(id) && noUserHaveActivatedCollaterals(id) && noCollateralIsActivated(id);
 
-    uint16[6] fees = MorphoV2.fees(id);
-    if (fees[0] != 0) return false;
-    if (fees[1] != 0) return false;
-    if (fees[2] != 0) return false;
-    if (fees[3] != 0) return false;
-    if (fees[4] != 0) return false;
-    if (fees[5] != 0) return false;
+definition noFeesAreSet(bytes20 id) returns bool = MorphoV2.fees(id)[0] == 0 && MorphoV2.fees(id)[1] == 0 && MorphoV2.fees(id)[2] == 0 && MorphoV2.fees(id)[3] == 0 && MorphoV2.fees(id)[4] == 0 && MorphoV2.fees(id)[5] == 0;
 
-    return true;
-}
+definition noUserHaveShares(bytes20 id) returns bool = forall address user. currentContract.sharesOf[id][user] == 0;
+
+definition noUserHaveDebt(bytes20 id) returns bool = forall address user. currentContract.borrowerState[id][user].debt == 0;
+
+definition noUserHaveActivatedCollaterals(bytes20 id) returns bool = forall address user. currentContract.borrowerState[id][user].activatedCollaterals == 0;
+
+definition noCollateralIsActivated(bytes20 id) returns bool = forall address user. forall uint256 collateralIndex. collateralIndex < 128 => currentContract.collateralOf[id][user][collateralIndex] == 0;
