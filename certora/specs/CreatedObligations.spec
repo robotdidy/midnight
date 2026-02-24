@@ -36,7 +36,7 @@ function obligationIsCreated(MorphoV2.Obligation obligation) returns (bool) {
 invariant createdObligationsHaveSortedCollaterals(MorphoV2.Obligation obligation, uint256 i, uint256 j)
     obligationIsCreated(obligation) => i < j => j < obligation.collaterals.length => obligation.collaterals[i].token < obligation.collaterals[j].token;
 
-// Show that a created obligation has non-zero collaterals.
+// Show that a created obligation do not have address(0) collaterals.
 invariant createdObligationsHaveNonZeroCollaterals(MorphoV2.Obligation obligation, uint256 i)
     obligationIsCreated(obligation) => i < obligation.collaterals.length => obligation.collaterals[i].token != 0;
 
