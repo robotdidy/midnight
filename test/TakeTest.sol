@@ -1393,7 +1393,6 @@ contract TakeTest is BaseTest {
 
     // fee>0, buy, units
     function testPriceZero_WithTradingFee_buy_units() public {
-        morphoV2.setObligationTradingFee(id, 0, 1e12);
         morphoV2.setObligationTradingFee(id, 1, 1e12);
         lenderOffer.tick = 0;
         lenderOffer.assets = 0;
@@ -1405,7 +1404,6 @@ contract TakeTest is BaseTest {
 
     // fee>0, sell, buyer assets
     function testPriceZero_WithTradingFee_sell_buyerAssets() public {
-        morphoV2.setObligationTradingFee(id, 0, 1e12);
         morphoV2.setObligationTradingFee(id, 1, 1e12);
         uint256 fee = morphoV2.tradingFee(id, obligation.maturity - block.timestamp);
         uint256 units = 1e18;
@@ -1423,7 +1421,6 @@ contract TakeTest is BaseTest {
 
     // fee>0, sell, seller assets
     function testPriceZero_WithTradingFee_sell_sellerAssets() public {
-        morphoV2.setObligationTradingFee(id, 0, 1e12);
         morphoV2.setObligationTradingFee(id, 1, 1e12);
         borrowerOffer.tick = 0;
         borrowerOffer.assets = 1e18;
@@ -1434,7 +1431,6 @@ contract TakeTest is BaseTest {
 
     // fee>0, sell, units
     function testPriceZero_WithTradingFee_sell_units() public {
-        morphoV2.setObligationTradingFee(id, 0, 1e12);
         morphoV2.setObligationTradingFee(id, 1, 1e12);
         uint256 fee = morphoV2.tradingFee(id, obligation.maturity - block.timestamp);
         uint256 units = 1e18;
@@ -1454,7 +1450,6 @@ contract TakeTest is BaseTest {
 
     // fee>0, sell, shares
     function testPriceZero_WithTradingFee_sell_shares() public {
-        morphoV2.setObligationTradingFee(id, 0, 1e12);
         morphoV2.setObligationTradingFee(id, 1, 1e12);
         uint256 fee = morphoV2.tradingFee(id, obligation.maturity - block.timestamp);
         uint256 units = 1e18;
