@@ -62,10 +62,10 @@ rule offerInputsConsumed(env e, uint256 obligationSharesInput, address taker, ad
     assert consumed(offer.maker, offer.group) == consumedBefore + obligationSharesInput;
 }
 
-rule offerInputsLimit(env e, uint256 obligationShares, address taker, address receiver, MorphoV2.Offer offer, MorphoV2.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
+rule offerInputsLimit(env e, uint256 obligationSharesInput, address taker, address receiver, MorphoV2.Offer offer, MorphoV2.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
     uint256 consumedBefore = consumed(offer.maker, offer.group);
 
-    take(e, obligationShares, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
+    take(e, obligationSharesInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
 
     assert obligationSharesInput <= offer.obligationShares - consumedBefore;
 }
