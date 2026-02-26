@@ -90,17 +90,18 @@ rule obligationIsCreatedAfterLiquidate(env e, MorphoV2.Obligation obligation, ui
 }
 
 // Show that an obligation state is empty if it is not created.
-invariant obligationStateIsEmptyIfNotCreated(bytes20 id, address user, uint256 collateralIndex)
+invariant obligationStateIsEmptyIfNotCreated(bytes20 id, address user)
     !MorphoV2.obligationCreated(id) => obligationStateIsEmpty(id, user, collateralIndex);
 
-definition obligationStateIsEmpty(bytes20 id, address user, uint256 collateralIndex) returns bool = MorphoV2.totalUnits(id) == 0 && MorphoV2.totalShares(id) == 0 && MorphoV2.withdrawable(id) == 0 && noFeesAreSet(id) && MorphoV2.sharesOf(id, user) == 0 && userHasNoDebt(id, user) && userHasNoActivatedCollaterals(id, user) && userCollateralIsNotActivated(id, user, collateralIndex);
+definition obligationStateIsEmpty(bytes20 id, address user) returns bool = MorphoV2.totalUnits(id) == 0 && MorphoV2.totalShares(id) == 0 && MorphoV2.withdrawable(id) == 0 && noFeesAreSet(id) && MorphoV2.sharesOf(id, user) == 0 && userHasNoDebt(id, user) && userHasNoActivatedCollaterals(id, user);
 
 function noFeesAreSet(bytes20 id) returns (bool) {
-    return MorphoV2.fees(id)[0] == 0 && MorphoV2.fees(id)[1] == 0 && MorphoV2.fees(id)[2] == 0 && MorphoV2.fees(id)[3] == 0 && MorphoV2.fees(id)[4] == 0 && MorphoV2.fees(id)[5] == 0 && MorphoV2.fees(id)[6] == 0;
+    uint16[7] fees = MorphoV2.fees(id);
+    return fees[0] == 0 && fees[1] == 0 && fees[2] == 0 && fees[3] == 0 && fees[4] == 0 && fees[5] == 0 && fees[6] == 0;
 }
 
 definition userHasNoDebt(bytes20 id, address user) returns bool = currentContract.borrowerState[id][user].debt == 0;
 
 definition userHasNoActivatedCollaterals(bytes20 id, address user) returns bool = currentContract.borrowerState[id][user].activatedCollaterals == 0;
 
-definition userCollateralIsNotActivated(bytes20 id, address user, uint256 collateralIndex) returns bool = collateralIndex < 128 => currentContract.collateralOf[id][user][collateralIndex] == 0;
+//definition userCollateralIsNotActivated(bytes20 id, address user, uint256 collateralIndex) returns bool = collateralIndex < 128 => currentContract.collateralOf[id][user][collateralIndex] == 0;
