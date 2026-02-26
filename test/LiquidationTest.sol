@@ -270,7 +270,7 @@ contract LiquidationTest is BaseTest {
     }
 
     // Check that if there is bad debt it is possible to repay almost all debt and seize almost all collateral.
-    function testLiquidateWithBadDebtRepayAll(uint256 units, uint256 liquidationOraclePrice) public {
+    function testLiquidateWithBadDebtRepayMax(uint256 units, uint256 liquidationOraclePrice) public {
         units = bound(units, 10, MAX_TEST_AMOUNT);
         liquidationOraclePrice = bound(liquidationOraclePrice, 1, badDebtPriceDown());
         collateralize(obligation, borrower, units);
