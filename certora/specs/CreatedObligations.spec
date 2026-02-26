@@ -10,7 +10,7 @@ methods {
     function MorphoV2.totalUnits(bytes20) external returns (uint256) envfree;
     function MorphoV2.totalShares(bytes20) external returns (uint256) envfree;
     function MorphoV2.withdrawable(bytes20) external returns (uint256) envfree;
-    function MorphoV2.fees(bytes20) external returns (uint16[6]) envfree;
+    function MorphoV2.fees(bytes20) external returns (uint16[7]) envfree;
     function MorphoV2.obligationCreated(bytes20) external returns (bool) envfree;
     function Utils.hashObligation(MorphoV2.Obligation) external returns (bytes32) envfree;
 
@@ -97,13 +97,14 @@ function obligationStateIsEmpty(bytes20 id) returns (bool) {
     if (MorphoV2.totalShares(id) != 0) return false;
     if (MorphoV2.withdrawable(id) != 0) return false;
 
-    uint16[6] fees = MorphoV2.fees(id);
+    uint16[7] fees = MorphoV2.fees(id);
     if (fees[0] != 0) return false;
     if (fees[1] != 0) return false;
     if (fees[2] != 0) return false;
     if (fees[3] != 0) return false;
     if (fees[4] != 0) return false;
     if (fees[5] != 0) return false;
+    if (fees[6] != 0) return false;
 
     return true;
 }
