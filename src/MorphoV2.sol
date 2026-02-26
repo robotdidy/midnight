@@ -210,24 +210,33 @@ contract MorphoV2 is IMorphoV2 {
         uint256 sellerPrice = offer.buy ? offerPrice - _tradingFee : offerPrice;
         uint256 buyerPrice = sellerPrice + _tradingFee;
 
+        bool buyerIsLender = borrowerState[id][buyer].debt == 0;
+        bool sellerIsBorrower = sharesOf[id][seller] == 0;
+        // To ensure that the share price does not decrease, shares should be rounded down (units should be rounded up)
+        // when buyerIsLender & sellerIsBorrower, and rounded up (units should be rounded down) when !buyerIsLender &
+        // !sellerIsBorrower. The variable buyerIsLender is used to discriminate between the two cases.
         if (buyerAssets > 0) {
             obligationUnits = buyerAssets.mulDivDown(WAD, buyerPrice);
             sellerAssets = buyerAssets.mulDivDown(sellerPrice, buyerPrice);
-            obligationShares =
-                obligationUnits.mulDivDown(_obligationState.totalShares + 1, _obligationState.totalUnits + 1);
+            obligationShares = obligationUnits.mulDiv(
+                _obligationState.totalShares + 1, _obligationState.totalUnits + 1, buyerIsLender
+            );
         } else if (sellerAssets > 0) {
             obligationUnits = sellerAssets.mulDivDown(WAD, sellerPrice);
             buyerAssets = sellerAssets.mulDivDown(buyerPrice, sellerPrice);
-            obligationShares =
-                obligationUnits.mulDivDown(_obligationState.totalShares + 1, _obligationState.totalUnits + 1);
+            obligationShares = obligationUnits.mulDiv(
+                _obligationState.totalShares + 1, _obligationState.totalUnits + 1, buyerIsLender
+            );
         } else if (obligationUnits > 0) {
             buyerAssets = obligationUnits.mulDivDown(buyerPrice, WAD);
             sellerAssets = obligationUnits.mulDivDown(sellerPrice, WAD);
-            obligationShares =
-                obligationUnits.mulDivDown(_obligationState.totalShares + 1, _obligationState.totalUnits + 1);
+            obligationShares = obligationUnits.mulDiv(
+                _obligationState.totalShares + 1, _obligationState.totalUnits + 1, buyerIsLender
+            );
         } else {
-            obligationUnits =
-                obligationShares.mulDivDown(_obligationState.totalUnits + 1, _obligationState.totalShares + 1);
+            obligationUnits = obligationShares.mulDiv(
+                _obligationState.totalUnits + 1, _obligationState.totalShares + 1, !buyerIsLender
+            );
             buyerAssets = obligationUnits.mulDivDown(buyerPrice, WAD);
             sellerAssets = obligationUnits.mulDivDown(sellerPrice, WAD);
         }
@@ -244,8 +253,6 @@ contract MorphoV2 is IMorphoV2 {
             require(newConsumed <= offer.obligationShares, "consumed");
         }
 
-        bool buyerIsLender = (borrowerState[id][buyer].debt == 0);
-        bool sellerIsBorrower = (sharesOf[id][seller] == 0);
         if (buyerIsLender && sellerIsBorrower) {
             // Lender enters + borrower enters.
             sharesOf[id][buyer] += obligationShares;
@@ -628,7 +635,7 @@ contract MorphoV2 is IMorphoV2 {
         return tentativeSigner;
     }
 
-    /// @dev 50bps for ttm=360 days, scaled linearly. For post maturity, 0.14bps.
+    /// @dev 50 bps for ttm=360 days, scaled linearly. For post maturity, 0.14 bps.
     function maxTradingFee(uint256 index) public pure returns (uint256) {
         return [0.000014e18, 0.000014e18, 0.000098e18, 0.000417e18, 0.00125e18, 0.0025e18, 0.005e18][index];
     }
