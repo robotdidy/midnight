@@ -29,7 +29,7 @@ library EventsLib {
         bool sellerIsBorrower,
         address sellerReceiver,
         bytes32 group,
-        uint256 consumedDelta
+        uint256 consumed
     );
     event Withdraw(
         address caller,
