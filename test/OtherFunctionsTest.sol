@@ -170,6 +170,7 @@ contract OtherFunctionsTest is BaseTest {
     }
 
     function testTouchObligation(Obligation memory _obligation) public {
+        vm.assume(_obligation.collaterals.length > 0);
         _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
 
         bytes20 _id = morphoV2.touchObligation(_obligation);
@@ -181,6 +182,7 @@ contract OtherFunctionsTest is BaseTest {
     }
 
     function testToObligation(Obligation memory _obligation) public {
+        vm.assume(_obligation.collaterals.length > 0);
         _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
 
         bytes20 _id = morphoV2.touchObligation(_obligation);
@@ -209,6 +211,7 @@ contract OtherFunctionsTest is BaseTest {
     }
 
     function testSstore2CodeStartsWithStop(Obligation memory _obligation) public {
+        vm.assume(_obligation.collaterals.length > 0);
         _obligation = sortedAndUniqueCollateralsInObligation(_obligation);
 
         bytes20 _id = morphoV2.touchObligation(_obligation);

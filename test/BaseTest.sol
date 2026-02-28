@@ -234,12 +234,9 @@ abstract contract BaseTest is Test {
         returns (Obligation memory)
     {
         uint256 len = obligation.collaterals.length > MAX_COLLATERALS ? MAX_COLLATERALS : obligation.collaterals.length;
-        if (len == 0) len = 1;
         Collateral[] memory collaterals = new Collateral[](len);
         for (uint256 i = 0; i < len; i++) {
-            // forge-lint: disable-next-line(unsafe-typecast)
-            address seed = i < obligation.collaterals.length ? obligation.collaterals[i].token : address(uint160(i + 1));
-            collaterals[i].token = address(uint160(uint256(keccak256(abi.encode(seed, i)))));
+            collaterals[i].token = address(uint160(uint256(keccak256(abi.encode(obligation.collaterals[i].token, i)))));
         }
         collaterals = sortCollaterals(collaterals);
         obligation.collaterals = collaterals;
