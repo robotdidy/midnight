@@ -202,12 +202,12 @@ contract MorphoV2 is IMorphoV2 {
         int256 oldBuyerBalance = balanceOf[id][buyer];
         int256 oldSellerBalance = balanceOf[id][seller];
         // forge-lint: disable-next-line(unsafe-typecast)
-        balanceOf[id][buyer] = oldBuyerBalance + int256(obligationUnits);
+        int256 newBuyerBalance = balanceOf[id][buyer] = oldBuyerBalance + int256(obligationUnits);
         // forge-lint: disable-next-line(unsafe-typecast)
-        balanceOf[id][seller] = oldSellerBalance - int256(obligationUnits);
+        int256 newSellerBalance = balanceOf[id][seller] = oldSellerBalance - int256(obligationUnits);
         _obligationState.totalUnits = _obligationState.totalUnits
-            + UtilsLib.toUint128(UtilsLib.negativePart(balanceOf[id][seller]) - UtilsLib.negativePart(oldSellerBalance))
-            - UtilsLib.toUint128(UtilsLib.negativePart(oldBuyerBalance) - UtilsLib.negativePart(balanceOf[id][buyer]));
+            + UtilsLib.toUint128(UtilsLib.negativePart(newSellerBalance) - UtilsLib.negativePart(oldSellerBalance))
+            - UtilsLib.toUint128(UtilsLib.negativePart(oldBuyerBalance) - UtilsLib.negativePart(newBuyerBalance));
 
         emit EventsLib.Take(
             msg.sender,
