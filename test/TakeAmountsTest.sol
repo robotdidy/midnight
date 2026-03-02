@@ -71,7 +71,7 @@ contract TakeAmountsTest is BaseTest {
     // buyerIsLender = true: buyer = taker (lender, no debt), seller = maker (borrower).
 
     function testUnitsToSharesBuyerIsLender(uint256 targetUnits, uint256 tick, uint256 fee0, uint256 fee1) public {
-        uint256 tradingFee = _setFees(fee0, fee1);
+        _setFees(fee0, fee1);
         targetUnits = bound(targetUnits, 1, 1e30);
         tick = bound(tick, 1, TICK_RANGE);
 
@@ -111,7 +111,7 @@ contract TakeAmountsTest is BaseTest {
     function testSellerAssetsToSharesBuyerIsLender(uint256 targetSellerAssets, uint256 tick, uint256 fee0, uint256 fee1)
         public
     {
-        uint256 tradingFee = _setFees(fee0, fee1);
+        _setFees(fee0, fee1);
         targetSellerAssets = bound(targetSellerAssets, 1, 1e30);
         tick = bound(tick, 1, TICK_RANGE);
 
@@ -131,7 +131,7 @@ contract TakeAmountsTest is BaseTest {
     // buyerIsLender = false: buyer = taker (borrower, has debt), seller = maker (lender, has obligation shares).
 
     function testUnitsToSharesBuyerIsBorrower(uint256 targetUnits, uint256 tick, uint256 fee0, uint256 fee1) public {
-        uint256 tradingFee = _setFees(fee0, fee1);
+        _setFees(fee0, fee1);
         targetUnits = bound(targetUnits, 1, 1e30);
         tick = bound(tick, 1, TICK_RANGE);
 
@@ -159,7 +159,6 @@ contract TakeAmountsTest is BaseTest {
         uint256 buyerPrice = TickLib.tickToPrice(tick) + tradingFee;
         // Snap to a reachable value: not all buyerAssets are reachable when buyerPrice > WAD.
         targetBuyerAssets = targetBuyerAssets.mulDivUp(WAD, buyerPrice).mulDivDown(buyerPrice, WAD);
-        vm.assume(targetBuyerAssets > 0);
         uint256 shares =
             TakeAmountsLib.buyerAssetsToShares(targetBuyerAssets, currentUnits, currentShares, buyerPrice, false);
         deal(address(loanToken), borrower, type(uint256).max);
@@ -177,7 +176,7 @@ contract TakeAmountsTest is BaseTest {
         uint256 fee0,
         uint256 fee1
     ) public {
-        uint256 tradingFee = _setFees(fee0, fee1);
+        _setFees(fee0, fee1);
         targetSellerAssets = bound(targetSellerAssets, 1, 1e30);
         tick = bound(tick, 1, TICK_RANGE);
 
