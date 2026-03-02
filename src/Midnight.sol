@@ -144,6 +144,8 @@ contract Midnight is IMidnight {
     /// position at the end.
     /// @dev Neither the taker nor the maker can pass from having shares to having debt in one take.
     /// @dev The taker might not get the price they expected if the trading fee was just changed.
+    /// @dev All sellerAssets are reachable with the obligationShares input, and all buyerAssets are reachable only if
+    /// buyerPrice <= WAD.
     function take(
         uint256 obligationShares,
         address taker,
@@ -198,7 +200,6 @@ contract Midnight is IMidnight {
         uint256 _tradingFee = tradingFee(id, timeToMaturity);
         uint256 sellerPrice = offer.buy ? offerPrice - _tradingFee : offerPrice;
         uint256 buyerPrice = sellerPrice + _tradingFee;
-        require(buyerPrice <= WAD, "price");
 
         bool buyerIsLender = borrowerState[id][buyer].debt == 0;
         bool sellerIsBorrower = sharesOf[id][seller] == 0;

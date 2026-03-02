@@ -706,18 +706,6 @@ contract TakeTest is BaseTest {
         assertEq(LendCallback(callback).recordedData(), abi.encode(address(loanToken), assets));
     }
 
-    function testBuyerPriceExceedsWad() public {
-        midnight.setObligationTradingFee(id, 0, 0.000014e18);
-        midnight.setObligationTradingFee(id, 1, 0.000014e18);
-        borrowerOffer.tick = TICK_RANGE;
-        borrowerOffer.obligationShares = 100;
-        collateralize(obligation, borrower, 100);
-        deal(address(loanToken), lender, 100);
-
-        vm.expectRevert("price");
-        take(100, lender, borrowerOffer);
-    }
-
     // Summary of zero price tests:
     //
     // Trading at 0 succeeds in those cases:
