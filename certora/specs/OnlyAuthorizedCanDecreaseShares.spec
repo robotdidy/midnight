@@ -46,5 +46,5 @@ rule takeOnlyAuthorizedSellerSharesDecrease(
     take@withrevert(e, buyerAssets, sellerAssets, obligationUnits, obligationShares, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
 
     assert takerUnauthorized => lastReverted;
-    assert user != seller => sharesOf(id, user) >= sharesBefore;
+    assert sharesOf(id, user) < sharesBefore => user == seller;
 }
