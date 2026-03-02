@@ -13,8 +13,9 @@ import {Midnight} from "../../src/Midnight.sol";
 
 contract MidnightWrapper is Midnight {
     using UtilsLib for uint256;
+    using UtilsLib for uint128;
 
-    function preciseMaxDebt(address borrower, Obligation memory obligation, bytes32 id) external view returns (uint256) {
+    function preciseMaxDebt(address borrower, Obligation memory obligation, bytes20 id) external view returns (uint256) {
         BorrowerState storage _borrowerState = borrowerState[id][borrower];
         uint256 maxDebt;
         uint256 bitmap = _borrowerState.activatedCollaterals;
@@ -22,7 +23,7 @@ contract MidnightWrapper is Midnight {
             if ((bitmap & (1 << i)) != 0) {
                 Collateral memory collateral = obligation.collaterals[i];
                 uint256 price = IOracle(collateral.oracle).price();
-                maxDebt += collateralOf[id][borrower][collateral.token].mulDivDown(price * collateral.lltv, ORACLE_PRICE_SCALE * WAD);
+                maxDebt += collateralOf[id][borrower][i].mulDivDown(price * collateral.lltv, ORACLE_PRICE_SCALE * WAD);
             }
         }
         return maxDebt;

@@ -5,28 +5,28 @@ using Havoc as callback;
 methods {
     function multicall(bytes[]) external => HAVOC_ALL DELETE;
 
-    function withdrawable(bytes32 id) external returns (uint256) envfree;
-    function totalUnits(bytes32 id) external returns (uint256) envfree;
-    function totalShares(bytes32 id) external returns (uint256) envfree;
+    function withdrawable(bytes20 id) external returns (uint256) envfree;
+    function totalUnits(bytes20 id) external returns (uint256) envfree;
+    function totalShares(bytes20 id) external returns (uint256) envfree;
     function consumed(address user, bytes32 group) external returns (uint256) envfree;
-    function sharesOf(bytes32 id, address owner) external returns (uint256) envfree;
-    function collateralOf(bytes32 id, address user, address token) external returns (uint256) envfree;
-    function debtOf(bytes32 id, address user) external returns (uint256) envfree;
-    function isHealthy(MorphoV2.Obligation, bytes32, address) external returns (bool) envfree;
-    function preciseMaxDebt(address borrower, MorphoV2.Obligation obligation, bytes32 id) external returns (uint256) envfree;
+    function sharesOf(bytes20 id, address owner) external returns (uint256) envfree;
+    function collateralOf(bytes20 id, address user, uint256) external returns (uint128) envfree;
+    function debtOf(bytes20 id, address user) external returns (uint256) envfree;
+    function isHealthy(Midnight.Obligation, bytes20, address) external returns (bool) envfree;
+    function preciseMaxDebt(address borrower, Midnight.Obligation obligation, bytes20 id) external returns (uint256) envfree;
 
     function _.price() external => summaryPrice(calledContract) expect(uint256);
     function TickLib.tickToPrice(uint256 tick) internal returns (uint256) => NONDET;
-    function IdLib.toId(MorphoV2.Obligation memory obligation, uint256 chainId, address morpho) internal returns (bytes32) => summaryToId(obligation, chainId, morpho);
+    function IdLib.toId(Midnight.Obligation memory obligation, uint256 chainId, address morpho) internal returns (bytes20) => summaryToId(obligation, chainId, morpho);
     function UtilsLib.mulDivDown(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDivDown(x, y, d);
     function UtilsLib.mulDivUp(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDivUp(x, y, d);
     function _.havocAll() external => HAVOC_ALL;
 
     function _.transferFrom(address from, address to, uint256 amount) external with(env e) => genericCallbackBool() expect (bool);
     function _.transfer(address to, uint256 amount) external with(env e) => genericCallbackBool() expect (bool);
-    function _.onBuy(MorphoV2.Obligation obligation, address buyer, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, bytes data) external => genericCallback() expect void;
-    function _.onSell(MorphoV2.Obligation obligation, address seller, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, bytes data) external => genericCallback() expect void;
-    function _.onLiquidate(MorphoV2.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data) external => genericCallback() expect void;
+    function _.onBuy(Midnight.Obligation obligation, address buyer, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, bytes data) external => genericCallback() expect void;
+    function _.onSell(Midnight.Obligation obligation, address seller, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, bytes data) external => genericCallback() expect void;
+    function _.onLiquidate(Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data) external => genericCallback() expect void;
     function _.onFlashLoan(address token, uint256 amount, bytes data) external => genericCallback() expect void;
 }
 
@@ -104,23 +104,23 @@ function summaryMulDivUp(uint256 a, uint256 b, uint256 d) returns uint256 {
 }
 
 
-//persistent ghost MorphoV2.Obligation globalObligation;
+//persistent ghost Midnight.Obligation globalObligation;
 persistent ghost address globalObligationLoanToken;
 persistent ghost uint256 globalObligationCollateralLength;
 persistent ghost mapping(uint256 => address) globalObligationCollateralOracle;
 persistent ghost mapping(uint256 => address) globalObligationCollateralToken;
 persistent ghost mapping(uint256 => uint256) globalObligationCollateralLLTV;
-persistent ghost bytes32 globalId;
+persistent ghost bytes20 globalId;
 persistent ghost address globalBorrower;
 
-definition collateralMatches(MorphoV2.Obligation obligation, uint256 index) returns bool =
+definition collateralMatches(Midnight.Obligation obligation, uint256 index) returns bool =
     (index < globalObligationCollateralLength => 
     obligation.collaterals[index].oracle == globalObligationCollateralOracle[index]
     && obligation.collaterals[index].token == globalObligationCollateralToken[index]
     && obligation.collaterals[index].lltv == globalObligationCollateralLLTV[index]);
 
-function summaryToId(MorphoV2.Obligation obligation, uint256 chainId, address morpho) returns (bytes32) {
-    bytes32 id;
+function summaryToId(Midnight.Obligation obligation, uint256 chainId, address morpho) returns (bytes20) {
+    bytes20 id;
     if (obligation.loanToken == globalObligationLoanToken
         && obligation.collaterals.length == globalObligationCollateralLength
         && collateralMatches(obligation, 0)
@@ -140,7 +140,7 @@ ghost bool globalViolated;
 function genericCallback() {
     address dummy;
     env e;
-    MorphoV2.Obligation obligation;
+    Midnight.Obligation obligation;
 
     require obligation.loanToken == globalObligationLoanToken;
     require obligation.collaterals.length == globalObligationCollateralLength;
@@ -167,8 +167,8 @@ function genericCallbackBool() returns (bool) {
     return result;
 }
 
-rule stayHealthyLiquidate(env e, MorphoV2.Obligation someObligation, uint256 someCollateralIndex, uint256 someSeizedAssets, uint256 someRepaidUnits, bytes someData) {
-    MorphoV2.Obligation obligation;
+rule stayHealthyLiquidate(env e, Midnight.Obligation someObligation, uint256 someCollateralIndex, uint256 someSeizedAssets, uint256 someRepaidUnits, bytes someData) {
+    Midnight.Obligation obligation;
 
     globalViolated = false;
     counter = 0;
@@ -197,7 +197,7 @@ rule stayHealthyLiquidate(env e, MorphoV2.Obligation someObligation, uint256 som
     //require preciseMaxDebt(globalBorrower, obligation, globalId) >= debtOf(globalId, globalBorrower), "user is healthy before call";
 
     globalCollateralIndex = someCollateralIndex;
-    uint256 collateralBefore = collateralOf(globalId, globalBorrower, obligation.collaterals[someCollateralIndex].token);
+    uint256 collateralBefore = collateralOf(globalId, globalBorrower, someCollateralIndex);
     uint256 seizedAssets;
     uint256 repaidUnits;
 
@@ -206,7 +206,7 @@ rule stayHealthyLiquidate(env e, MorphoV2.Obligation someObligation, uint256 som
     require summaryMulDivUpM(seizedAssets, WAD(), MAX_LIF())  >= summaryMulDivUpM(seizedAssets, globalObligationCollateralLLTV[someCollateralIndex], WAD()), "collateral lltv must be less then 1/MAX_LIF";
     require summaryMulDivDownM(collateralBefore - seizedAssets, WAD(), MAX_LIF()) >= summaryMulDivDownM(collateralBefore, WAD(), MAX_LIF()) - summaryMulDivUpM(seizedAssets, WAD(), MAX_LIF()), "axiom";
 
-    // if (f.selector == sig:liquidate(MorphoV2.Obligation,uint256,uint256,uint256,address,bytes).selector) {
+    // if (f.selector == sig:liquidate(Midnight.Obligation,uint256,uint256,uint256,address,bytes).selector) {
     // }
     assert !globalViolated, "user is healthy after call";
     assert isHealthy(obligation, globalId, globalBorrower), "user is healthy after call";
@@ -215,7 +215,7 @@ rule stayHealthyLiquidate(env e, MorphoV2.Obligation someObligation, uint256 som
 
 
 rule stayHealthy(env e, method f, calldataarg args) {
-    MorphoV2.Obligation obligation;
+    Midnight.Obligation obligation;
 
     counter = 0;
     require forall uint256 a. forall uint256 lif. 
@@ -252,7 +252,7 @@ rule stayHealthy(env e, method f, calldataarg args) {
 
     f(e, args);
 
-    // if (f.selector == sig:liquidate(MorphoV2.Obligation,uint256,uint256,uint256,address,bytes).selector) {
+    // if (f.selector == sig:liquidate(Midnight.Obligation,uint256,uint256,uint256,address,bytes).selector) {
     // }
     assert isHealthy(obligation, globalId, globalBorrower), "user is healthy after call";
     //assert preciseMaxDebt(globalBorrower, obligation, globalId) >= debtOf(globalId, globalBorrower), "user is healthy after call";
