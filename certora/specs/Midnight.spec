@@ -57,17 +57,28 @@ rule takeInputOutputConsistency(env e, uint256 obligationSharesInput, address ta
 rule offerInputsConsumed(env e, uint256 obligationSharesInput, address taker, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
     uint256 consumedBefore = consumed(offer.maker, offer.group);
 
-    take(e, obligationSharesInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
+    uint256 buyerAssetsOutput;
+    uint256 sellerAssetsOutput;
+    uint256 obligationUnitsOutput;
+    uint256 obligationSharesOutput;
 
-    assert consumed(offer.maker, offer.group) == consumedBefore + obligationSharesInput;
+    buyerAssetsOutput, sellerAssetsOutput, obligationUnitsOutput, obligationSharesOutput = take(e, obligationSharesInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
+
+    if (offer.obligationUnits > 0) {
+        assert consumed(offer.maker, offer.group) == consumedBefore + obligationUnitsOutput;
+    } else {
+        assert consumed(offer.maker, offer.group) == consumedBefore + obligationSharesOutput;
+    }
 }
 
 rule offerInputsLimit(env e, uint256 obligationSharesInput, address taker, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
-    uint256 consumedBefore = consumed(offer.maker, offer.group);
-
     take(e, obligationSharesInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
 
-    assert obligationSharesInput <= offer.obligationShares - consumedBefore;
+    if (offer.obligationUnits > 0) {
+        assert consumed(offer.maker, offer.group) <= offer.obligationUnits;
+    } else {
+        assert consumed(offer.maker, offer.group) <= offer.obligationShares;
+    }
 }
 
 rule liquidateInputOutputConsistency(env e, Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data) {
