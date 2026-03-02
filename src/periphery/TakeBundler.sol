@@ -2,14 +2,14 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity 0.8.31;
 
-import {MorphoV2} from "../MorphoV2.sol";
-import {Offer, Signature} from "../interfaces/IMorphoV2.sol";
+import {Midnight} from "../Midnight.sol";
+import {Offer, Signature} from "../interfaces/IMidnight.sol";
 
 contract TakeBundler {
     /// @dev Iterates through orders, filling up to `targetShares` obligation shares total.
     /// @dev Assumes all offers share the same obligation id so that obligation shares are comparable.
     function bundleTake(
-        MorphoV2 morpho,
+        Midnight morpho,
         uint256 targetShares,
         address taker,
         address takerCallback,
