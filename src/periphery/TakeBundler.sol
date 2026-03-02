@@ -7,6 +7,7 @@ import {Offer, Signature} from "../interfaces/IMorphoV2.sol";
 
 contract TakeBundler {
     /// @dev Iterates through orders, filling up to `targetShares` obligation shares total.
+    /// @dev Assumes all offers share the same obligation id so that obligation shares are comparable.
     function bundleTake(
         MorphoV2 morpho,
         uint256 targetShares,
