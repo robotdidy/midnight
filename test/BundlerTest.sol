@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {BaseTest} from "./BaseTest.sol";
 import {TakeBundler} from "../src/periphery/TakeBundler.sol";
 import {Offer, Obligation, Signature, Collateral} from "../src/interfaces/IMorphoV2.sol";
-import {TickLib, TICK_RANGE} from "../src/libraries/TickLib.sol";
+import {TICK_RANGE} from "../src/libraries/TickLib.sol";
 
 contract BundlerTest is BaseTest {
     TakeBundler internal takeBundler;
