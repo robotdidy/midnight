@@ -302,12 +302,13 @@ contract OtherFunctionsTest is BaseTest {
         midnight.touchObligation(_obligation);
     }
 
-    function testLltvTooHigh() public {
+    function testLltvTooHigh(uint256 lltv) public {
+        lltv = bound(lltv, WAD + 1, type(uint256).max);
         Obligation memory _obligation;
         _obligation.loanToken = address(loanToken);
         _obligation.maturity = block.timestamp + 100;
         Collateral[] memory collaterals = new Collateral[](1);
-        collaterals[0] = Collateral({token: address(collateralToken1), lltv: 1e18 + 1, oracle: address(oracle1)});
+        collaterals[0] = Collateral({token: address(collateralToken1), lltv: lltv, oracle: address(oracle1)});
         _obligation.collaterals = collaterals;
         vm.expectRevert("lltv too high");
         midnight.touchObligation(_obligation);

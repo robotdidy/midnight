@@ -553,7 +553,7 @@ contract Midnight is IMidnight {
             for (uint256 i = 0; i < obligation.collaterals.length; i++) {
                 address collateralToken = obligation.collaterals[i].token;
                 require(collateralToken > previousCollateralToken, "collaterals not sorted");
-                require(obligation.collaterals[i].lltv < WAD, "lltv too high");
+                require(obligation.collaterals[i].lltv <= WAD, "lltv too high");
                 previousCollateralToken = collateralToken;
             }
 
