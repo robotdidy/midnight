@@ -46,7 +46,6 @@ library TickLib {
 
     /// @dev Returns the lowest tick with a higher price.
     function priceToTick(uint256 price) internal pure returns (uint256) {
-        require(price <= 1e18, "Price is greater than one");
         uint256 low = 0;
         uint256 high = TICK_RANGE;
         while (low != high) {
