@@ -110,7 +110,7 @@ contract BundlerTest is BaseTest {
         vm.prank(address(0xdead));
         vm.expectRevert("UNAUTHORIZED");
         takeBundler.bundleTakeShares(
-            midnight, 100, borrower, address(0), hex"", address(0), obligationShares, _offers, sigs, roots, proofs
+            midnight, 100, borrower, address(0), obligationShares, _offers, sigs, roots, proofs
         );
     }
 
@@ -132,17 +132,7 @@ contract BundlerTest is BaseTest {
         if (offerShares1 >= targetShares - fromOffer0) {
             vm.prank(borrower);
             takeBundler.bundleTakeShares(
-                midnight,
-                targetShares,
-                borrower,
-                address(0),
-                hex"",
-                address(0),
-                _obligationShares,
-                offers,
-                sigs,
-                roots,
-                proofs
+                midnight, targetShares, borrower, address(0), _obligationShares, offers, sigs, roots, proofs
             );
 
             assertEq(midnight.debtOf(id, borrower), targetShares, "debt");
@@ -155,17 +145,7 @@ contract BundlerTest is BaseTest {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
             takeBundler.bundleTakeShares(
-                midnight,
-                targetShares,
-                borrower,
-                address(0),
-                hex"",
-                address(0),
-                _obligationShares,
-                offers,
-                sigs,
-                roots,
-                proofs
+                midnight, targetShares, borrower, address(0), _obligationShares, offers, sigs, roots, proofs
             );
         }
     }
@@ -188,7 +168,7 @@ contract BundlerTest is BaseTest {
         if (offerShares1 >= units - fromOffer0) {
             vm.prank(borrower);
             takeBundler.bundleTakeUnits(
-                midnight, units, borrower, address(0), hex"", address(0), _obligationShares, offers, sigs, roots, proofs
+                midnight, units, borrower, address(0), _obligationShares, offers, sigs, roots, proofs
             );
 
             uint256 consumed0 = midnight.consumed(offers[0].maker, offers[0].group);
@@ -200,7 +180,7 @@ contract BundlerTest is BaseTest {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
             takeBundler.bundleTakeUnits(
-                midnight, units, borrower, address(0), hex"", address(0), _obligationShares, offers, sigs, roots, proofs
+                midnight, units, borrower, address(0), _obligationShares, offers, sigs, roots, proofs
             );
         }
     }
@@ -226,17 +206,7 @@ contract BundlerTest is BaseTest {
         if (offerShares1 >= units - fromOffer0) {
             vm.prank(borrower);
             takeBundler.bundleTakeBuyerAssets(
-                midnight,
-                targetBuyerAssets,
-                borrower,
-                address(0),
-                hex"",
-                address(0),
-                _obligationShares,
-                offers,
-                sigs,
-                roots,
-                proofs
+                midnight, targetBuyerAssets, borrower, address(0), _obligationShares, offers, sigs, roots, proofs
             );
 
             uint256 consumed0 = midnight.consumed(offers[0].maker, offers[0].group);
@@ -248,17 +218,7 @@ contract BundlerTest is BaseTest {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
             takeBundler.bundleTakeBuyerAssets(
-                midnight,
-                targetBuyerAssets,
-                borrower,
-                address(0),
-                hex"",
-                address(0),
-                _obligationShares,
-                offers,
-                sigs,
-                roots,
-                proofs
+                midnight, targetBuyerAssets, borrower, address(0), _obligationShares, offers, sigs, roots, proofs
             );
         }
     }
@@ -288,17 +248,7 @@ contract BundlerTest is BaseTest {
         if (fromOffer0 >= units || offerShares1 >= units + 1 - fromOffer0) {
             vm.prank(borrower);
             takeBundler.bundleTakeSellerAssets(
-                midnight,
-                targetSellerAssets,
-                borrower,
-                address(0),
-                hex"",
-                borrower,
-                _obligationShares,
-                offers,
-                sigs,
-                roots,
-                proofs
+                midnight, targetSellerAssets, borrower, borrower, _obligationShares, offers, sigs, roots, proofs
             );
 
             uint256 consumed0 = midnight.consumed(offers[0].maker, offers[0].group);
@@ -310,17 +260,7 @@ contract BundlerTest is BaseTest {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
             takeBundler.bundleTakeSellerAssets(
-                midnight,
-                targetSellerAssets,
-                borrower,
-                address(0),
-                hex"",
-                borrower,
-                _obligationShares,
-                offers,
-                sigs,
-                roots,
-                proofs
+                midnight, targetSellerAssets, borrower, borrower, _obligationShares, offers, sigs, roots, proofs
             );
         }
     }
