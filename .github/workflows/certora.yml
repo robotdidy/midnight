@@ -54,8 +54,7 @@ jobs:
 
       - name: Copy solc
         run: |
-          strace -f -e execve forge build 2>&1 | grep -E "solc(-[0-9]|$)" | head -n 50
-          ls -R ~/.svm
+          forge build
           cp ~/.svm/0.8.31/solc-0.8.31 /usr/local/bin
 
       - name: Verify ${{ matrix.conf }}
