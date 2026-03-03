@@ -515,6 +515,7 @@ contract Midnight is IMidnight {
     function touchObligation(Obligation memory obligation) public returns (bytes20) {
         bytes20 id = IdLib.toId(obligation, block.chainid, address(this));
         if (!obligationState[id].created) {
+            require(obligation.collaterals.length > 0, "no collaterals");
             require(obligation.collaterals.length <= MAX_COLLATERALS, "too many collaterals");
             address previousCollateralToken;
             for (uint256 i = 0; i < obligation.collaterals.length; i++) {
