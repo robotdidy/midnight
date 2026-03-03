@@ -41,6 +41,7 @@ rule liquidateDoesNotIncreaseUnits(env e, Midnight.Obligation obligation, uint25
 }
 
 /// Virtual share price = (totalUnits+1)/(totalShares+1) monotonicity.
+/// Liquidation is excluded: it can decrease the share price via bad debt socialization but covered above.
 rule sharePriceDoesNotDecrease(bytes20 id, method f) filtered { f -> f.selector != sig:multicall(bytes[]).selector && f.selector != sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector && !f.isView } {
     mathint unitsBefore = totalUnits(id);
     mathint sharesBefore = totalShares(id);
