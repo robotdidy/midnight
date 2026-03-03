@@ -19,7 +19,6 @@ methods {
     function UtilsLib.msb(uint256) internal returns (uint256) => NONDET;
 
     function isHealthy(Midnight.Obligation memory, bytes20, address) internal returns (bool) => NONDET;
-
 }
 
 // Check the ratio of units over shares is below or equal to 1.
@@ -42,7 +41,7 @@ rule liquidateDoesNotIncreaseUnits(env e, Midnight.Obligation obligation, uint25
 
 /// Virtual share price = (totalUnits+1)/(totalShares+1) monotonicity.
 /// Liquidation is excluded: it can decrease the share price via bad debt socialization but covered above.
-rule sharePriceDoesNotDecrease(bytes20 id, method f) filtered { f -> f.selector != sig:multicall(bytes[]).selector && f.selector != sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector && !f.isView } {
+rule sharePriceDoesNotDecrease(bytes20 id, method f) filtered { f -> f.selector != sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector && !f.isView } {
     mathint unitsBefore = totalUnits(id);
     mathint sharesBefore = totalShares(id);
 
