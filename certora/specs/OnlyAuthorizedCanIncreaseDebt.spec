@@ -24,13 +24,12 @@ rule debtOnlyIncreasesViaTake(env e, method f, bytes20 id, address user) {
     f(e, args);
 
     assert debtBefore >= debtOf(id, user)  
-        || f.selector == sig:take(uint256,uint256,uint256,uint256,address,address,bytes,address,Midnight.Offer,Midnight.Signature,bytes32,bytes32[]).selector;
+        || f.selector == sig:take(uint256,address,address,bytes,address,Midnight.Offer,Midnight.Signature,bytes32,bytes32[]).selector;
 }
 
 /// In take, only the taker or the offer maker can have their debt increased.
 rule debtOnlyIncreasesForConsentingParties(
-    env e, uint256 buyerAssets, uint256 sellerAssets,
-    uint256 obligationUnits, uint256 obligationShares, address taker,
+    env e, uint256 obligationShares, address taker,
     address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller,
     Midnight.Offer offer, Midnight.Signature signature,
     bytes32 root, bytes32[] proof,
@@ -38,7 +37,7 @@ rule debtOnlyIncreasesForConsentingParties(
 ) {
     uint256 debtBefore = debtOf(id, user);
 
-    take(e, buyerAssets, sellerAssets, obligationUnits, obligationShares,
+    take(e, obligationShares,
          taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller,
          offer, signature, root, proof);
 
