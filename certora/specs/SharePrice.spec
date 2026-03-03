@@ -19,6 +19,12 @@ methods {
     function UtilsLib.msb(uint256) internal returns (uint256) => NONDET;
 
     function isHealthy(Midnight.Obligation memory, bytes20, address) internal returns (bool) => NONDET;
+
+    // Callback summaries for take, liquidate, and flashLoan.
+    function _.onBuy(Midnight.Obligation, address, uint256, uint256, uint256, uint256, bytes) external => NONDET;
+    function _.onSell(Midnight.Obligation, address, uint256, uint256, uint256, uint256, bytes) external => NONDET;
+    function _.onLiquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes) external => NONDET;
+    function _.onFlashLoan(address, uint256, bytes) external => NONDET;
 }
 
 // Check the ratio of units over shares is below or equal to 1.
