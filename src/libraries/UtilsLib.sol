@@ -70,10 +70,6 @@ library UtilsLib {
         }
     }
 
-    function maxLif(uint256 lltv, uint256 cursor) internal pure returns (uint256) {
-        return mulDivDown(WAD, WAD, WAD - mulDivDown(cursor, WAD - lltv, WAD));
-    }
-
     function msb(uint256 bitmap) internal pure returns (uint256) {
         // Temporary workaround for the Certora pipeline.
         // TODO: restore the clz-based implementation once the pipeline issue is fixed.

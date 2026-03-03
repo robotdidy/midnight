@@ -275,6 +275,6 @@ abstract contract BaseTest is Test {
     }
 
     function maxLif(uint256 lltv, uint256 cursor) internal pure returns (uint256) {
-        return UtilsLib.maxLif(lltv, cursor);
+        return UtilsLib.mulDivDown(WAD, WAD, WAD - UtilsLib.mulDivDown(cursor, WAD - lltv, WAD));
     }
 }

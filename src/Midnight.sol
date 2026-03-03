@@ -530,8 +530,8 @@ contract Midnight is IMidnight {
                 uint256 lltv = obligation.collaterals[i].lltv;
                 require(lltv <= WAD, "lltv too high");
                 require(
-                    obligation.collaterals[i].maxLif == UtilsLib.maxLif(lltv, LIQUIDATION_CURSOR_LOW)
-                        || obligation.collaterals[i].maxLif == UtilsLib.maxLif(lltv, LIQUIDATION_CURSOR_HIGH),
+                    obligation.collaterals[i].maxLif == maxLif(lltv, LIQUIDATION_CURSOR_LOW)
+                        || obligation.collaterals[i].maxLif == maxLif(lltv, LIQUIDATION_CURSOR_HIGH),
                     "invalid maxLif"
                 );
                 previousCollateralToken = collateralToken;
@@ -615,6 +615,10 @@ contract Midnight is IMidnight {
         address tentativeSigner = ecrecover(digest, signature.v, signature.r, signature.s);
         require(tentativeSigner != address(0), "invalid signature");
         return tentativeSigner;
+    }
+
+    function maxLif(uint256 lltv, uint256 cursor) internal pure returns (uint256) {
+        return WAD.mulDivDown(WAD, WAD - cursor.mulDivDown(WAD - lltv, WAD));
     }
 
     /// @dev 50 bps for ttm=360 days, scaled linearly. For post maturity, 0.14 bps.
