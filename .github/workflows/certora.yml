@@ -54,7 +54,7 @@ jobs:
 
       - name: Copy solc
         run: |
-          forge install
+          forge build
           ls -la ~/.local/share/svm
           sudo cp ~/.local/share/svm/solc-0.8.31/solc-0.8.31 /usr/local/bin/
 
