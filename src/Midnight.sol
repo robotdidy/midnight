@@ -199,8 +199,10 @@ contract Midnight is IMidnight {
         uint256 sellerPrice = offer.buy ? offerPrice - _tradingFee : offerPrice;
         uint256 buyerPrice = sellerPrice + _tradingFee;
         require(buyerPrice <= WAD, "price");
-        uint256 buyerAssets = obligationUnits.mulDivDown(buyerPrice, WAD);
-        uint256 sellerAssets = obligationUnits.mulDivDown(sellerPrice, WAD);
+        uint256 buyerAssets =
+            offer.buy ? obligationUnits.mulDivDown(buyerPrice, WAD) : obligationUnits.mulDivUp(buyerPrice, WAD);
+        uint256 sellerAssets =
+            offer.buy ? obligationUnits.mulDivDown(sellerPrice, WAD) : obligationUnits.mulDivUp(sellerPrice, WAD);
 
         uint256 newConsumed = consumed[offer.maker][offer.group] += obligationUnits;
         consumed[offer.maker][offer.group] = newConsumed;

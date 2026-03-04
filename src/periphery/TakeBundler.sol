@@ -33,7 +33,6 @@ contract TakeBundler {
         Take[] calldata takes
     ) external {
         require(taker == msg.sender || midnight.isAuthorized(taker, msg.sender), "unauthorized");
-        bytes20 id = midnight.toId(takes[0].offer.obligation);
 
         uint256 totalFilledUnits;
         for (uint256 i; i < takes.length && totalFilledUnits < targetUnits; i++) {
