@@ -72,8 +72,11 @@ contract AuthorizationTest is BaseTest {
         address user = makeAddr("user");
         address collateralToken = obligation.collaterals[0].token;
 
-        deal(collateralToken, address(this), collateralAmount);
+        deal(collateralToken, user, collateralAmount);
+        vm.prank(user);
         ERC20(collateralToken).approve(address(midnight), collateralAmount);
+
+        vm.prank(user);
         midnight.supplyCollateral(obligation, 0, collateralAmount, user);
 
         // Attacker tries to withdraw user's collateral
@@ -112,13 +115,17 @@ contract AuthorizationTest is BaseTest {
         address operator = makeAddr("operator");
         address collateralToken = obligation.collaterals[0].token;
 
-        deal(collateralToken, address(this), collateralAmount);
-        ERC20(collateralToken).approve(address(midnight), collateralAmount);
-        midnight.supplyCollateral(obligation, 0, collateralAmount, user);
-
         // User authorizes operator
         vm.prank(user);
         midnight.setIsAuthorized(operator, true);
+
+        deal(collateralToken, user, collateralAmount);
+
+        vm.prank(user);
+        ERC20(collateralToken).approve(address(midnight), collateralAmount);
+
+        vm.prank(user);
+        midnight.supplyCollateral(obligation, 0, collateralAmount, user);
 
         // Operator can withdraw on behalf of user
         vm.prank(operator);

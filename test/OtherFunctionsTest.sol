@@ -48,6 +48,9 @@ contract OtherFunctionsTest is BaseTest {
         obligation.collaterals = sortCollaterals(obligation.collaterals);
         obligation.rcfThreshold = 0;
 
+        vm.prank(borrower);
+        midnight.setIsAuthorized(address(this), true);
+
         id = toId(obligation);
     }
 

@@ -82,8 +82,12 @@ abstract contract BaseTest is Test {
         uint256 oraclePrice = Oracle(obligation.collaterals[0].oracle).price();
         uint256 collateral =
             debt.mulDivUp(WAD, obligation.collaterals[0].lltv).mulDivUp(ORACLE_PRICE_SCALE, oraclePrice);
-        deal(address(obligation.collaterals[0].token), address(this), collateral);
-        collateralToken1.approve(address(midnight), collateral);
+        deal(address(obligation.collaterals[0].token), _borrower, collateral);
+
+        vm.prank(_borrower);
+        ERC20(obligation.collaterals[0].token).approve(address(midnight), collateral);
+
+        vm.prank(_borrower);
         midnight.supplyCollateral(obligation, 0, collateral, _borrower);
     }
 
@@ -139,8 +143,14 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.expiry = block.timestamp + 200;
         badBorrowerOffer.tick = TICK_RANGE;
 
+        vm.prank(badBorrower);
+        midnight.setIsAuthorized(address(this), true);
+
         deal(obligation.collaterals[0].token, address(this), 135);
         midnight.supplyCollateral(obligation, 0, 135, badBorrower);
+
+        vm.prank(badBorrower);
+        midnight.setIsAuthorized(address(this), false);
 
         deal(address(loanToken), unluckyLender, 100);
 
