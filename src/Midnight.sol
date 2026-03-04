@@ -427,7 +427,7 @@ contract Midnight is IMidnight {
             if (i == collateralIndex) liquidatedCollatPrice = price;
             uint256 collateralQuoted = collateralOf[id][borrower][i].mulDivDown(price, ORACLE_PRICE_SCALE);
             maxDebt += collateralQuoted.mulDivDown(_collateral.lltv, WAD);
-            badDebt = badDebt.zeroFloorSub(collateralQuoted.mulDivDown(WAD, _collateral.maxLif));
+            badDebt = badDebt.zeroFloorSub(collateralQuoted.mulDivUp(WAD, _collateral.maxLif));
             bitmap ^= (1 << i);
         }
 

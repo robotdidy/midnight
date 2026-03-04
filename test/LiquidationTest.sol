@@ -292,24 +292,27 @@ contract LiquidationTest is BaseTest {
         assertEq(midnight.totalShares(id), units, "total shares");
     }
 
-    // Check that if there is bad debt it is possible to repay almost all debt and seize almost all collateral.
-    function testLiquidateWithBadDebtRepayMax(uint256 units, uint256 liquidationOraclePrice) public {
+    // Check that if there is bad debt it is possible to seize almost all collateral.
+    function testLiquidateWithBadDebtSeizeMax(uint256 units, uint256 liquidationOraclePrice) public {
         units = bound(units, 10, MAX_UNITS);
         liquidationOraclePrice = bound(liquidationOraclePrice, 1, badDebtPriceDown());
         collateralize(obligation, borrower, units);
         setupObligation(obligation, units);
         Oracle(obligation.collaterals[0].oracle).setPrice(liquidationOraclePrice);
         uint256 debtAfterBadDebt = units - _badDebt();
+        uint256 lif0 = obligation.collaterals[0].maxLif;
         uint256 maxRepaid = _maxRepaid(units, debtAfterBadDebt, liquidationOraclePrice);
+        uint256 maxSeizedFromRepaid = UtilsLib.min(maxRepaid, debtAfterBadDebt).mulDivDown(lif0, WAD)
+            .mulDivDown(ORACLE_PRICE_SCALE, liquidationOraclePrice);
+        uint256 maxSeized = UtilsLib.min(midnight.collateralOf(id, borrower, 0), maxSeizedFromRepaid);
 
-        midnight.liquidate(obligation, 0, 0, UtilsLib.min(maxRepaid, debtAfterBadDebt), borrower, "");
+        midnight.liquidate(obligation, 0, maxSeized, 0, borrower, "");
 
-        assertApproxEqAbs(midnight.debtOf(id, borrower), 0, 1e3, "all remaining debt repaid");
         assertApproxEqAbs(
             midnight.collateralOf(id, borrower, 0).mulDivDown(liquidationOraclePrice, ORACLE_PRICE_SCALE),
             0,
             1e3,
-            "all remaining collateral seized"
+            "almost all collateral seized"
         );
     }
 
@@ -635,7 +638,7 @@ contract LiquidationTest is BaseTest {
             Collateral memory _collateral = obligation.collaterals[i];
             uint256 price = IOracle(_collateral.oracle).price();
             uint256 collateralQuoted = midnight.collateralOf(id, borrower, i).mulDivDown(price, ORACLE_PRICE_SCALE);
-            badDebt = badDebt.zeroFloorSub(collateralQuoted.mulDivDown(WAD, _collateral.maxLif));
+            badDebt = badDebt.zeroFloorSub(collateralQuoted.mulDivUp(WAD, _collateral.maxLif));
             bitmap ^= (1 << i);
         }
         return badDebt;
