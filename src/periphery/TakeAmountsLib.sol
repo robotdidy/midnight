@@ -12,7 +12,7 @@ library TakeAmountsLib {
 
     /// @dev Reverts if buyerPrice > WAD, because not all buyerAssets are reachable then.
     /// @dev Returns the number of units to take to get the target buyer assets.
-    function buyerAssetsToUnits(Midnight midnight, bytes20 id, Offer memory offer, uint256 targetBuyerAssets)
+    function buyerAssetsToUnits(Midnight midnight, bytes32 id, Offer memory offer, uint256 targetBuyerAssets)
         internal
         view
         returns (uint256)
@@ -25,7 +25,7 @@ library TakeAmountsLib {
     }
 
     /// @dev Returns the number of units to take to get the target seller assets.
-    function sellerAssetsToUnits(Midnight midnight, bytes20 id, Offer memory offer, uint256 targetSellerAssets)
+    function sellerAssetsToUnits(Midnight midnight, bytes32 id, Offer memory offer, uint256 targetSellerAssets)
         internal
         view
         returns (uint256)

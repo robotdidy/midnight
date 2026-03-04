@@ -14,7 +14,7 @@ contract MaxAmountsTest is BaseTest {
     using UtilsLib for uint256;
 
     Obligation internal obligation;
-    bytes20 internal id;
+    bytes32 internal id;
 
     function setUp() public override {
         super.setUp();
@@ -33,6 +33,9 @@ contract MaxAmountsTest is BaseTest {
         obligation.rcfThreshold = 0;
 
         id = toId(obligation);
+
+        vm.prank(borrower);
+        midnight.setIsAuthorized(address(this), true);
     }
 
     function testMaxAmountIsUint128Max() public pure {
@@ -43,6 +46,9 @@ contract MaxAmountsTest is BaseTest {
         uint256 amount = MAX_AMOUNT;
 
         deal(address(loanToken), lender, amount);
+
+        vm.prank(borrower);
+        midnight.setIsAuthorized(address(this), true);
 
         // Set a very high oracle price so a small collateral amount is sufficient.
         // With price = ORACLE_PRICE_SCALE * 1e36, 1 collateral token = 1e36 loan tokens.
@@ -98,6 +104,9 @@ contract MaxAmountsTest is BaseTest {
         deal(address(collateralToken1), address(this), amount);
         collateralToken1.approve(address(midnight), amount);
 
+        vm.prank(borrower);
+        midnight.setIsAuthorized(address(this), true);
+
         midnight.supplyCollateral(obligation, 0, amount, borrower);
 
         assertEq(midnight.collateralOf(id, borrower, 0), amount, "collateral at max");
@@ -108,6 +117,9 @@ contract MaxAmountsTest is BaseTest {
 
         deal(address(collateralToken1), address(this), amount);
         collateralToken1.approve(address(midnight), amount);
+
+        vm.prank(borrower);
+        midnight.setIsAuthorized(address(this), true);
 
         vm.expectRevert("uint256 overflows uint128");
         midnight.supplyCollateral(obligation, 0, amount, borrower);

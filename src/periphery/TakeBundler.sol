@@ -69,7 +69,7 @@ contract TakeBundler {
         Take[] calldata takes
     ) external {
         require(taker == msg.sender || midnight.isAuthorized(taker, msg.sender), "unauthorized");
-        bytes20 id = midnight.touchObligation(takes[0].offer.obligation); // to have the correct trading fees.
+        bytes32 id = midnight.touchObligation(takes[0].offer.obligation); // to have the correct trading fees.
 
         uint256 totalFilledBuyerAssets;
         for (uint256 i; i < takes.length && totalFilledBuyerAssets < targetBuyerAssets; i++) {
@@ -110,7 +110,7 @@ contract TakeBundler {
         Take[] calldata takes
     ) external {
         require(taker == msg.sender || midnight.isAuthorized(taker, msg.sender), "unauthorized");
-        bytes20 id = midnight.touchObligation(takes[0].offer.obligation); // to have the correct trading fees.
+        bytes32 id = midnight.touchObligation(takes[0].offer.obligation); // to have the correct trading fees.
 
         uint256 totalFilledSellerAssets;
         for (uint256 i; i < takes.length && totalFilledSellerAssets < targetSellerAssets; i++) {
