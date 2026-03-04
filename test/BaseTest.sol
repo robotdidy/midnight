@@ -101,7 +101,7 @@ abstract contract BaseTest is Test {
     }
 
     function setupOtherUsers(Obligation memory obligation, uint256 shares) internal {
-        bytes20 _id = toId(obligation);
+        bytes32 _id = toId(obligation);
         uint256 totalUnits = midnight.totalUnits(_id);
         uint256 totalShares = midnight.totalShares(_id);
         uint256 units = shares.mulDivUp(totalUnits + 1, totalShares + 1);
@@ -162,7 +162,7 @@ abstract contract BaseTest is Test {
         Oracle(obligation.collaterals[0].oracle).setPrice(ORACLE_PRICE_SCALE);
     }
 
-    function toId(Obligation memory obligation) internal view returns (bytes20) {
+    function toId(Obligation memory obligation) internal view returns (bytes32) {
         return IdLib.toId(obligation, block.chainid, address(midnight));
     }
 

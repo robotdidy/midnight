@@ -12,7 +12,7 @@ contract AuthorizationTest is BaseTest {
     using UtilsLib for uint256;
 
     Obligation internal obligation;
-    bytes20 internal id;
+    bytes32 internal id;
 
     function setUp() public override {
         super.setUp();

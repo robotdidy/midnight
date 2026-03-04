@@ -16,7 +16,7 @@ contract TakeTest is BaseTest {
     using UtilsLib for uint256;
 
     Obligation internal obligation;
-    bytes20 internal id;
+    bytes32 internal id;
     Offer internal lenderOffer;
     Offer internal borrowerOffer;
     Offer internal otherLenderOffer;
