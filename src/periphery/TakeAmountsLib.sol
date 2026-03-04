@@ -1,19 +1,38 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {Midnight} from "../Midnight.sol";
+import {Offer} from "../interfaces/IMidnight.sol";
 import {UtilsLib} from "../libraries/UtilsLib.sol";
+import {TickLib} from "../libraries/TickLib.sol";
 import {WAD} from "../libraries/ConstantsLib.sol";
 
 library TakeAmountsLib {
     using UtilsLib for uint256;
 
-    // Forward: buyerAssets = units.mulDivDown(buyerPrice, WAD).
-    function buyerAssetsToUnits(uint256 targetBuyerAssets, uint256 buyerPrice) internal pure returns (uint256) {
+    /// @dev Reverts if buyerPrice > WAD, because not all buyerAssets are reachable then.
+    /// @dev Returns the number of units to take to get the target buyer assets.
+    function buyerAssetsToUnits(Midnight midnight, bytes20 id, Offer memory offer, uint256 targetBuyerAssets)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 makerPrice = TickLib.tickToPrice(offer.tick);
+        uint256 tradingFee = midnight.tradingFee(id, offer.obligation.maturity - block.timestamp);
+        uint256 buyerPrice = offer.buy ? makerPrice : makerPrice + tradingFee;
+        require(buyerPrice <= WAD, "buyerPrice");
         return targetBuyerAssets.mulDivUp(WAD, buyerPrice);
     }
 
-    // Forward: sellerAssets = units.mulDivDown(sellerPrice, WAD).
-    function sellerAssetsToUnits(uint256 targetSellerAssets, uint256 sellerPrice) internal pure returns (uint256) {
+    /// @dev Returns the number of units to take to get the target seller assets.
+    function sellerAssetsToUnits(Midnight midnight, bytes20 id, Offer memory offer, uint256 targetSellerAssets)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 makerPrice = TickLib.tickToPrice(offer.tick);
+        uint256 tradingFee = midnight.tradingFee(id, offer.obligation.maturity - block.timestamp);
+        uint256 sellerPrice = offer.buy ? makerPrice - tradingFee : makerPrice;
         return targetSellerAssets.mulDivUp(WAD, sellerPrice);
     }
 }
