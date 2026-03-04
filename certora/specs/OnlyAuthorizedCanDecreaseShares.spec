@@ -6,14 +6,11 @@ methods {
     function sharesOf(bytes20 id, address user) external returns (uint256) envfree;
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
 
-    function _.price() external => PER_CALLEE_CONSTANT;
-
-    function SafeTransferLib.safeTransferFrom(address, address, address, uint256) internal => NONDET;
-    function SafeTransferLib.safeTransfer(address, address, uint256) internal => NONDET;
+    function _.price() external => NONDET;
 }
 
 /// An unauthorized caller cannot decrease a user's shares except via take.
-rule onlyAuthorizedCanDecreaseShares(env e, method f, bytes20 id, address user) {
+rule onlyAuthorizedCanDecreaseSharesExceptTake(env e, method f, bytes20 id, address user) {
     uint256 sharesBefore = sharesOf(id, user);
 
     require user != e.msg.sender;
