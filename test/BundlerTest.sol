@@ -92,7 +92,7 @@ contract BundlerTest is BaseTest {
 
         vm.prank(address(0xdead));
         vm.expectRevert("unauthorized");
-        takeBundler.bundleTakeShares(midnight, 100, borrower, address(0), takes);
+        takeBundler.bundleTakeShares(midnight, 100, borrower, address(0), takes, 0, type(uint256).max);
     }
 
     function testBundleTakeShares(uint256 offerShares0, uint256 offerShares1, uint256 targetShares) public {
@@ -123,7 +123,7 @@ contract BundlerTest is BaseTest {
 
         if (offerShares1 >= targetShares - fromOffer0) {
             vm.prank(borrower);
-            takeBundler.bundleTakeShares(midnight, targetShares, borrower, address(0), takes);
+            takeBundler.bundleTakeShares(midnight, targetShares, borrower, address(0), takes, 0, type(uint256).max);
 
             assertEq(midnight.debtOf(id, borrower), targetShares, "debt");
 
@@ -134,7 +134,7 @@ contract BundlerTest is BaseTest {
         } else {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
-            takeBundler.bundleTakeShares(midnight, targetShares, borrower, address(0), takes);
+            takeBundler.bundleTakeShares(midnight, targetShares, borrower, address(0), takes, 0, type(uint256).max);
         }
     }
 
@@ -166,7 +166,7 @@ contract BundlerTest is BaseTest {
 
         if (offerShares1 >= units - fromOffer0) {
             vm.prank(borrower);
-            takeBundler.bundleTakeUnits(midnight, units, borrower, address(0), takes);
+            takeBundler.bundleTakeUnits(midnight, units, borrower, address(0), takes, 0, type(uint256).max);
 
             uint256 consumed0 = midnight.consumed(offers[0].maker, offers[0].group);
             uint256 consumed1 = midnight.consumed(offers[1].maker, offers[1].group);
@@ -176,7 +176,7 @@ contract BundlerTest is BaseTest {
         } else {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
-            takeBundler.bundleTakeUnits(midnight, units, borrower, address(0), takes);
+            takeBundler.bundleTakeUnits(midnight, units, borrower, address(0), takes, 0, type(uint256).max);
         }
     }
 
@@ -211,7 +211,9 @@ contract BundlerTest is BaseTest {
 
         if (offerShares1 >= units - fromOffer0) {
             vm.prank(borrower);
-            takeBundler.bundleTakeBuyerAssets(midnight, targetBuyerAssets, borrower, address(0), takes);
+            takeBundler.bundleTakeBuyerAssets(
+                midnight, targetBuyerAssets, borrower, address(0), takes, 0, type(uint256).max
+            );
 
             uint256 consumed0 = midnight.consumed(offers[0].maker, offers[0].group);
             uint256 consumed1 = midnight.consumed(offers[1].maker, offers[1].group);
@@ -221,7 +223,9 @@ contract BundlerTest is BaseTest {
         } else {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
-            takeBundler.bundleTakeBuyerAssets(midnight, targetBuyerAssets, borrower, address(0), takes);
+            takeBundler.bundleTakeBuyerAssets(
+                midnight, targetBuyerAssets, borrower, address(0), takes, 0, type(uint256).max
+            );
         }
     }
 
@@ -260,7 +264,9 @@ contract BundlerTest is BaseTest {
         // Splitting across offers can cause up to 1 extra share of debt due to rounding.
         if (fromOffer0 >= units || offerShares1 >= units + 1 - fromOffer0) {
             vm.prank(borrower);
-            takeBundler.bundleTakeSellerAssets(midnight, targetSellerAssets, borrower, borrower, takes);
+            takeBundler.bundleTakeSellerAssets(
+                midnight, targetSellerAssets, borrower, borrower, takes, 0, type(uint256).max
+            );
 
             uint256 consumed0 = midnight.consumed(offers[0].maker, offers[0].group);
             uint256 consumed1 = midnight.consumed(offers[1].maker, offers[1].group);
@@ -270,7 +276,9 @@ contract BundlerTest is BaseTest {
         } else {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
-            takeBundler.bundleTakeSellerAssets(midnight, targetSellerAssets, borrower, borrower, takes);
+            takeBundler.bundleTakeSellerAssets(
+                midnight, targetSellerAssets, borrower, borrower, takes, 0, type(uint256).max
+            );
         }
     }
 }
