@@ -39,29 +39,40 @@ definition ORACLE_PRICE_SCALE() returns uint256 = 10 ^ 36;
 persistent ghost summaryPrice(address) returns uint256;
 
 persistent ghost summaryMulDivDownM(mathint, mathint, mathint) returns mathint {
+    /* mulDiv always returns an unsigned integer */
     axiom forall mathint a. forall mathint b. forall mathint d. a >= 0 && b >= 0 && d > 0 => summaryMulDivDownM(a, b, d) >= 0;
+
+    /* proved in mulDivZero in MulDiv.spec */
     axiom forall mathint b. forall mathint d. d > 0 => summaryMulDivDownM(0, b, d) == 0;
+
+    /* proved in mulDivMonotoneA in MulDiv.spec */
     axiom forall mathint a1. forall mathint a2. forall mathint b. forall mathint d. d > 0 && a1 <= a2 => summaryMulDivDownM(a1, b, d) <= summaryMulDivDownM(a2, b, d);
+
+    /* proved in mulDivMonotoneB in MulDiv.spec */
     axiom forall mathint a. forall mathint b1. forall mathint b2. forall mathint d. d > 0 && b1 <= b2 => summaryMulDivDownM(a, b1, d) <= summaryMulDivDownM(a, b2, d);
 }
 
 persistent ghost summaryMulDivUpM(mathint, mathint, mathint) returns mathint {
+    /* mulDiv always returns an unsigned integer */
     axiom forall mathint a. forall mathint b. forall mathint d. a >= 0 && b >= 0 && d > 0 => summaryMulDivUpM(a, b, d) >= 0;
+
+    /* proved in mulDivMonotoneA in MulDiv.spec */
     axiom forall mathint a1. forall mathint a2. forall mathint b. forall mathint d. d > 0 && a1 <= a2 => summaryMulDivUpM(a1, b, d) <= summaryMulDivUpM(a2, b, d);
+
+    /* proved in mulDivMonotoneD in MulDiv.spec */
     axiom forall mathint a. forall mathint b. forall mathint d1. forall mathint d2. d1 > 0 && d1 <= d2 => summaryMulDivUpM(a, b, d1) >= summaryMulDivUpM(a, b, d2);
 }
 
-/* Axioms that are proved by Muldiv.spec */
+/* Axioms that are proved by MulDiv.spec */
 
-definition axiomAdd2(mathint a1, mathint a2, mathint b, mathint d) returns bool = d > 0 => summaryMulDivDownM(a1, b, d) + summaryMulDivUpM(a2, b, d) >= summaryMulDivDownM(a1 + a2, b, d);
+/* proved in mulDivAddDownUp in MulDiv.spec */
+definition axiomAddDownUp(mathint a1, mathint a2, mathint b, mathint d) returns bool = d > 0 => summaryMulDivDownM(a1, b, d) + summaryMulDivUpM(a2, b, d) >= summaryMulDivDownM(a1 + a2, b, d);
 
-definition axiomDownUp(mathint a, mathint b, mathint d) returns bool = b > 0 && d > 0 => summaryMulDivUpM(summaryMulDivDownM(a, b, d), d, b) <= a;
+/* proved in mulDivInverseUpDown in MulDiv.spec */
+definition axiomInverseUpDown(mathint a, mathint b, mathint d) returns bool = b > 0 && d > 0 => summaryMulDivUpM(summaryMulDivDownM(a, b, d), d, b) <= a;
 
+/* proved in mulDivLifLLTV in MulDiv.spec */
 definition axiomLifLLTV(mathint a, mathint lif, mathint lltv) returns bool = lltv * lif < WAD() * WAD() => summaryMulDivUpM(a, lltv, WAD()) <= summaryMulDivUpM(a, WAD(), lif);
-
-definition mulUpAxioms(mathint a, mathint b, mathint d) returns bool = a <= summaryMulDivDownM(summaryMulDivUpM(a, b, d), d, b) && summaryMulDivDownM(a, b, d) <= summaryMulDivUpM(a, b, d) && (forall mathint a2. a <= a2 => summaryMulDivDownM(a2 - a, b, d) >= summaryMulDivDownM(a2, b, d) - summaryMulDivUpM(a, b, d)) && (forall mathint a2. summaryMulDivDownM(a2, b, d) >= a => a2 >= summaryMulDivUpM(a, d, b));
-
-definition mulDownAxioms(mathint a, mathint b, mathint d) returns bool = summaryMulDivUpM(summaryMulDivDownM(a, b, d), d, b) <= a && (forall mathint a1. forall mathint a2. a1 + summaryMulDivDownM(a, b, d) <= a2 => summaryMulDivDownM(a1, d, b) >= summaryMulDivDownM(a2, d, b) - a);
 
 function summaryMulDivDown(uint256 a, uint256 b, uint256 d) returns uint256 {
     bool overflow;
@@ -100,6 +111,7 @@ persistent ghost bytes20 globalId;
 persistent ghost address globalBorrower;
 
 // helper function to check if one of the collaterals of an obligation matches the global variables.
+// It checks for the length and also returns true if the index is out of bounds. This allows us to require this for every index.
 definition collateralMatches(Midnight.Obligation obligation, uint256 index) returns bool = (index < globalObligationCollateralLength => obligation.collaterals[index].oracle == globalObligationCollateralOracle[index] && obligation.collaterals[index].token == globalObligationCollateralToken[index] && obligation.collaterals[index].lltv == globalObligationCollateralLLTV[index] && obligation.collaterals[index].maxLif == globalObligationCollateralMaxLif[index]);
 
 function summaryToId(Midnight.Obligation obligation, uint256 chainId, address morpho) returns (bytes20) {
@@ -174,12 +186,12 @@ rule stayHealthyLiquidateSameBorrower(env e, uint256 someCollateralIndex, uint25
     mathint collateralAfter = collateralBefore - seizedAssets;
     mathint price = summaryPrice(obligation.collaterals[someCollateralIndex].oracle);
 
-    // require all the axioms that are needed to prove the healthiness after liquidation. These are the same axioms that are proved in the Muldiv.spec
-    require axiomDownUp(repaidUnits, globalObligationCollateralMaxLif[someCollateralIndex], WAD()), "axiom";
-    require axiomDownUp(summaryMulDivDownM(repaidUnits, globalObligationCollateralMaxLif[someCollateralIndex], WAD()), ORACLE_PRICE_SCALE(), price), "axiom";
+    // require all the axioms that are needed to prove the healthiness after liquidation. These are the same axioms that are proved in the MulDiv.spec
+    require axiomInverseUpDown(repaidUnits, globalObligationCollateralMaxLif[someCollateralIndex], WAD()), "axiom";
+    require axiomInverseUpDown(summaryMulDivDownM(repaidUnits, globalObligationCollateralMaxLif[someCollateralIndex], WAD()), ORACLE_PRICE_SCALE(), price), "axiom";
     require axiomLifLLTV(summaryMulDivUpM(seizedAssets, price, ORACLE_PRICE_SCALE()), globalObligationCollateralMaxLif[someCollateralIndex], globalObligationCollateralLLTV[someCollateralIndex]);
-    require axiomAdd2(collateralAfter, seizedAssets, price, ORACLE_PRICE_SCALE()), "axiom";
-    require axiomAdd2(summaryMulDivDownM(collateralAfter, price, ORACLE_PRICE_SCALE()), summaryMulDivUpM(seizedAssets, price, ORACLE_PRICE_SCALE()), globalObligationCollateralLLTV[someCollateralIndex], WAD()), "axiom";
+    require axiomAddDownUp(collateralAfter, seizedAssets, price, ORACLE_PRICE_SCALE()), "axiom";
+    require axiomAddDownUp(summaryMulDivDownM(collateralAfter, price, ORACLE_PRICE_SCALE()), summaryMulDivUpM(seizedAssets, price, ORACLE_PRICE_SCALE()), globalObligationCollateralLLTV[someCollateralIndex], WAD()), "axiom";
 
     assert healthyBeforeCallback, "user is healthy before callbacks";
     assert isHealthy(obligation, globalId, globalBorrower), "user is healthy after call";
@@ -196,8 +208,8 @@ rule stayHealthyLiquidateOtherBorrower(env e, Midnight.Obligation someObligation
     require obligation.loanToken == globalObligationLoanToken;
     require obligation.collaterals.length == globalObligationCollateralLength;
     require collateralMatches(obligation, 0);
-    require collateralMatches(obligation, 1);
-    require collateralMatches(obligation, 2);
+    // require collateralMatches(obligation, 1);
+    // require collateralMatches(obligation, 2);
 
     require someBorrower != globalBorrower || someObligation.loanToken != globalObligationLoanToken || someObligation.collaterals.length != globalObligationCollateralLength || !collateralMatches(someObligation, 0) || !collateralMatches(someObligation, 1) || !collateralMatches(someObligation, 2), "either user or obligation in the liquidation call is different";
 
