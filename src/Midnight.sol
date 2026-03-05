@@ -425,10 +425,10 @@ contract Midnight is IMidnight {
             Collateral memory _collateral = obligation.collaterals[i];
             uint256 price = IOracle(_collateral.oracle).price();
             if (i == collateralIndex) liquidatedCollatPrice = price;
-            maxDebt += collateralOf[id][borrower][i].mulDivDown(price, ORACLE_PRICE_SCALE)
-                .mulDivDown(_collateral.lltv, WAD);
+            uint256 _collateralOf = collateralOf[id][borrower][i];
+            maxDebt += _collateralOf.mulDivDown(price, ORACLE_PRICE_SCALE).mulDivDown(_collateral.lltv, WAD);
             badDebt = badDebt.zeroFloorSub(
-                collateralOf[id][borrower][i].mulDivUp(price, ORACLE_PRICE_SCALE).mulDivUp(WAD, _collateral.maxLif)
+                _collateralOf.mulDivUp(price, ORACLE_PRICE_SCALE).mulDivUp(WAD, _collateral.maxLif)
             );
             bitmap ^= (1 << i);
         }
@@ -458,7 +458,7 @@ contract Midnight is IMidnight {
                 uint256 lltv = obligation.collaterals[collateralIndex].lltv;
                 // Rounded up to avoid consecutive max liquidations.
                 // Acknowledged that the position could be slightly healthy after a liquidation.
-                // Note that debt >= maxDebt at this point.
+                // Note that debt >= maxDebt after the bad debt realization.
                 uint256 maxRepaid = (_state.debt - maxDebt).mulDivUp(WAD, WAD - lif.mulDivUp(lltv, WAD));
                 require(
                     repaidUnits <= maxRepaid
