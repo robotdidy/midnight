@@ -687,16 +687,17 @@ contract Midnight is IMidnight {
 
         if (averageFee > 0 && _state.lastContinuousFeeAccrual > 0) {
             uint256 debt = _state.debt;
-            uint256 elapsed = block.timestamp - _state.lastContinuousFeeAccrual;
-            uint256 feeUnits = (averageFee * debt).mulDivDown(elapsed, WAD);
+            uint128 feeUnits = UtilsLib.toUint128(
+                (averageFee * debt).mulDivDown(block.timestamp - _state.lastContinuousFeeAccrual, WAD)
+            );
 
             if (feeUnits > 0) {
                 ObligationState storage _obligationState = obligationState[id];
                 uint256 feeShares =
                     feeUnits.mulDivDown(_obligationState.totalShares + 1, _obligationState.totalUnits + 1);
                 _state.averageContinuousFee = uint64(averageFee.mulDivDown(debt, debt + feeUnits));
-                _state.debt += UtilsLib.toUint128(feeUnits);
-                _obligationState.totalUnits += UtilsLib.toUint128(feeUnits);
+                _state.debt += feeUnits;
+                _obligationState.totalUnits += feeUnits;
                 if (feeShares > 0) {
                     sharesOf[id][feeRecipient] += feeShares;
                     _obligationState.totalShares += UtilsLib.toUint128(feeShares);
