@@ -7,8 +7,6 @@ methods {
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
 
     function _.price() external => NONDET;
-    function _.onBuy(Midnight.Obligation obligation, address buyer, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, bytes data) external => HAVOC_ECF;
-    function _.onSell(Midnight.Obligation obligation, address seller, uint256 buyerAssets, uint256 sellerAssets, uint256 obligationUnits, uint256 obligationShares, bytes data) external => HAVOC_ECF;
 }
 
 /// An unauthorized caller cannot decrease a user's shares except via take.
