@@ -5,19 +5,12 @@ using Havoc as callback;
 methods {
     function multicall(bytes[]) external => HAVOC_ALL DELETE;
 
-    function withdrawable(bytes20 id) external returns (uint256) envfree;
-    function totalUnits(bytes20 id) external returns (uint256) envfree;
-    function totalShares(bytes20 id) external returns (uint256) envfree;
-    function consumed(address user, bytes32 group) external returns (uint256) envfree;
-    function sharesOf(bytes20 id, address owner) external returns (uint256) envfree;
-    function collateralOf(bytes20 id, address user, uint256) external returns (uint128) envfree;
-    function debtOf(bytes20 id, address user) external returns (uint256) envfree;
-    function isHealthy(Midnight.Obligation, bytes20, address) external returns (bool) envfree;
-    function preciseMaxDebt(address borrower, Midnight.Obligation obligation, bytes20 id) external returns (uint256) envfree;
+    function collateralOf(bytes32 id, address user, uint256) external returns (uint128) envfree;
+    function isHealthy(Midnight.Obligation, bytes32, address) external returns (bool) envfree;
 
     function _.price() external => summaryPrice(calledContract) expect(uint256);
     function TickLib.tickToPrice(uint256 tick) internal returns (uint256) => NONDET;
-    function IdLib.toId(Midnight.Obligation memory obligation, uint256 chainId, address morpho) internal returns (bytes20) => summaryToId(obligation, chainId, morpho);
+    function IdLib.toId(Midnight.Obligation memory obligation, uint256 chainId, address morpho) internal returns (bytes32) => summaryToId(obligation, chainId, morpho);
     function UtilsLib.mulDivDown(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDivDown(x, y, d);
     function UtilsLib.mulDivUp(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDivUp(x, y, d);
     function _.havocAll() external => HAVOC_ALL;
@@ -106,7 +99,7 @@ persistent ghost mapping(uint256 => uint256) globalObligationCollateralLLTV;
 
 persistent ghost mapping(uint256 => uint256) globalObligationCollateralMaxLif;
 
-persistent ghost bytes20 globalId;
+persistent ghost bytes32 globalId;
 
 persistent ghost address globalBorrower;
 
@@ -114,8 +107,8 @@ persistent ghost address globalBorrower;
 // It checks for the length and also returns true if the index is out of bounds. This allows us to require this for every index.
 definition collateralMatches(Midnight.Obligation obligation, uint256 index) returns bool = (index < globalObligationCollateralLength => obligation.collaterals[index].oracle == globalObligationCollateralOracle[index] && obligation.collaterals[index].token == globalObligationCollateralToken[index] && obligation.collaterals[index].lltv == globalObligationCollateralLLTV[index] && obligation.collaterals[index].maxLif == globalObligationCollateralMaxLif[index]);
 
-function summaryToId(Midnight.Obligation obligation, uint256 chainId, address morpho) returns (bytes20) {
-    bytes20 id;
+function summaryToId(Midnight.Obligation obligation, uint256 chainId, address morpho) returns (bytes32) {
+    bytes32 id;
     if (
         obligation.loanToken == globalObligationLoanToken
             && obligation.collaterals.length == globalObligationCollateralLength
