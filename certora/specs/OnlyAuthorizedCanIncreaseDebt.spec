@@ -21,17 +21,22 @@ rule debtOnlyIncreasesViaTake(env e, method f, bytes32 id, address user) {
     assert debtBefore >= debtOf(id, user) || f.selector == sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector;
 }
 
-/// In take, only the seller can newly become a borrower; the buyer can only reduce debt; third parties are unaffected.
-rule takeOnlySellerBecomesBorrower(env e, uint256 obligationShares, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, bytes32 id, address user) {
+/// In take, the caller must be authorized by the taker, and only the seller's debt can increase.
+/// Assumes no reentrancy: the onBuy/onSell callbacks could re-enter take (or another function) and increase a different user's debt.
+rule takeOnlyAuthorizedSellerDebtIncrease(env e, uint256 obligationShares, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, bytes32 id, address user) {
     address buyer = offer.buy ? offer.maker : taker;
     address seller = offer.buy ? taker : offer.maker;
+    bool takerUnauthorized = e.msg.sender != taker && !isAuthorized(taker, e.msg.sender);
 
     uint256 debtBefore = debtOf(id, user);
 
-    take(e, obligationShares, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
+    take@withrevert(e, obligationShares, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
 
+    bool reverted = lastReverted;
     uint256 debtAfter = debtOf(id, user);
 
+    assert takerUnauthorized => reverted;
+    assert !reverted && offer.buy => (e.msg.sender == seller || isAuthorized(seller, e.msg.sender));
     assert user == buyer => debtAfter <= debtBefore;
     assert user == seller => debtAfter >= debtBefore;
     assert user != buyer && user != seller => debtAfter == debtBefore;
