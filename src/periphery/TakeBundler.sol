@@ -24,6 +24,8 @@ contract TakeBundler {
     /// @dev The bundler skips every reason why `take` can revert (including ones that are not asynchrony related).
     /// @dev If taking an offer reverts, the bundler will completely skip this offer.
     /// @dev minBuyerAssets and maxBuyerAssets bound the total buyer assets to control the average price of the bundle.
+    /// @dev minSellerAssets and maxSellerAssets bound the total seller assets to control the average price of the
+    /// bundle.
     function bundleTakeShares(
         Midnight midnight,
         uint256 targetShares,
@@ -31,41 +33,48 @@ contract TakeBundler {
         address receiverIfTakerIsSeller,
         Take[] calldata takes,
         uint256 minBuyerAssets,
-        uint256 maxBuyerAssets
+        uint256 maxBuyerAssets,
+        uint256 minSellerAssets,
+        uint256 maxSellerAssets
     ) external {
         require(taker == msg.sender || midnight.isAuthorized(taker, msg.sender), "unauthorized");
 
         uint256 totalFilledShares;
         uint256 totalBuyerAssets;
+        uint256 totalSellerAssets;
         for (uint256 i; i < takes.length && totalFilledShares < targetShares; i++) {
-            Take calldata take = takes[i];
             try midnight.take(
-                UtilsLib.min(targetShares - totalFilledShares, take.obligationShares),
+                UtilsLib.min(targetShares - totalFilledShares, takes[i].obligationShares),
                 taker,
                 address(0),
                 "",
                 receiverIfTakerIsSeller,
-                take.offer,
-                take.sig,
-                take.root,
-                take.proof
+                takes[i].offer,
+                takes[i].sig,
+                takes[i].root,
+                takes[i].proof
             ) returns (
-                uint256 filledBuyerAssets, uint256, uint256, uint256 filledObligationShares
+                uint256 filledBuyerAssets, uint256 filledSellerAssets, uint256, uint256 filledObligationShares
             ) {
                 totalFilledShares += filledObligationShares;
                 totalBuyerAssets += filledBuyerAssets;
+                totalSellerAssets += filledSellerAssets;
             } catch {}
         }
 
         require(totalFilledShares == targetShares, "insufficient liquidity");
         require(totalBuyerAssets >= minBuyerAssets, "average price too low");
         require(totalBuyerAssets <= maxBuyerAssets, "average price too high");
+        require(totalSellerAssets >= minSellerAssets, "average price too low");
+        require(totalSellerAssets <= maxSellerAssets, "average price too high");
     }
 
     /// @dev Same as bundleTakeShares but targets obligation units.
     /// @dev unitsToShares is evaluated before midnight.take, so reverts there (e.g. underflow when offerPrice <
     /// tradingFee) are not caught by the try/catch and will abort the bundle.
     /// @dev minBuyerAssets and maxBuyerAssets bound the total buyer assets to control the average price of the bundle.
+    /// @dev minSellerAssets and maxSellerAssets bound the total seller assets to control the average price of the
+    /// bundle.
     function bundleTakeUnits(
         Midnight midnight,
         uint256 targetUnits,
@@ -73,39 +82,44 @@ contract TakeBundler {
         address receiverIfTakerIsSeller,
         Take[] calldata takes,
         uint256 minBuyerAssets,
-        uint256 maxBuyerAssets
+        uint256 maxBuyerAssets,
+        uint256 minSellerAssets,
+        uint256 maxSellerAssets
     ) external {
         require(taker == msg.sender || midnight.isAuthorized(taker, msg.sender), "unauthorized");
         bytes32 id = midnight.toId(takes[0].offer.obligation);
 
         uint256 totalFilledUnits;
         uint256 totalBuyerAssets;
+        uint256 totalSellerAssets;
         for (uint256 i; i < takes.length && totalFilledUnits < targetUnits; i++) {
-            Take calldata take = takes[i];
             try midnight.take(
                 UtilsLib.min(
-                    TakeAmountsLib.unitsToShares(midnight, id, taker, take.offer, targetUnits - totalFilledUnits),
-                    take.obligationShares
+                    TakeAmountsLib.unitsToShares(midnight, id, taker, takes[i].offer, targetUnits - totalFilledUnits),
+                    takes[i].obligationShares
                 ),
                 taker,
                 address(0),
                 "",
                 receiverIfTakerIsSeller,
-                take.offer,
-                take.sig,
-                take.root,
-                take.proof
+                takes[i].offer,
+                takes[i].sig,
+                takes[i].root,
+                takes[i].proof
             ) returns (
-                uint256 filledBuyerAssets, uint256, uint256 filledObligationUnits, uint256
+                uint256 filledBuyerAssets, uint256 filledSellerAssets, uint256 filledObligationUnits, uint256
             ) {
                 totalFilledUnits += filledObligationUnits;
                 totalBuyerAssets += filledBuyerAssets;
+                totalSellerAssets += filledSellerAssets;
             } catch {}
         }
 
         require(totalFilledUnits == targetUnits, "insufficient liquidity");
         require(totalBuyerAssets >= minBuyerAssets, "average price too low");
         require(totalBuyerAssets <= maxBuyerAssets, "average price too high");
+        require(totalSellerAssets >= minSellerAssets, "average price too low");
+        require(totalSellerAssets <= maxSellerAssets, "average price too high");
     }
 
     /// @dev Same as bundleTakeShares but targets buyer assets.
@@ -129,22 +143,21 @@ contract TakeBundler {
         uint256 totalFilledBuyerAssets;
         uint256 totalObligationUnits;
         for (uint256 i; i < takes.length && totalFilledBuyerAssets < targetBuyerAssets; i++) {
-            Take calldata take = takes[i];
             try midnight.take(
                 UtilsLib.min(
                     TakeAmountsLib.buyerAssetsToShares(
-                        midnight, id, taker, take.offer, targetBuyerAssets - totalFilledBuyerAssets
+                        midnight, id, taker, takes[i].offer, targetBuyerAssets - totalFilledBuyerAssets
                     ),
-                    take.obligationShares
+                    takes[i].obligationShares
                 ),
                 taker,
                 address(0),
                 "",
                 receiverIfTakerIsSeller,
-                take.offer,
-                take.sig,
-                take.root,
-                take.proof
+                takes[i].offer,
+                takes[i].sig,
+                takes[i].root,
+                takes[i].proof
             ) returns (
                 uint256 filledBuyerAssets, uint256, uint256 filledObligationUnits, uint256
             ) {
@@ -161,48 +174,48 @@ contract TakeBundler {
     /// @dev Same as bundleTakeShares but targets seller assets.
     /// @dev sellerAssetsToShares is evaluated before midnight.take, so reverts there (e.g. underflow when offerPrice <
     /// tradingFee) are not caught by the try/catch and will abort the bundle.
-    /// @dev minBuyerAssets and maxBuyerAssets bound the total buyer assets to control the average price of the bundle.
+    /// @dev minObligationUnits and maxObligationUnits bound the total obligation units to control the average price of
+    /// the bundle (seller assets are already fixed by targetSellerAssets).
     function bundleTakeSellerAssets(
         Midnight midnight,
         uint256 targetSellerAssets,
         address taker,
         address receiverIfTakerIsSeller,
         Take[] calldata takes,
-        uint256 minBuyerAssets,
-        uint256 maxBuyerAssets
+        uint256 minObligationUnits,
+        uint256 maxObligationUnits
     ) external {
         require(taker == msg.sender || midnight.isAuthorized(taker, msg.sender), "unauthorized");
         bytes32 id = midnight.touchObligation(takes[0].offer.obligation); // to have the correct trading fees.
 
         uint256 totalFilledSellerAssets;
-        uint256 totalBuyerAssets;
+        uint256 totalObligationUnits;
         for (uint256 i; i < takes.length && totalFilledSellerAssets < targetSellerAssets; i++) {
-            Take calldata take = takes[i];
             try midnight.take(
                 UtilsLib.min(
                     TakeAmountsLib.sellerAssetsToShares(
-                        midnight, id, taker, take.offer, targetSellerAssets - totalFilledSellerAssets
+                        midnight, id, taker, takes[i].offer, targetSellerAssets - totalFilledSellerAssets
                     ),
-                    take.obligationShares
+                    takes[i].obligationShares
                 ),
                 taker,
                 address(0),
                 "",
                 receiverIfTakerIsSeller,
-                take.offer,
-                take.sig,
-                take.root,
-                take.proof
+                takes[i].offer,
+                takes[i].sig,
+                takes[i].root,
+                takes[i].proof
             ) returns (
-                uint256 filledBuyerAssets, uint256 filledSellerAssets, uint256, uint256
+                uint256, uint256 filledSellerAssets, uint256 filledObligationUnits, uint256
             ) {
                 totalFilledSellerAssets += filledSellerAssets;
-                totalBuyerAssets += filledBuyerAssets;
+                totalObligationUnits += filledObligationUnits;
             } catch {}
         }
 
         require(totalFilledSellerAssets == targetSellerAssets, "insufficient liquidity");
-        require(totalBuyerAssets >= minBuyerAssets, "average price too low");
-        require(totalBuyerAssets <= maxBuyerAssets, "average price too high");
+        require(totalObligationUnits >= minObligationUnits, "average price too low");
+        require(totalObligationUnits <= maxObligationUnits, "average price too high");
     }
 }
