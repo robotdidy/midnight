@@ -9,5 +9,7 @@ uint256 constant MAX_LIF = 1.15e18; // Liquidation Incentive Factor
 uint256 constant TIME_TO_MAX_LIF = 15 minutes; // Time to reach MAX_LIF
 bytes32 constant EIP712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(uint256 chainId,address verifyingContract)");
 bytes32 constant ROOT_TYPEHASH = keccak256("Root(bytes32 root)");
+bytes32 constant AUTHORIZATION_TYPEHASH =
+    keccak256("Authorization(address authorizer,address authorizee,bool isAuthorized,uint256 nonce,uint256 deadline)");
 uint256 constant MAX_COLLATERALS = 128;
 uint256 constant MAX_COLLATERALS_PER_BORROWER = 10;

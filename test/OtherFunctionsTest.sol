@@ -3,7 +3,9 @@
 pragma solidity ^0.8.0;
 
 import {IdLib} from "../src/libraries/IdLib.sol";
-import {Obligation, Collateral} from "../src/interfaces/IMidnight.sol";
+import {Offer, Obligation, Collateral, Authorization, Signature} from "../src/interfaces/IMidnight.sol";
+import {AUTHORIZATION_TYPEHASH, EIP712_DOMAIN_TYPEHASH} from "../src/libraries/ConstantsLib.sol";
+import {EventsLib} from "../src/libraries/EventsLib.sol";
 
 import {ERC20} from "./helpers/ERC20.sol";
 import {Oracle} from "./helpers/Oracle.sol";
@@ -161,6 +163,125 @@ contract OtherFunctionsTest is BaseTest {
 
         assertEq(ERC20(collateralToken).balanceOf(address(this)), 0, "balance of this");
         assertEq(ERC20(collateralToken).balanceOf(receiver), withdraw, "balance of receiver");
+    }
+
+    function testSetRatified(address sender, address maker, bool newRatified, Offer memory offer) public {
+        vm.assume(sender != maker);
+        vm.assume(!midnight.isAuthorized(maker, sender));
+
+        offer.maker = maker;
+
+        vm.expectRevert("UNAUTHORIZED");
+        vm.prank(sender);
+        midnight.setRatified(maker, root(offer), newRatified);
+
+        uint256 snap = vm.snapshotState();
+
+        vm.prank(maker);
+        midnight.setRatified(maker, root(offer), newRatified);
+        assertEq(midnight.ratified(maker, root(offer)), newRatified);
+
+        vm.revertToStateAndDelete(snap);
+
+        vm.prank(maker);
+        midnight.setIsAuthorized(sender, true);
+        vm.prank(sender);
+        midnight.setRatified(maker, root(offer), newRatified);
+        assertEq(midnight.ratified(maker, root(offer)), newRatified);
+    }
+
+    function testSetRatifiedEmitsEvent(bool newRatified, Offer memory offer) public {
+        bytes32 _root = root(offer);
+
+        vm.expectEmit(true, false, false, true);
+        emit EventsLib.SetRatified(address(this), _root, newRatified);
+        midnight.setRatified(address(this), _root, newRatified);
+    }
+
+    function _authorizationDigest(Authorization memory authorization) internal view returns (bytes32) {
+        bytes32 hashStruct = keccak256(abi.encode(AUTHORIZATION_TYPEHASH, authorization));
+        bytes32 _domainSeparator = keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(midnight)));
+        return keccak256(bytes.concat("\x19\x01", _domainSeparator, hashStruct));
+    }
+
+    function testSetAuthorizedWithSig(
+        uint256 authorizerPrivateKey,
+        uint256 elapsed,
+        address authorizee,
+        bool _isAuthorized,
+        uint256 otherPrivateKey,
+        uint256 wrongNonce
+    ) public {
+        authorizerPrivateKey = boundPrivateKey(authorizerPrivateKey);
+        otherPrivateKey = boundPrivateKey(otherPrivateKey);
+        wrongNonce = bound(wrongNonce, 1, type(uint256).max);
+        vm.assume(otherPrivateKey != authorizerPrivateKey);
+        elapsed = bound(elapsed, 0, 365 days);
+        address authorizer = vm.addr(authorizerPrivateKey);
+
+        Authorization memory authorization = Authorization({
+            authorizer: authorizer,
+            authorizee: authorizee,
+            isAuthorized: _isAuthorized,
+            nonce: 0,
+            deadline: vm.getBlockTimestamp() - 1
+        });
+
+        Signature memory _sig;
+        (_sig.v, _sig.r, _sig.s) = vm.sign(authorizerPrivateKey, _authorizationDigest(authorization));
+
+        skip(elapsed);
+
+        vm.expectRevert("expired");
+        midnight.setAuthorizedWithSig(authorization, _sig);
+
+        authorization.deadline = vm.getBlockTimestamp() + 1;
+
+        _sig.v = 1;
+        vm.expectRevert("invalid signature");
+        midnight.setAuthorizedWithSig(authorization, _sig);
+
+        (_sig.v, _sig.r, _sig.s) = vm.sign(otherPrivateKey, _authorizationDigest(authorization));
+
+        vm.expectRevert("invalid signature");
+        midnight.setAuthorizedWithSig(authorization, _sig);
+
+        authorization.nonce = wrongNonce;
+        vm.expectRevert("invalid nonce");
+        midnight.setAuthorizedWithSig(authorization, _sig);
+
+        authorization.nonce = 0;
+        (_sig.v, _sig.r, _sig.s) = vm.sign(authorizerPrivateKey, _authorizationDigest(authorization));
+        midnight.setAuthorizedWithSig(authorization, _sig);
+        assertEq(midnight.isAuthorized(authorizer, authorizee), _isAuthorized);
+        assertEq(midnight.authorizationNonce(authorizer), 1);
+
+        vm.expectRevert("invalid nonce");
+        midnight.setAuthorizedWithSig(authorization, _sig);
+    }
+
+    function testSetAuthorizedWithSigEmitsEvents(uint256 authorizerPrivateKey, address authorizee, bool _isAuthorized)
+        public
+    {
+        authorizerPrivateKey = boundPrivateKey(authorizerPrivateKey);
+        address authorizer = vm.addr(authorizerPrivateKey);
+
+        Authorization memory authorization = Authorization({
+            authorizer: authorizer,
+            authorizee: authorizee,
+            isAuthorized: _isAuthorized,
+            nonce: 0,
+            deadline: vm.getBlockTimestamp() + 1
+        });
+
+        Signature memory _sig;
+        (_sig.v, _sig.r, _sig.s) = vm.sign(authorizerPrivateKey, _authorizationDigest(authorization));
+
+        vm.expectEmit(true, true, false, true);
+        emit EventsLib.SetIsAuthorized(authorizer, authorizee, _isAuthorized);
+        vm.expectEmit(true, false, false, true);
+        emit EventsLib.AuthorizationNonceUsed(authorizer, 0);
+        midnight.setAuthorizedWithSig(authorization, _sig);
     }
 
     function testConsume(address user, bytes32 group, uint256 amount) public {

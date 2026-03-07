@@ -176,7 +176,7 @@ contract AuthorizationTest is BaseTest {
         vm.prank(attacker);
         vm.expectRevert("UNAUTHORIZED");
         midnight.take(
-            assets, 0, 0, 0, taker, address(0), hex"", address(0), offer, sig([offer]), root([offer]), proof([offer])
+            assets, 0, 0, 0, taker, address(0), hex"", address(0), offer, root([offer]), path([offer]), sign([offer])
         );
     }
 
@@ -203,7 +203,7 @@ contract AuthorizationTest is BaseTest {
         // Operator can take on behalf of taker
         vm.prank(operator);
         midnight.take(
-            assets, 0, 0, 0, taker, address(0), hex"", address(0), offer, sig([offer]), root([offer]), proof([offer])
+            assets, 0, 0, 0, taker, address(0), hex"", address(0), offer, root([offer]), path([offer]), sign([offer])
         );
 
         assertEq(midnight.debtOf(id, taker), assets);

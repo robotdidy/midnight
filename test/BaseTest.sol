@@ -37,6 +37,8 @@ abstract contract BaseTest is Test {
     address internal otherLender;
     address internal liquidator = makeAddr("liquidator");
 
+    Signature internal emptySig;
+
     function setUp() public virtual {
         midnight = new Midnight();
 
@@ -106,9 +108,9 @@ abstract contract BaseTest is Test {
             hex"",
             taker,
             offer,
-            sig([offer]),
             root([offer]),
-            proof([offer])
+            path([offer]),
+            sign([offer])
         );
     }
 
@@ -172,23 +174,39 @@ abstract contract BaseTest is Test {
         return IdLib.toId(obligation, block.chainid, address(midnight));
     }
 
+    function sign(Offer[1] memory offers) internal view returns (Signature memory) {
+        return sig(root(offers), privateKey[offers[0].maker]);
+    }
+
+    function sign(Offer[1] memory offers, address _signer) internal view returns (Signature memory) {
+        return sig(root(offers), privateKey[_signer]);
+    }
+
+    function path(Offer[1] memory) internal pure returns (bytes32[] memory) {
+        return new bytes32[](0);
+    }
+
+    function sign(Offer[2] memory offers) internal view returns (Signature memory) {
+        return sig(root(offers), privateKey[offers[0].maker]);
+    }
+
+    // assumes the offer is the first one!
+    function path(Offer[2] memory offers) internal pure returns (bytes32[] memory) {
+        bytes32[] memory _path = new bytes32[](1);
+        _path[0] = keccak256(abi.encode(offers[1]));
+        return _path;
+    }
+
+    function root(Offer memory offer) internal pure returns (bytes32) {
+        return keccak256(abi.encode(offer));
+    }
+
     function root(Offer[1] memory offers) internal pure returns (bytes32) {
         return keccak256(abi.encode(offers[0]));
     }
 
     function root(Offer[2] memory offers) internal pure returns (bytes32) {
         return keccak256(UtilsLib.sort(keccak256(abi.encode(offers[0])), keccak256(abi.encode(offers[1]))));
-    }
-
-    function proof(Offer[1] memory) internal pure returns (bytes32[] memory) {
-        return new bytes32[](0);
-    }
-
-    // assumes the offer is the first one!
-    function proof(Offer[2] memory offers) internal pure returns (bytes32[] memory) {
-        bytes32[] memory res = new bytes32[](1);
-        res[0] = keccak256(abi.encode(offers[1]));
-        return res;
     }
 
     function domainSeparator() internal view returns (bytes32) {
@@ -267,9 +285,9 @@ abstract contract BaseTest is Test {
             hex"",
             borrower,
             borrowerOffer,
-            sig([borrowerOffer]),
             root([borrowerOffer]),
-            proof([borrowerOffer])
+            path([borrowerOffer]),
+            sign([borrowerOffer])
         );
     }
 

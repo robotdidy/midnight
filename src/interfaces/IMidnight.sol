@@ -33,12 +33,21 @@ struct Offer {
     address callback;
     bytes callbackData;
     address receiverIfMakerIsSeller;
+    address ratifier;
 }
 
 struct Signature {
     uint8 v;
     bytes32 r;
     bytes32 s;
+}
+
+struct Authorization {
+    address authorizer;
+    address authorizee;
+    bool isAuthorized;
+    uint256 nonce;
+    uint256 deadline;
 }
 
 struct BorrowerState {

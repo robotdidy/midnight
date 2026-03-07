@@ -68,4 +68,6 @@ library EventsLib {
     event FlashLoan(address indexed caller, address indexed token, uint256 assets);
 
     event SetIsAuthorized(address indexed authorizer, address indexed authorized, bool newIsAuthorized);
+    event AuthorizationNonceUsed(address indexed authorizer, uint256 nonce);
+    event SetRatified(address indexed onBehalf, bytes32 root, bool newRatified);
 }

@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity >=0.5.0;
 
-import {Obligation} from "./IMidnight.sol";
+import {Obligation, Offer} from "./IMidnight.sol";
 
 interface ICallbacks {
     function onBuy(
@@ -31,6 +31,7 @@ interface ICallbacks {
         address borrower,
         bytes memory data
     ) external;
+    function onRatify(Offer memory offer, address signer) external returns (bool);
 }
 
 interface IFlashLoanCallback {
