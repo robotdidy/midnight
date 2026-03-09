@@ -43,8 +43,6 @@ rule takeOnlyAuthorizedSellerSharesDecrease(env e, uint256 obligationShares, add
     assert user != buyer && user != seller => sharesAfter == sharesBefore;
 }
 
-
-
 /// No function other than take can increase a user's debt.
 rule debtOnlyIncreasesViaTake(env e, method f, bytes32 id, address user) {
     uint256 debtBefore = debtOf(id, user);
