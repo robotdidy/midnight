@@ -9,18 +9,9 @@ methods {
     function toId(Midnight.Obligation obligation) external returns (bytes32);
 
     function _.price() external => NONDET;
-
-    function UtilsLib.mulDivDown(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDiv(x, y, d);
-    function UtilsLib.mulDivUp(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDiv(x, y, d);
 }
 
-function summaryMulDiv(uint256 x, uint256 y, uint256 d) returns uint256 {
-    if (x == 0 || y == 0) return 0;
-    uint256 res;
-    return res;
-}
-
-///  Only `consume` and `take` can modify the consumed mapping.
+///  Only `setConsumed` and `take` can modify the consumed mapping.
 rule onlySetConsumedAndTakeChangeConsumed(env e, method f, calldataarg args, address user, bytes32 group) filtered { f -> f.selector != sig:setConsumed(bytes32, uint256, address).selector && f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector } {
 
     uint256 consumedBefore = consumed(user, group);
@@ -32,13 +23,13 @@ rule onlySetConsumedAndTakeChangeConsumed(env e, method f, calldataarg args, add
 
 /// Calling `setConsumed` only affects msg.sender's consumed value for the given group.
 /// No other (user, group) pair is modified.
-rule setConsumedOnlyAffectsSender(env e, bytes32 group, uint256 amount, address onBehalf, address otherUser, bytes32 otherGroup) {
+rule setConsumedOnlyAffectsOnBehalf(env e, bytes32 group, uint256 amount, address onBehalf, address otherUser, bytes32 otherGroup) {
     uint256 otherConsumedBefore = consumed(otherUser, otherGroup);
 
     setConsumed(e, group, amount, onBehalf);
 
-    // Any pair that is not exactly (msg.sender, group) remains unchanged.
-    assert (otherUser != e.msg.sender || otherGroup != group) => consumed(otherUser, otherGroup) == otherConsumedBefore;
+    // Any pair that is not (onBehalf, group) remains unchanged.
+    assert (otherUser != onBehalf || otherGroup != group) => consumed(otherUser, otherGroup) == otherConsumedBefore;
 }
 
 /// Calling `take` only affects the maker's consumed value for the offer's group.
@@ -71,14 +62,14 @@ rule takeConsumedBoundedByMax(env e, uint256 obligationShares, address taker, ad
 }
 
 /// If consumed[offer.maker][offer.group] is already at or above the offer's max amount before a `take`,
-/// it does not change (the take either reverts or is a no-op).
+/// it remains unchanged.
 rule takeConsumedAtMaxUnchanged(env e, uint256 obligationShares, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
     uint256 consumedBefore = consumed(offer.maker, offer.group);
     uint256 maxAmount = offer.obligationUnits > 0 ? offer.obligationUnits : offer.obligationShares;
 
     require consumedBefore >= maxAmount;
 
-    take@withrevert(e, obligationShares, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
+    take(e, obligationShares, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
 
     assert consumed(offer.maker, offer.group) == consumedBefore;
 }
