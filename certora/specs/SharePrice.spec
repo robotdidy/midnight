@@ -22,7 +22,11 @@ methods {
     function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
 }
 
-definition elapsedIsZero(bytes32 id, address borrower, uint256 blockTimestamp) returns bool = currentContract.borrowerState[id][borrower].lastContinuousFeeAccrual == 0 || blockTimestamp == currentContract.borrowerState[id][borrower].lastContinuousFeeAccrual;
+definition noFeeAccrualThisCall(bytes32 id, address borrower, uint256 blockTimestamp, uint256 maturity) returns bool =
+    currentContract.borrowerState[id][borrower].remainingContinuousFee == 0
+    || currentContract.borrowerState[id][borrower].lastContinuousFeeAccrual == 0
+    || (blockTimestamp < maturity
+        && blockTimestamp == currentContract.borrowerState[id][borrower].lastContinuousFeeAccrual);
 
 // Check the ratio of units over shares is below or equal to 1.
 strong invariant sharePriceBelowOrEqOne(bytes32 id)
@@ -30,7 +34,7 @@ strong invariant sharePriceBelowOrEqOne(bytes32 id)
 
 /// If liquidation cannot accrue fee in the current call, it does not change the total shares.
 rule liquidateWithoutElapsedFeeDoesNotChangeShares(env e, Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data, bytes32 id) {
-    require elapsedIsZero(id, borrower, e.block.timestamp), "exclude fee accrual";
+    require noFeeAccrualThisCall(id, borrower, e.block.timestamp, obligation.maturity), "exclude fee accrual";
     mathint sharesBefore = totalShares(id);
     liquidate(e, obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
     assert totalShares(id) == sharesBefore;
@@ -38,7 +42,7 @@ rule liquidateWithoutElapsedFeeDoesNotChangeShares(env e, Midnight.Obligation ob
 
 /// If liquidation cannot accrue fee in the current call, it does not increase the total units.
 rule liquidateWithoutElapsedFeeDoesNotIncreaseUnits(env e, Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data, bytes32 id) {
-    require elapsedIsZero(id, borrower, e.block.timestamp), "exclude fee accrual";
+    require noFeeAccrualThisCall(id, borrower, e.block.timestamp, obligation.maturity), "exclude fee accrual";
     mathint unitsBefore = totalUnits(id);
     liquidate(e, obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
     assert totalUnits(id) <= unitsBefore;
