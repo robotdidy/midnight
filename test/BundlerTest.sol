@@ -126,15 +126,7 @@ contract BundlerTest is BaseTest {
         if (offerUnits1 >= units - fromOffer0) {
             vm.prank(borrower);
             takeBundler.bundleTakeUnits(
-                midnight,
-                units,
-                borrower,
-                address(0),
-                takes,
-                0,
-                type(uint256).max,
-                0,
-                type(uint256).max
+                midnight, units, borrower, address(0), takes, 0, type(uint256).max, 0, type(uint256).max
             );
 
             uint256 consumed0 = midnight.consumed(offers[0].maker, offers[0].group);
@@ -146,15 +138,7 @@ contract BundlerTest is BaseTest {
             vm.prank(borrower);
             vm.expectRevert("insufficient liquidity");
             takeBundler.bundleTakeUnits(
-                midnight,
-                units,
-                borrower,
-                address(0),
-                takes,
-                0,
-                type(uint256).max,
-                0,
-                type(uint256).max
+                midnight, units, borrower, address(0), takes, 0, type(uint256).max, 0, type(uint256).max
             );
         }
     }
@@ -331,15 +315,7 @@ contract BundlerTest is BaseTest {
         vm.prank(borrower);
         vm.expectRevert("buyer assets above max");
         takeBundler.bundleTakeUnits(
-            midnight,
-            targetShares,
-            borrower,
-            address(0),
-            takes,
-            0,
-            maxBuyerAssets,
-            0,
-            type(uint256).max
+            midnight, targetShares, borrower, address(0), takes, 0, maxBuyerAssets, 0, type(uint256).max
         );
     }
 
@@ -389,15 +365,7 @@ contract BundlerTest is BaseTest {
         vm.prank(borrower);
         vm.expectRevert("buyer assets below min");
         takeBundler.bundleTakeUnits(
-            midnight,
-            targetShares,
-            borrower,
-            address(0),
-            takes,
-            minBuyerAssets,
-            type(uint256).max,
-            0,
-            type(uint256).max
+            midnight, targetShares, borrower, address(0), takes, minBuyerAssets, type(uint256).max, 0, type(uint256).max
         );
     }
 }
