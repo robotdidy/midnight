@@ -32,9 +32,7 @@ contract TakeBundler {
         uint256 minBuyerAssets,
         uint256 maxBuyerAssets,
         uint256 minSellerAssets,
-        uint256 maxSellerAssets,
-        uint256 minObligationShares,
-        uint256 maxObligationShares
+        uint256 maxSellerAssets
     ) external {
         require(taker == msg.sender || midnight.isAuthorized(taker, msg.sender), "unauthorized");
 

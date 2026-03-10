@@ -93,7 +93,7 @@ contract BundlerTest is BaseTest {
         vm.prank(address(0xdead));
         vm.expectRevert("unauthorized");
         takeBundler.bundleTakeUnits(
-            midnight, 100, borrower, address(0), takes, 0, type(uint256).max, 0, type(uint256).max, 0, type(uint256).max
+            midnight, 100, borrower, address(0), takes, 0, type(uint256).max, 0, type(uint256).max
         );
     }
 
@@ -134,8 +134,6 @@ contract BundlerTest is BaseTest {
                 0,
                 type(uint256).max,
                 0,
-                type(uint256).max,
-                0,
                 type(uint256).max
             );
 
@@ -153,8 +151,6 @@ contract BundlerTest is BaseTest {
                 borrower,
                 address(0),
                 takes,
-                0,
-                type(uint256).max,
                 0,
                 type(uint256).max,
                 0,
@@ -343,8 +339,6 @@ contract BundlerTest is BaseTest {
             0,
             maxBuyerAssets,
             0,
-            type(uint256).max,
-            0,
             type(uint256).max
         );
     }
@@ -401,8 +395,6 @@ contract BundlerTest is BaseTest {
             address(0),
             takes,
             minBuyerAssets,
-            type(uint256).max,
-            0,
             type(uint256).max,
             0,
             type(uint256).max
