@@ -43,11 +43,11 @@ rule isHealthyEquivalant(Midnight.Obligation obligation, bytes32 id, address bor
     requireInvariant bitsetIffCollateral(id, borrower, 1);
     requireInvariant bitsetIffCollateral(id, borrower, 2);
 
-    // We make no claim about iHealthyNoBitmap if isHealthy() reverts.
+    // We make no claim about isHealthyNoBitmap() if isHealthy() reverts.
     bool isHealthy1 = isHealthy(obligation, id, borrower);
     bool isHealthy2 = isHealthyNoBitmap@withrevert(obligation, id, borrower);
 
-    // Assert that isHealthyNoBitmap does not revert and returns the same value.
+    // Assert that isHealthyNoBitmap() does not revert and returns the same value.
     assert !lastReverted;
     assert isHealthy1 == isHealthy2;
 }
