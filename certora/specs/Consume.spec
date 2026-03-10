@@ -52,9 +52,6 @@ rule consumeNonDecreasing(env e, method f, calldataarg args, address user, bytes
 /// After a successful `take`, consumed[offer.maker][offer.group] does not exceed the offer's max amount
 /// (offer.obligationUnits if units-based, offer.obligationShares if shares-based).
 rule takeConsumedBoundedByMax(env e, uint256 obligationShares, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    uint256 consumedBefore = consumed(offer.maker, offer.group);
-
-    uint256 returnedUnits;
     take(e, obligationShares, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
 
     uint256 maxAmount = offer.obligationUnits > 0 ? offer.obligationUnits : offer.obligationShares;
