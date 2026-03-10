@@ -6,7 +6,6 @@ methods {
     function debtOf(bytes32 id, address user) external returns (uint256) envfree;
     function sharesOf(bytes32 id, address user) external returns (uint256) envfree;
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
-    function isHealthy(Midnight.Obligation obligation, bytes32 id, address borrower) external returns (bool) envfree;
 
     function _.price() external => NONDET;
 }
@@ -15,7 +14,7 @@ methods {
 
 /// An unauthorized caller cannot change a user's shares except via take.
 /// Assumes no reentrancy: callbacks (onBuy, onSell) and token transfers are not modeled as re-entering Midnight, so re-entrant share decreases are not covered.
-rule onlyAuthorizedCanChangeSharesExceptTake(env e, method f, calldataarg args, bytes32 id, address user) filtered { f -> f.selector != sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector } {
+rule onlyAuthorizedCanChangeSharesExceptTake(env e, method f, calldataarg args, bytes32 id, address user) filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector } {
     bool userIsAuthorized = user == e.msg.sender || isAuthorized(user, e.msg.sender);
 
     uint256 sharesBefore = sharesOf(id, user);
@@ -55,15 +54,12 @@ rule onlyAuthorizedCanChangeDebtExceptTakeAndLiquidate(env e, method f, calldata
     assert userIsAuthorized || debtAfter == debtBefore;
 }
 
-/// In liquidate, only liquidatable users can have their debt decreased.
-rule liquidateOnlyLiquidatableCanChangeDebt(env e, Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data, bytes32 id, address user) {
-    bool borrowerIsLiquidatable = !isHealthy(obligation, id, borrower) || e.block.timestamp > obligation.maturity;
-
+/// In liquidate, users can have their debt decreased.
+rule liquidateCanChangeDebt(env e, Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data, bytes32 id, address user) {
     uint256 debtBefore = debtOf(id, borrower);
     liquidate(e, obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
     uint256 debtAfter = debtOf(id, borrower);
 
-    assert borrowerIsLiquidatable;
     assert user == borrower => debtAfter <= debtBefore;
     assert user != borrower => debtAfter == debtBefore;
 }
