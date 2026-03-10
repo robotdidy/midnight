@@ -32,7 +32,7 @@ rule withdrawDecreasesWithdrawableExactly(env e, Midnight.Obligation obligation,
     uint256 withdrawnShares;
     withdrawnUnits, withdrawnShares = withdraw(e, obligation, obligationUnitsInput, shares, onBehalf, receiver);
     uint256 withdrawableAfter = withdrawable(id);
-    assert to_mathint(withdrawableBefore) - to_mathint(withdrawableAfter) == to_mathint(withdrawnUnits);
+    assert withdrawableAfter == withdrawableBefore - withdrawnUnits;
 }
 
 rule withdrawableUnchanged(method f, env e, calldataarg args, bytes32 id)
