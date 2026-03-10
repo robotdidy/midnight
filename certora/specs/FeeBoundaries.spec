@@ -16,11 +16,17 @@ methods {
 
 /// Breakpoint times in seconds
 definition T_0D() returns uint256 = 0;
+
 definition T_1D() returns uint256 = 86400;
+
 definition T_7D() returns uint256 = 604800;
+
 definition T_30D() returns uint256 = 2592000;
+
 definition T_90D() returns uint256 = 7776000;
+
 definition T_180D() returns uint256 = 15552000;
+
 definition T_360D() returns uint256 = 31104000;
 
 /// Stored fee units corresponding to maxTradingFee(index) / FEE_STEP.
