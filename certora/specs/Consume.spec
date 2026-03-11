@@ -81,7 +81,7 @@ rule takeConsumedAtMaxUnchanged(env e, uint256 obligationShares, address taker, 
     assert consumedBefore >= maxAmount => consumed(offer.maker, offer.group) == consumedBefore;
 }
 
-/// A fully-consumed offer always reverts when the take input is non-zero in the offer's consumption dimension.
+/// A fully-consumed offer in shares (rest. in units) only allows no-ops in shares (rest. in units).
 rule fullyConsumedOfferRevertsOnNonTrivialTake(env e, uint256 obligationShares, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
     uint256 consumedBefore = consumed(offer.maker, offer.group);
     bytes32 id = toId(e, offer.obligation);
