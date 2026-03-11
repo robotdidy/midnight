@@ -670,7 +670,7 @@ contract Midnight is IMidnight {
         return borrowerState[id][user].pendingFee;
     }
 
-    function lastContinuousFeeAccrual(bytes32 id, address user) external view returns (uint48) {
+    function lastContinuousFeeAccrual(bytes32 id, address user) external view returns (uint128) {
         return borrowerState[id][user].lastContinuousFeeAccrual;
     }
 
@@ -716,15 +716,15 @@ contract Midnight is IMidnight {
     }
 
     function accrueContinuousFee(bytes32 id, address borrower, uint256 maturity) public {
+        require(obligationState[id].created, "not created");
+
         // forge-lint: disable-next-item(unsafe-typecast) as accrued fee is <= pendingFee
         uint128 accruedFee = uint128(pendingContinuousFee(id, borrower, maturity));
-
         if (accruedFee > 0) {
-            BorrowerState storage _state = borrowerState[id][borrower];
             ObligationState storage _obligationState = obligationState[id];
             uint256 feeShares = accruedFee.mulDivDown(_obligationState.totalShares + 1, _obligationState.totalUnits + 1);
-            _state.pendingFee -= accruedFee;
-            _state.debt += accruedFee;
+            borrowerState[id][borrower].pendingFee -= accruedFee;
+            borrowerState[id][borrower].debt += accruedFee;
             _obligationState.totalUnits += accruedFee;
             if (feeShares > 0) {
                 sharesOf[id][PASSIVE_FEE_RECIPIENT] += feeShares;

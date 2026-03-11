@@ -243,6 +243,13 @@ contract ContinuousFeeTest is BaseTest {
         assertEq(midnight.pendingFee(id, borrower), 0, "remaining is 0 at maturity");
     }
 
+    function testAccrueContinuousFeeRevertsIfObligationNotCreated() public {
+        vm.expectRevert("not created");
+        midnight.accrueContinuousFee(id, borrower, obligation.maturity);
+
+        assertEq(midnight.lastContinuousFeeAccrual(id, borrower), 0, "last accrual unchanged");
+    }
+
     function testExitViaRepay(uint256 debt, uint256 exitAmount, uint256 feeRate, uint256 ttm, uint256 elapsed) public {
         debt = bound(debt, 1, MAX_DEBT);
         feeRate = bound(feeRate, 0, MAX_CONTINUOUS_FEE);
