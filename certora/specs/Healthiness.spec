@@ -41,29 +41,28 @@ persistent ghost summaryPrice(address) returns uint256;
 persistent ghost summaryMulDivDownM(mathint, mathint, mathint) returns mathint {
     /* mulDiv always returns an unsigned integer */
     axiom forall mathint a. forall mathint b. forall mathint d. a >= 0 && b >= 0 && d > 0 => summaryMulDivDownM(a, b, d) >= 0;
-
-    /* proved in mulDivZero in MulDiv.spec */
-    axiom forall mathint b. forall mathint d. d > 0 => summaryMulDivDownM(0, b, d) == 0;
-
-    /* proved in mulDivMonotoneA in MulDiv.spec */
-    axiom forall mathint a1. forall mathint a2. forall mathint b. forall mathint d. d > 0 && a1 <= a2 => summaryMulDivDownM(a1, b, d) <= summaryMulDivDownM(a2, b, d);
-
-    /* proved in mulDivMonotoneB in MulDiv.spec */
-    axiom forall mathint a. forall mathint b1. forall mathint b2. forall mathint d. d > 0 && b1 <= b2 => summaryMulDivDownM(a, b1, d) <= summaryMulDivDownM(a, b2, d);
 }
 
 persistent ghost summaryMulDivUpM(mathint, mathint, mathint) returns mathint {
     /* mulDiv always returns an unsigned integer */
     axiom forall mathint a. forall mathint b. forall mathint d. a >= 0 && b >= 0 && d > 0 => summaryMulDivUpM(a, b, d) >= 0;
-
-    /* proved in mulDivMonotoneA in MulDiv.spec */
-    axiom forall mathint a1. forall mathint a2. forall mathint b. forall mathint d. d > 0 && a1 <= a2 => summaryMulDivUpM(a1, b, d) <= summaryMulDivUpM(a2, b, d);
-
-    /* proved in mulDivMonotoneD in MulDiv.spec */
-    axiom forall mathint a. forall mathint b. forall mathint d1. forall mathint d2. d1 > 0 && d1 <= d2 => summaryMulDivUpM(a, b, d1) >= summaryMulDivUpM(a, b, d2);
 }
 
 /* Axioms that are proved by MulDiv.spec */
+
+/* proved in mulDivZero */
+definition axiomDownZero(mathint b, mathint d) returns bool = 0 <= b && 0 < d => summaryMulDivDownM(0, b, d) == 0;
+
+/* proved in mulDivMonotoneA */
+definition axiomDownMonotoneA(mathint a1, mathint a2, mathint b, mathint d) returns bool = 0 <= a1 && a1 <= a2 && 0 <= b && 0 < d => summaryMulDivDownM(a1, b, d) <= summaryMulDivDownM(a2, b, d);
+
+definition axiomUpMonotoneA(mathint a1, mathint a2, mathint b, mathint d) returns bool = 0 <= a1 && a1 <= a2 && 0 <= b && 0 < d => summaryMulDivUpM(a1, b, d) <= summaryMulDivUpM(a2, b, d);
+
+/* proved in mulDivMonotoneB */
+definition axiomDownMonotoneB(mathint a, mathint b1, mathint b2, mathint d) returns bool = 0 <= a && 0 <= b1 && b1 <= b2 && 0 < d => summaryMulDivDownM(a, b1, d) <= summaryMulDivDownM(a, b2, d);
+
+/* proved in mulDivMonotoneD */
+definition axiomUpMonotoneD(mathint a, mathint b, mathint d1, mathint d2) returns bool = 0 <= a && 0 <= b && 0 < d1 && d1 <= d2 => summaryMulDivUpM(a, b, d1) >= summaryMulDivDownM(a, b, d2);
 
 /* proved in mulDivAddDownUp in MulDiv.spec */
 definition axiomAddDownUp(mathint a1, mathint a2, mathint b, mathint d) returns bool = d > 0 => summaryMulDivDownM(a1, b, d) + summaryMulDivUpM(a2, b, d) >= summaryMulDivDownM(a1 + a2, b, d);
@@ -219,6 +218,11 @@ rule stayHealthyLiquidateSameBorrower(env e, uint256 someCollateralIndex, uint25
     mathint price = summaryPrice(obligation.collaterals[someCollateralIndex].oracle);
 
     // require all the axioms that are needed to prove the healthiness after liquidation. These are the same axioms that are proved in the MulDiv.spec
+    require forall mathint b. forall mathint d. axiomDownZero(b, d), "axiom";
+    require forall mathint a1. forall mathint a2. forall mathint b. forall mathint d. axiomDownMonotoneA(a1, a2, b, d), "axiom";
+    require forall mathint a1. forall mathint a2. forall mathint b. forall mathint d. axiomUpMonotoneA(a1, a2, b, d), "axiom";
+    require forall mathint a. forall mathint b1. forall mathint b2. forall mathint d. axiomDownMonotoneB(a, b1, b2, d), "axiom";
+    require forall mathint a. forall mathint b. forall mathint d1. forall mathint d2. axiomUpMonotoneD(a, b, d1, d2), "axiom";
     require axiomInverseUpDown(repaidUnits, globalObligationCollateralMaxLif[someCollateralIndex], WAD()), "axiom";
     require axiomInverseUpDown(summaryMulDivDownM(repaidUnits, globalObligationCollateralMaxLif[someCollateralIndex], WAD()), ORACLE_PRICE_SCALE(), price), "axiom";
     require axiomLifLLTV(summaryMulDivUpM(seizedAssets, price, ORACLE_PRICE_SCALE()), globalObligationCollateralMaxLif[someCollateralIndex], globalObligationCollateralLLTV[someCollateralIndex]), "axiom";
@@ -257,6 +261,9 @@ rule stayHealthy(env e, method f, calldataarg args) filtered { f -> f.selector !
 
     // This variable is set to false whenever isHealthy() is violated before a callback.  Initially we set it to true to indicate no violations detected.
     healthyBeforeCallback = true;
+
+    require forall mathint b. forall mathint d. axiomDownZero(b, d), "axiom";
+    require forall mathint a1. forall mathint a2. forall mathint b. forall mathint d. axiomDownMonotoneA(a1, a2, b, d), "axiom";
 
     require globalObligationCollateralLength <= 3, "too many collaterals for the spec to handle";
 
