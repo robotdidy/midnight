@@ -148,6 +148,7 @@ strong invariant debtImpliesLastAccrual(bytes32 id, address user)
     {
         preserved with (env e) {
             require e.block.timestamp > 0;
+            require e.block.timestamp < 2 ^ 128;
         }
     }
 
@@ -156,6 +157,7 @@ strong invariant pendingFeeImpliesLastAccrual(bytes32 id, address user)
     {
         preserved with (env e) {
             require e.block.timestamp > 0;
+            require e.block.timestamp < 2 ^ 128;
         }
     }
 

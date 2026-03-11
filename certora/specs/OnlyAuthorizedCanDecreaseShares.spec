@@ -7,6 +7,7 @@ methods {
 
     function feeRecipient() external returns (address) envfree;
     function debtOf(bytes32 id, address user) external returns (uint256) envfree;
+    function pendingFee(bytes32 id, address user) external returns (uint128) envfree;
     function sharesOf(bytes32 id, address user) external returns (uint256) envfree;
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
     function Utils.passiveFeeRecipient() external returns (address) envfree;
@@ -49,14 +50,15 @@ rule takeOnlyAuthorizedSellerSharesDecrease(env e, uint256 obligationShares, add
     assert user != buyer && user != seller => sharesAfter == sharesBefore;
 }
 
-/// No function other than take can increase a user's debt.
+/// No function other than take can increase a user's debt beyond accrual.
 rule debtOnlyIncreasesViaTake(env e, method f, bytes32 id, address user) {
     uint256 debtBefore = debtOf(id, user);
+    uint256 pendingFeeBefore = require_uint256(pendingFee(id, user));
 
     calldataarg args;
     f(e, args);
 
-    assert debtBefore >= debtOf(id, user) || f.selector == sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector;
+    assert debtOf(id, user) <= debtBefore + pendingFeeBefore || f.selector == sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector;
 }
 
 /// In take, the caller must be authorized by the taker, and only the seller's debt can increase.
@@ -67,6 +69,7 @@ rule takeOnlyAuthorizedSellerDebtIncrease(env e, uint256 obligationShares, addre
     bool takerUnauthorized = e.msg.sender != taker && !isAuthorized(taker, e.msg.sender);
 
     uint256 debtBefore = debtOf(id, user);
+    uint256 pendingFeeBefore = require_uint256(pendingFee(id, user));
 
     take@withrevert(e, obligationShares, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
 
@@ -74,7 +77,7 @@ rule takeOnlyAuthorizedSellerDebtIncrease(env e, uint256 obligationShares, addre
     uint256 debtAfter = debtOf(id, user);
 
     assert takerUnauthorized => reverted;
-    assert user == buyer => debtAfter <= debtBefore;
+    assert user == buyer => debtAfter <= debtBefore + pendingFeeBefore;
     assert user == seller => debtAfter >= debtBefore;
     assert user != buyer && user != seller => debtAfter == debtBefore;
 }
