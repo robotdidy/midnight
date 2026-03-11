@@ -15,7 +15,7 @@ methods {
     function Midnight.obligationCreated(bytes32) external returns (bool) envfree;
     function Midnight.sharesOf(bytes32, address) external returns (uint256) envfree;
     function Midnight.pendingFee(bytes32, address) external returns (uint128) envfree;
-    function Midnight.lastContinuousFeeAccrual(bytes32, address) external returns (uint48) envfree;
+    function Midnight.lastContinuousFeeAccrual(bytes32, address) external returns (uint128) envfree;
     function Utils.hashObligation(Midnight.Obligation) external returns (bytes32) envfree;
 
     function UtilsLib.mulDivDown(uint256, uint256, uint256) internal returns (uint256) => NONDET;
