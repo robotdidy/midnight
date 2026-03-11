@@ -17,7 +17,8 @@ import {
     LIQUIDATION_CURSOR_LOW,
     LIQUIDATION_CURSOR_HIGH,
     EIP712_DOMAIN_TYPEHASH,
-    ROOT_TYPEHASH
+    ROOT_TYPEHASH,
+    PASSIVE_FEE_RECIPIENT
 } from "./libraries/ConstantsLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {
@@ -231,9 +232,6 @@ contract Midnight is IMidnight {
         uint256 sellerPrice = offer.buy ? offerPrice - _tradingFee : offerPrice;
         uint256 buyerPrice = sellerPrice + _tradingFee;
 
-        accrueContinuousFee(id, buyer, offer.obligation.maturity);
-        accrueContinuousFee(id, seller, offer.obligation.maturity);
-
         bool buyerIsLender = borrowerState[id][buyer].debt == 0;
         bool sellerIsBorrower = sharesOf[id][seller] == 0;
         // To ensure that the share price does not decrease, units should be rounded up when buyerIsLender &
@@ -256,11 +254,13 @@ contract Midnight is IMidnight {
         }
 
         if (!buyerIsLender) {
+            accrueContinuousFee(id, buyer, offer.obligation.maturity);
             BorrowerState storage _buyerState = borrowerState[id][buyer];
             _buyerState.pendingFee -= uint128(_buyerState.pendingFee.mulDivUp(obligationUnits, _buyerState.debt));
         }
 
         if (sellerIsBorrower) {
+            accrueContinuousFee(id, seller, offer.obligation.maturity);
             borrowerState[id][seller].pendingFee += uint128(
                 _obligationState.continuousFee.mulDivDown(obligationUnits * timeToMaturity, WAD)
             );
@@ -347,7 +347,11 @@ contract Midnight is IMidnight {
         address onBehalf,
         address receiver
     ) external returns (uint256, uint256) {
-        require(onBehalf == msg.sender || isAuthorized[onBehalf][msg.sender], "unauthorized");
+        require(
+            onBehalf == msg.sender || isAuthorized[onBehalf][msg.sender]
+                || (onBehalf == PASSIVE_FEE_RECIPIENT && msg.sender == feeRecipient),
+            "unauthorized"
+        );
         require(UtilsLib.atMostOneNonZero(obligationUnits, shares), "inconsistent input");
         bytes32 id = touchObligation(obligation);
         ObligationState storage _obligationState = obligationState[id];
@@ -717,7 +721,7 @@ contract Midnight is IMidnight {
             _state.debt += feeUnits;
             _obligationState.totalUnits += feeUnits;
             if (feeShares > 0) {
-                sharesOf[id][feeRecipient] += feeShares;
+                sharesOf[id][PASSIVE_FEE_RECIPIENT] += feeShares;
                 _obligationState.totalShares += UtilsLib.toUint128(feeShares);
             }
         }
