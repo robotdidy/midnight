@@ -15,6 +15,7 @@ jobs:
       matrix:
         conf:
           - CollateralBitmap
+          - Consume
           - CreatedObligations
           - ExactMath
           - Healthiness
@@ -24,6 +25,7 @@ jobs:
           - OnlyAuthorizedCanDecreaseShares
           - SharePrice
           - Solvency
+          - WithdrawableMonotonicity
 
     steps:
       - uses: actions/checkout@v4
