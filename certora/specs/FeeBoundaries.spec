@@ -81,7 +81,7 @@ rule onlyFeeSetterCanChangeObligationFeesPostCreation(method f, env e, bytes32 i
     calldataarg args;
     f(e, args);
 
-    assert ghostObligationFeeUnits[id][index] != feesBefore => e.msg.sender == feeSetter();
+    assert ghostObligationFeeUnits[id][index] != feesBefore => e.msg.sender == feeSetter() && f.selector == sig:setObligationTradingFee(bytes32, uint256, uint256).selector;
 }
 
 /// For any time-to-maturity the trading fee is enclosed between the two adjacent breakpoint values (never overshoots or undershoots).
