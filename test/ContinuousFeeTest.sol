@@ -325,7 +325,7 @@ contract ContinuousFeeTest is BaseTest {
 
         setupBorrower(debt, feeRate, ttm);
 
-        // Make liquidatabl
+        // Make liquidatable
         oracle1.setPrice(ORACLE_PRICE_SCALE / 4);
         vm.warp(block.timestamp + elapsed);
 
