@@ -16,12 +16,33 @@ methods {
     function Utils.passiveFeeRecipient() external returns (address) envfree;
 
     function _.price() external => NONDET;
-    function IdLib.toId(Midnight.Obligation memory, uint256, address) internal returns (bytes32) => NONDET;
+    function IdLib.toId(Midnight.Obligation memory obligation, uint256 x, address y) internal returns (bytes32) => summaryToId(obligation, x, y);
+
+    function tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
+    function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
+    function SafeTransferLib.safeTransferFrom(address, address, address, uint256) internal => NONDET;
+    function SafeTransferLib.safeTransfer(address, address, uint256) internal => NONDET;
+    function TickLib.tickToPrice(uint256) internal returns (uint256) => NONDET;
+    function TickLib.wExp(int256) internal returns (uint256) => NONDET;
+    function UtilsLib.isLeaf(bytes32, bytes32, bytes32[] memory) internal returns (bool) => NONDET;
+    function UtilsLib.msb(uint256) internal returns (uint256) => NONDET;
+    function UtilsLib.countBits(uint128) internal returns (uint256) => NONDET;
+
     function UtilsLib.mulDivDown(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDiv(x, y, d);
     function UtilsLib.mulDivUp(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDiv(x, y, d);
 }
 
 /// HELPERS ///
+
+persistent ghost mapping(bytes32 => uint256) ghostMaturity {
+    init_state axiom (forall bytes32 id. ghostMaturity[id] == 0);
+}
+
+function summaryToId(Midnight.Obligation obligation, uint256 x, address y) returns bytes32 {
+    bytes32 id;
+    require ghostMaturity[id] == obligation.maturity;
+    return id;
+}
 
 persistent ghost mapping(bytes32 => mathint) sumSharesOf {
     init_state axiom (forall bytes32 id. sumSharesOf[id] == 0);
@@ -108,7 +129,13 @@ rule liquidateInputOutputConsistency(env e, Midnight.Obligation obligation, uint
     assert repaidUnits == 0 && seizedAssets == 0 => seizedAssetsOutput == 0 && repaidUnitsOutput == 0;
 }
 
-rule debtIncreaseUpdatesLastAccrual(env e, method f, calldataarg args, bytes32 id, address user) {
+rule debtIncreaseUpdatesLastAccrual(env e, method f, calldataarg args, bytes32 id, address user) filtered {
+    f ->
+        f.selector == sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector ||
+        f.selector == sig:repay(Midnight.Obligation, uint256, address).selector ||
+        f.selector == sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector ||
+        f.selector == sig:withdrawCollateral(Midnight.Obligation, uint256, uint256, address, address).selector
+} {
     uint256 debtBefore = debtOf(id, user);
 
     require e.block.timestamp < 2 ^ 128;
@@ -119,7 +146,13 @@ rule debtIncreaseUpdatesLastAccrual(env e, method f, calldataarg args, bytes32 i
     assert debtOf(id, user) > debtBefore => lastContinuousFeeAccrual(id, user) == assert_uint128(e.block.timestamp);
 }
 
-rule lastAccrualMonotonicity(env e, method f, calldataarg args, bytes32 id, address user) {
+rule lastAccrualMonotonicity(env e, method f, calldataarg args, bytes32 id, address user) filtered {
+    f ->
+        f.selector == sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector ||
+        f.selector == sig:repay(Midnight.Obligation, uint256, address).selector ||
+        f.selector == sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector ||
+        f.selector == sig:withdrawCollateral(Midnight.Obligation, uint256, uint256, address, address).selector
+} {
     uint128 before = lastContinuousFeeAccrual(id, user);
 
     // block.timestamp must fit in uint128 (no truncation) and time must not go backwards.
@@ -144,7 +177,12 @@ rule feeConservation(env e, bytes32 id, address user, Midnight.Obligation obliga
     assert to_mathint(debtAfter) - to_mathint(debtBefore) == to_mathint(pendingFeeBefore) - to_mathint(pendingFeeAfter);
 }
 
-rule pendingFeeOnlyIncreasesViaTake(env e, method f, calldataarg args, bytes32 id, address user) filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector && !f.isView } {
+rule pendingFeeOnlyIncreasesViaTake(env e, method f, calldataarg args, bytes32 id, address user) filtered {
+    f ->
+        f.selector == sig:repay(Midnight.Obligation, uint256, address).selector ||
+        f.selector == sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector ||
+        f.selector == sig:withdrawCollateral(Midnight.Obligation, uint256, uint256, address, address).selector
+} {
     uint128 pendingFeeBefore = pendingFee(id, user);
 
     f(e, args);
@@ -189,6 +227,16 @@ strong invariant lenderHasNoPendingFee(bytes32 id, address user)
         preserved {
             requireInvariant notBorrowerAndLender(id, user);
             requireInvariant noRemainingContinuousFeeWithoutDebt(id, user);
+        }
+    }
+
+strong invariant postMaturityNoPendingFee(bytes32 id, address user)
+    ghostMaturity[id] > 0 && lastContinuousFeeAccrual(id, user) >= ghostMaturity[id] => pendingFee(id, user) == 0
+    {
+        preserved with (env e) {
+            require e.block.timestamp > 0;
+            require e.block.timestamp < 2 ^ 128;
+            requireInvariant pendingFeeImpliesLastAccrual(id, user);
         }
     }
 
