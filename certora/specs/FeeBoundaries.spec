@@ -8,11 +8,8 @@ methods {
     function feeSetter() external returns (address) envfree;
     function obligationCreated(bytes32 id) external returns (bool) envfree;
 
-    // doesn't weaken the invariant but improves verification time
     function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
 }
-
-definition FEE_STEP() returns mathint = 1000000000000;
 
 /// Breakpoint time in seconds for index 0..6, mirroring the tradingFee intervals in Midnight.sol.
 definition breakpointTime(uint256 index) returns uint256 = index == 0 ? 0 : index == 1 ? 86400 : index == 2 ? 604800 : index == 3 ? 2592000 : index == 4 ? 7776000 : index == 5 ? 15552000 : index == 6 ? 31104000 : 0;
@@ -23,71 +20,70 @@ definition lowerIndex(uint256 ttm) returns uint256 = ttm >= breakpointTime(6) ? 
 /// Upper enclosing breakpoint index for a given time-to-maturity.
 definition upperIndex(uint256 ttm) returns uint256 = ttm >= breakpointTime(6) ? 6 : ttm >= breakpointTime(5) ? 6 : ttm >= breakpointTime(4) ? 5 : ttm >= breakpointTime(3) ? 4 : ttm >= breakpointTime(2) ? 3 : ttm >= breakpointTime(1) ? 2 : 1;
 
-/// maxTradingFee(index) / FEE_STEP, needed because contract calls are disallowed inside forall.
-definition maxFeeUnits(uint256 index) returns mathint = index == 0 ? 14 : index == 1 ? 14 : index == 2 ? 98 : index == 3 ? 417 : index == 4 ? 1250 : index == 5 ? 2500 : index == 6 ? 5000 : 0;
+definition FEE_STEP() returns uint256 = 1000000000000;
 
-persistent ghost mapping(bytes32 => mapping(uint256 => mathint)) ghostObligationFeeUnits {
-    init_state axiom forall bytes32 id. forall uint256 i. ghostObligationFeeUnits[id][i] == 0;
-}
+definition defaultFee(address loanToken, uint256 index) returns uint256 = assert_uint256(currentContract.defaultFees[loanToken][index] * FEE_STEP());
 
-persistent ghost mapping(address => mapping(uint256 => mathint)) ghostDefaultFeeUnits {
-    init_state axiom forall address t. forall uint256 i. ghostDefaultFeeUnits[t][i] == 0;
-}
-
-hook Sstore obligationState[KEY bytes32 id].fees[INDEX uint256 idx] uint16 newVal {
-    ghostObligationFeeUnits[id][idx] = to_mathint(newVal);
-}
-
-hook Sload uint16 val obligationState[KEY bytes32 id].fees[INDEX uint256 idx] {
-    require ghostObligationFeeUnits[id][idx] == to_mathint(val);
-}
-
-hook Sstore defaultFees[KEY address token][INDEX uint256 idx] uint16 newVal {
-    ghostDefaultFeeUnits[token][idx] = to_mathint(newVal);
-}
-
-hook Sload uint16 val defaultFees[KEY address token][INDEX uint256 idx] {
-    require ghostDefaultFeeUnits[token][idx] == to_mathint(val);
-}
+definition obligationFee(bytes32 id, uint256 index) returns uint256 = assert_uint256(currentContract.obligationState[id].fees[index] * FEE_STEP());
 
 /// Default fees for any loan token at each index are bounded by its specific maxTradingFee cap.
-invariant defaultFeePerIndexBound()
-    forall address loanToken. forall uint256 index. index <= 6 => ghostDefaultFeeUnits[loanToken][index] <= maxFeeUnits(index);
+invariant defaultFeePerIndexBound(address loanToken, uint256 index)
+    index <= 6 => defaultFee(loanToken, index) <= maxTradingFee(index);
 
 /// Every obligation's fee breakpoints are bounded by the per-index maximum.
 invariant obligationFeePerIndexBound(bytes32 id, uint256 index)
-    index <= 6 => ghostObligationFeeUnits[id][index] <= maxFeeUnits(index)
+    index <= 6 => obligationFee(id, index) <= maxTradingFee(index)
     {
-        preserved with (env e) {
-            requireInvariant defaultFeePerIndexBound();
+        preserved touchObligation(Midnight.Obligation obligation) with (env e) {
+            requireInvariant defaultFeePerIndexBound(obligation.loanToken, index);
+        }
+        preserved withdraw(Midnight.Obligation obligation, uint256 obligationUnits, uint256 shares, address onBehalf, address receiver) with (env e) {
+            requireInvariant defaultFeePerIndexBound(obligation.loanToken, index);
+        }
+        preserved repay(Midnight.Obligation obligation, uint256 obligationUnits, address onBehalf) with (env e) {
+            requireInvariant defaultFeePerIndexBound(obligation.loanToken, index);
+        }
+        preserved supplyCollateral(Midnight.Obligation obligation, uint256 collateralIndex, uint256 assets, address onBehalf) with (env e) {
+            requireInvariant defaultFeePerIndexBound(obligation.loanToken, index);
+        }
+        preserved withdrawCollateral(Midnight.Obligation obligation, uint256 collateralIndex, uint256 assets, address onBehalf, address receiver) with (env e) {
+            requireInvariant defaultFeePerIndexBound(obligation.loanToken, index);
+        }
+        preserved liquidate(Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data) with (env e) {
+            requireInvariant defaultFeePerIndexBound(obligation.loanToken, index);
+        }
+        preserved take(uint256 obligationShares, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) with (env e) {
+            requireInvariant defaultFeePerIndexBound(offer.obligation.loanToken, index);
         }
     }
 
-/// Only the fee setter can modify default fees (multicall is DELETEd and not checked here).
+/// Only the fee setter can modify default fees.
 rule onlyFeeSetterCanChangeDefaultFees(method f, env e, address token, uint256 index) filtered { f -> !f.isView } {
-    mathint feesBefore = ghostDefaultFeeUnits[token][index];
-
+    uint256 defaultFeeBefore = defaultFee(token, index);
     calldataarg args;
     f(e, args);
-
-    assert ghostDefaultFeeUnits[token][index] != feesBefore => e.msg.sender == feeSetter() && f.selector == sig:setDefaultTradingFee(address, uint256, uint256).selector;
+    assert defaultFee(token, index) != defaultFeeBefore => e.msg.sender == currentContract.feeSetter() && f.selector == sig:setDefaultTradingFee(address, uint256, uint256).selector;
 }
 
 /// Once an obligation is created, only the fee setter can modify its fees.
 rule onlyFeeSetterCanChangeObligationFeesPostCreation(method f, env e, bytes32 id, uint256 index) filtered { f -> !f.isView } {
-    require obligationCreated(id);
-    mathint feesBefore = ghostObligationFeeUnits[id][index];
-
+    require obligationCreated(id), "assume that the obligation is created";
+    uint256 obligationFeeBefore = obligationFee(id, index);
     calldataarg args;
     f(e, args);
 
-    assert ghostObligationFeeUnits[id][index] != feesBefore => e.msg.sender == feeSetter() && f.selector == sig:setObligationTradingFee(bytes32, uint256, uint256).selector;
+    assert obligationFee(id, index) != obligationFeeBefore => e.msg.sender == currentContract.feeSetter() && f.selector == sig:setObligationTradingFee(bytes32, uint256, uint256).selector;
+}
+
+/// The trading fee at a breakpoint is equal to the fee state variable at that index.
+rule tradingFeeAtBreakpoint(bytes32 id, uint256 index) {
+    assert index <= 6 => tradingFee(id, breakpointTime(index)) == obligationFee(id, index);
 }
 
 /// For any time-to-maturity the trading fee is enclosed between the two adjacent breakpoint values (never overshoots or undershoots).
-rule tradingFeeIsConvexCombination(bytes32 id, uint256 timeToMaturity) {
-    uint256 feeLo = tradingFee(id, breakpointTime(lowerIndex(timeToMaturity)));
-    uint256 feeHi = tradingFee(id, breakpointTime(upperIndex(timeToMaturity)));
+rule tradingFeeIsBoundedByBreakpointFees(bytes32 id, uint256 timeToMaturity) {
+    uint256 feeLo = obligationFee(id, lowerIndex(timeToMaturity));
+    uint256 feeHi = obligationFee(id, upperIndex(timeToMaturity));
     uint256 fee = tradingFee(id, timeToMaturity);
 
     assert (feeLo <= feeHi) => (fee >= feeLo && fee <= feeHi);
