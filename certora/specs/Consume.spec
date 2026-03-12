@@ -7,6 +7,17 @@ methods {
     function consumed(address user, bytes32 group) external returns (uint256) envfree;
     function totalUnits(bytes32 id) external returns (uint256) envfree;
     function totalShares(bytes32 id) external returns (uint256) envfree;
+
+    // Summaries for complex internals irrelevant to consumed-mapping properties.
+    function IdLib.toId(Midnight.Obligation memory, uint256, address) internal returns (bytes32) => NONDET;
+    function UtilsLib.isLeaf(bytes32, bytes32, bytes32[] memory) internal returns (bool) => NONDET;
+    function UtilsLib.mulDivDown(uint256, uint256, uint256) internal returns (uint256) => NONDET;
+    function UtilsLib.mulDivUp(uint256, uint256, uint256) internal returns (uint256) => NONDET;
+    function UtilsLib.msb(uint256) internal returns (uint256) => NONDET;
+    function TickLib.tickToPrice(uint256) internal returns (uint256) => NONDET;
+    function TickLib.wExp(int256) internal returns (uint256) => NONDET;
+    function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
+    function tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
 }
 
 ///  Only `setConsumed` and `take` can modify the `consumed` mapping.
