@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Midnight} from "../Midnight.sol";
-import {Obligation, Offer} from "../interfaces/IMidnight.sol";
+import {Offer} from "../interfaces/IMidnight.sol";
 import {UtilsLib} from "../libraries/UtilsLib.sol";
 import {TickLib} from "../libraries/TickLib.sol";
 import {WAD} from "../libraries/ConstantsLib.sol";
@@ -38,7 +38,6 @@ library TakeAmountsLib {
     ) internal view returns (uint256) {
         (uint256 totalUnits, uint256 totalShares) = expectedTakeState(midnight, id, taker, offer);
         address buyer = offer.buy ? offer.maker : taker;
-        (uint256 buyerAccruedFee,) = midnight.accrueContinuousFeeView(offer.obligation, id, buyer);
         bool buyerIsLender = midnight.debtOf(id, buyer) == 0; // accrued fee is 0 if debt is 0
         return buyerIsLender
             ? targetUnits.mulDivDown(totalShares + 1, totalUnits + 1)
