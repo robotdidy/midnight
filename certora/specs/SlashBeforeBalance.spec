@@ -22,12 +22,12 @@ function slashSummary(bytes32 id, address user) {
 /// HOOKS ///
 
 // Positive balances must only be read after slash.
-hook Sload int256 value balanceOf[KEY bytes32 id][KEY address user] {
+hook Sload int256 value position[KEY bytes32 id][KEY address user].balance {
     require slashed[id][user] || value <= 0;
 }
 
 // Positive balances must only be overwritten after slash.
-hook Sstore balanceOf[KEY bytes32 id][KEY address user] int256 newValue (int256 oldValue) {
+hook Sstore position[KEY bytes32 id][KEY address user].balance int256 newValue (int256 oldValue) {
     require slashed[id][user] || oldValue <= 0;
 }
 

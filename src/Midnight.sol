@@ -116,7 +116,7 @@ contract Midnight is IMidnight {
         require(newTradingFee <= maxTradingFee(index), "value too high");
         require(newTradingFee % FEE_STEP == 0, "fee should be a multiple of FEE_STEP");
         require(obligationState[id].created, "obligation not created");
-        // forge-lint: disable-next-item(unsafe-typecast) as newTradingFee is less than maxTradingFee
+        // forge-lint: disable-next-item(unsafe-typecast) as newTradingFee <= maxTradingFee <= uint16.max * FEE_STEP
         obligationState[id].fees[index] = uint16(newTradingFee / FEE_STEP);
         emit EventsLib.SetObligationTradingFee(id, index, newTradingFee);
     }
@@ -127,7 +127,7 @@ contract Midnight is IMidnight {
         require(index <= 6, "invalid index");
         require(newTradingFee <= maxTradingFee(index), "value too high");
         require(newTradingFee % FEE_STEP == 0, "fee should be a multiple of FEE_STEP");
-        // forge-lint: disable-next-item(unsafe-typecast) as newTradingFee is less than maxTradingFee
+        // forge-lint: disable-next-item(unsafe-typecast) as newTradingFee <= maxTradingFee <= uint16.max * FEE_STEP
         defaultFees[loanToken][index] = uint16(newTradingFee / FEE_STEP);
         emit EventsLib.SetDefaultTradingFee(loanToken, index, newTradingFee);
     }
@@ -213,9 +213,9 @@ contract Midnight is IMidnight {
 
         int256 oldBuyerBalance = position[id][buyer].balance;
         int256 oldSellerBalance = position[id][seller].balance;
-        // forge-lint: disable-next-line(unsafe-typecast)
+        // forge-lint: disable-next-line(unsafe-typecast) as obligationUnits <= offer.obligationUnits <= uint128.max
         int256 newBuyerBalance = oldBuyerBalance + int256(obligationUnits);
-        // forge-lint: disable-next-line(unsafe-typecast)
+        // forge-lint: disable-next-line(unsafe-typecast) as obligationUnits <= offer.obligationUnits <= uint128.max
         int256 newSellerBalance = oldSellerBalance - int256(obligationUnits);
         position[id][buyer].balance = newBuyerBalance;
         position[id][seller].balance = newSellerBalance;
@@ -270,7 +270,7 @@ contract Midnight is IMidnight {
         ObligationState storage _obligationState = obligationState[id];
         slash(id, onBehalf);
 
-        // forge-lint: disable-next-line(unsafe-typecast)
+        // forge-lint: disable-next-line(unsafe-typecast) as obligationUnits <= totalUnits <= uint128.max
         position[id][onBehalf].balance -= int256(obligationUnits);
         require(position[id][onBehalf].balance >= 0, "withdraw too much");
         _obligationState.withdrawable -= obligationUnits;
@@ -287,7 +287,7 @@ contract Midnight is IMidnight {
         require(onBehalf == msg.sender || isAuthorized[onBehalf][msg.sender], "unauthorized");
         bytes32 id = touchObligation(obligation);
 
-        // forge-lint: disable-next-line(unsafe-typecast)
+        // forge-lint: disable-next-line(unsafe-typecast) as obligationUnits <= totalUnits <= uint128.max
         position[id][onBehalf].balance += int256(obligationUnits);
         require(position[id][onBehalf].balance <= 0, "repay too much");
         obligationState[id].withdrawable += obligationUnits;
@@ -393,7 +393,7 @@ contract Midnight is IMidnight {
         require(block.timestamp > obligation.maturity || originalDebt > maxDebt, "position is not liquidatable");
 
         if (badDebt > 0) {
-            // forge-lint: disable-next-line(unsafe-typecast)
+            // forge-lint: disable-next-line(unsafe-typecast) as badDebt <= originalDebt <= totalUnits <= uint128.max
             _position.balance += int256(badDebt);
             uint256 oldTotalUnits = _obligationState.totalUnits;
             _obligationState.lossIndex = UtilsLib.toUint128(
@@ -439,7 +439,7 @@ contract Midnight is IMidnight {
                 _position.activatedCollaterals &= ~uint128(1 << collateralIndex);
             }
             _obligationState.withdrawable += repaidUnits;
-            // forge-lint: disable-next-line(unsafe-typecast)
+            // forge-lint: disable-next-line(unsafe-typecast) as repaidUnits <= debt <= totalUnits <= uint128.max
             _position.balance += int256(repaidUnits);
             require(_position.balance <= 0, "repay too much");
         }
@@ -528,7 +528,7 @@ contract Midnight is IMidnight {
         if (_userLossIndex != lossIndex) {
             int256 balance = _position.balance;
             if (balance > 0) {
-                // forge-lint: disable-next-item(unsafe-typecast)
+                // forge-lint: disable-next-item(unsafe-typecast) as result <= uint256(balance) <= int256.max
                 _position.balance = int256(
                     uint256(balance).mulDivDown(type(uint128).max - lossIndex, type(uint128).max - _userLossIndex)
                 );
@@ -573,9 +573,10 @@ contract Midnight is IMidnight {
         uint128 _userLossIndex = _position.lossIndex;
         uint128 lossIndex = obligationState[id].lossIndex;
         if (balance > 0 && _userLossIndex != lossIndex) {
-            // forge-lint: disable-next-item(unsafe-typecast)
-            return
-                int256(uint256(balance).mulDivDown(type(uint128).max - lossIndex, type(uint128).max - _userLossIndex));
+            // forge-lint: disable-next-item(unsafe-typecast) as result <= uint256(balance) <= int256.max
+            return int256(
+                uint256(balance).mulDivDown(type(uint128).max - lossIndex, type(uint128).max - _userLossIndex)
+            );
         }
         return balance;
     }

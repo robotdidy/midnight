@@ -107,6 +107,6 @@ function noFeesAreSet(bytes32 id) returns (bool) {
     return fees[0] == 0 && fees[1] == 0 && fees[2] == 0 && fees[3] == 0 && fees[4] == 0 && fees[5] == 0 && fees[6] == 0;
 }
 
-definition userHasNoActivatedCollaterals(bytes32 id, address user) returns bool = currentContract.activatedCollaterals[id][user] == 0;
+definition userHasNoActivatedCollaterals(bytes32 id, address user) returns bool = currentContract.position[id][user].activatedCollaterals == 0;
 
-definition userHasNoCollateral(bytes32 id, address user) returns bool = forall uint256 collateralIndex. collateralIndex < 128 => currentContract.collateralOf[id][user][collateralIndex] == 0;
+definition userHasNoCollateral(bytes32 id, address user) returns bool = forall uint256 collateralIndex. collateralIndex < 128 => currentContract.position[id][user].collateral[collateralIndex] == 0;

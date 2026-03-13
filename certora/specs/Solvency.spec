@@ -107,12 +107,12 @@ ghost mapping(bytes32 => mapping(address => mapping(address => mathint))) collat
 }
 
 // Safe require as obligations limit the number of collaterals.
-hook Sload uint128 value collateralOf[KEY bytes32 id][KEY address owner][INDEX uint256 collateralIndex] {
+hook Sload uint128 value position[KEY bytes32 id][KEY address owner].collateral[INDEX uint256 collateralIndex] {
     require value == collateralOfMirror[id][owner][collateralToken[id][require_uint128(collateralIndex)]], "ghost mirror";
 }
 
 // Safe require as obligations limit the number of collaterals.
-hook Sstore collateralOf[KEY bytes32 id][KEY address owner][INDEX uint256 collateralIndex] uint128 newCollateral (uint128 oldCollateral) {
+hook Sstore position[KEY bytes32 id][KEY address owner].collateral[INDEX uint256 collateralIndex] uint128 newCollateral (uint128 oldCollateral) {
     collateralOfMirror[id][owner][collateralToken[id][require_uint128(collateralIndex)]] = newCollateral;
 }
 
