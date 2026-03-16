@@ -293,7 +293,7 @@ contract LiquidationTest is BaseTest {
             : type(uint128).max
                 - (type(uint128).max - previousLossIndex).mulDivDown(oldTotalUnits - expectedBadDebt, oldTotalUnits);
 
-        vm.expectEmit(true, true, false, true);
+        vm.expectEmit(true, true, true, true);
         emit EventsLib.Liquidate(address(this), id, 0, 0, 0, borrower, expectedBadDebt, expectedLossIndex);
         midnight.liquidate(obligation, 0, 0, 0, borrower, "");
     }
