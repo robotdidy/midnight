@@ -48,9 +48,6 @@ persistent ghost summaryMulDivUpM(mathint, mathint, mathint) returns mathint;
 
 /* Axioms that are proved by MulDiv.spec */
 
-/* proved in mulDivZero */
-definition axiomDownZero(mathint b, mathint d) returns bool = 0 <= b && 0 < d => summaryMulDivDownM(0, b, d) == 0;
-
 /* proved in mulDivMonotoneA */
 definition axiomDownMonotoneA(mathint a1, mathint a2, mathint b, mathint d) returns bool = 0 <= a1 && a1 <= a2 && 0 <= b && 0 < d => summaryMulDivDownM(a1, b, d) <= summaryMulDivDownM(a2, b, d);
 
