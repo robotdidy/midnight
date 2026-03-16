@@ -10,6 +10,7 @@ import {Oracle} from "./helpers/Oracle.sol";
 import {ERC20} from "./helpers/ERC20.sol";
 import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
 import {stdError} from "../lib/forge-std/src/StdError.sol";
+import {EventsLib} from "../src/libraries/EventsLib.sol";
 
 // Collateral = units / lltv (up to ~1.33x for lltv=0.75).
 // To keep collateral within uint128, we cap amounts at type(uint128).max / 2.
@@ -277,6 +278,43 @@ contract LiquidationTest is BaseTest {
             1,
             "lender units after slashing"
         );
+    }
+
+    function testLiquidateEmitsLossIndex(uint256 units) public {
+        units = bound(units, 10, MAX_UNITS);
+        collateralize(obligation, borrower, units);
+        setupObligation(obligation, units);
+        Oracle(obligation.collaterals[0].oracle).setPrice(badDebtPriceDown(units));
+
+        uint256 expectedBadDebt = _badDebt();
+        (uint128 oldTotalUnits,, uint256 previousLossIndex,) = midnight.obligationState(id);
+        uint256 expectedLossIndex = expectedBadDebt == 0
+            ? previousLossIndex
+            : type(uint128).max
+                - (type(uint128).max - previousLossIndex).mulDivDown(oldTotalUnits - expectedBadDebt, oldTotalUnits);
+
+        vm.expectEmit(true, true, true, true);
+        emit EventsLib.Liquidate(address(this), id, 0, 0, 0, borrower, expectedBadDebt, expectedLossIndex);
+        midnight.liquidate(obligation, 0, 0, 0, borrower, "");
+    }
+
+    function testSlashEvent(uint256 units) public {
+        units = bound(units, 10, MAX_UNITS);
+        collateralize(obligation, borrower, units);
+        setupObligation(obligation, units);
+        Oracle(obligation.collaterals[0].oracle).setPrice(badDebtPriceDown(units));
+
+        midnight.liquidate(obligation, 0, 0, 0, borrower, "");
+
+        int256 expectedBalance = midnight.balanceOfAfterSlashing(id, lender);
+        (,, uint256 lossIndex,) = midnight.obligationState(id);
+
+        vm.expectEmit(true, true, false, true);
+        emit EventsLib.Slash(address(this), id, lender, expectedBalance, lossIndex);
+        midnight.slash(id, lender);
+
+        assertEq(midnight.balanceOf(id, lender), expectedBalance, "balance");
+        assertEq(midnight.userLossIndex(id, lender), lossIndex, "user loss index");
     }
 
     function testLiquidateWithBadDebtSeizedInput(uint256 units, uint256 seized, uint256 liquidationOraclePrice) public {

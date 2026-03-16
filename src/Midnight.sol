@@ -436,7 +436,9 @@ contract Midnight is IMidnight {
             require(_position.balance <= 0, "repay too much");
         }
 
-        emit EventsLib.Liquidate(msg.sender, id, collateralIndex, seizedAssets, repaidUnits, borrower, badDebt);
+        emit EventsLib.Liquidate(
+            msg.sender, id, collateralIndex, seizedAssets, repaidUnits, borrower, badDebt, _obligationState.lossIndex
+        );
 
         SafeTransferLib.safeTransfer(obligation.collaterals[collateralIndex].token, msg.sender, seizedAssets);
 
@@ -520,12 +522,14 @@ contract Midnight is IMidnight {
         if (_userLossIndex != lossIndex) {
             int256 balance = _position.balance;
             if (balance > 0) {
-                _position.balance = UtilsLib.toInt256(
+                balance = UtilsLib.toInt256(
                     // forge-lint: disable-next-line(unsafe-typecast)
                     uint256(balance).mulDivDown(type(uint128).max - lossIndex, type(uint128).max - _userLossIndex)
                 );
+                _position.balance = balance;
             }
             _position.lossIndex = lossIndex;
+            emit EventsLib.Slash(msg.sender, id, user, balance, lossIndex);
         }
     }
 
