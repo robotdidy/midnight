@@ -82,7 +82,7 @@ rule newObligationFeesMatchDefault(env e, Midnight.Obligation obligation, uint25
     assert obligationFee(id, index) == expectedFee;
 }
 
-/// Only the fee setter can modify default fees (multicall is DELETEd and not checked here).
+/// Only the fee setter can modify default fees.
 rule onlyFeeSetterCanChangeDefaultFees(method f, env e, address token, uint256 index) filtered { f -> !f.isView } {
     uint256 defaultFeeBefore = defaultFee(token, index);
     calldataarg args;
