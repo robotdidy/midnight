@@ -39,6 +39,8 @@ methods {
 ghost ghostMulDiv(uint256, uint256, uint256) returns uint256 {
     // mulDivDown(x, y, d) = x * y / d <= x when y <= d. Same holds for mulDivUp.
     axiom forall uint256 x. forall uint256 y. forall uint256 d. y <= d => ghostMulDiv(x, y, d) <= x;
+    // x * y / y == x (identity when numerator equals denominator).
+    axiom forall uint256 x. forall uint256 y. ghostMulDiv(x, y, y) == x;
 }
 
 function summaryMulDiv(uint256 x, uint256 y, uint256 d) returns uint256 {
