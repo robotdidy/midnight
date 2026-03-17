@@ -97,6 +97,7 @@ rule takeOnlyAuthorizedCanChangeDebt(env e, uint256 obligationShares, address ta
 /// CONSUMED CHANGE RULES ///
 
 /// An unauthorized caller cannot change a user's consumed except via take.
+/// Assumes no reentrancy: callbacks and token transfers are not modeled as re-entering Midnight, so re-entrant consumed changes are not covered.
 rule onlyAuthorizedCanChangeConsumedExceptTake(env e, method f, calldataarg args, address user, bytes32 group) filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector } {
     bool userIsAuthorized = user == e.msg.sender || isAuthorized(user, e.msg.sender);
 
@@ -134,11 +135,11 @@ rule onlyAuthorizedCanChangeSession(env e, method f, calldataarg args, address u
 
 /// An unauthorized caller cannot change a user's isAuthorized mapping.
 rule onlyAuthorizedCanChangeIsAuthorized(env e, method f, calldataarg args, address authorizer, address authorized) {
-    bool callerIsAuthorized = authorizer == e.msg.sender || isAuthorized(authorizer, e.msg.sender);
+    bool authorizerIsAuthorized = authorizer == e.msg.sender || isAuthorized(authorizer, e.msg.sender);
 
     bool isAuthorizedBefore = isAuthorized(authorizer, authorized);
     f(e, args);
     bool isAuthorizedAfter = isAuthorized(authorizer, authorized);
 
-    assert callerIsAuthorized || isAuthorizedAfter == isAuthorizedBefore;
+    assert authorizerIsAuthorized || isAuthorizedAfter == isAuthorizedBefore;
 }
