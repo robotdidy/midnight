@@ -226,7 +226,7 @@ contract Midnight is IMidnight {
         buyerPos.debt = uint128(UtilsLib.zeroFloorSub(oldBuyerDebt, units128));
         buyerPos.credit += uint128(UtilsLib.zeroFloorSub(units128, oldBuyerDebt));
         sellerPos.credit = uint128(UtilsLib.zeroFloorSub(oldSellerCredit, units128));
-        sellerPos.debt += UtilsLib.toUint128(UtilsLib.zeroFloorSub(units128, oldSellerCredit));
+        sellerPos.debt += uint128(UtilsLib.zeroFloorSub(units128, oldSellerCredit));
         if (offer.exitOnly) require(offer.buy ? buyerPos.credit == 0 : sellerPos.debt == 0, "crossed");
         _obligationState.totalUnits = UtilsLib.toUint128(
             uint256(_obligationState.totalUnits) + uint256(sellerPos.debt) + uint256(buyerPos.debt)
