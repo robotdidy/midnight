@@ -60,7 +60,7 @@ invariant obligationFeePerIndexBound(bytes32 id, uint256 index)
 
 /// Before an obligation is created, its fees can only change through creation (touchObligation copies defaultFees).
 rule obligationFeeChangeRequiresCreation(method f, env e, bytes32 id, uint256 index) filtered { f -> !f.isView } {
-    require !obligationCreated(id),"obligation not yet created";
+    require !obligationCreated(id), "obligation not yet created";
 
     uint256 feeBefore = obligationFee(id, index);
     calldataarg args;
@@ -73,7 +73,7 @@ rule obligationFeeChangeRequiresCreation(method f, env e, bytes32 id, uint256 in
 rule newObligationFeesMatchDefault(env e, Midnight.Obligation obligation, uint256 index) {
     require index <= 6, "index out of bounds";
     bytes32 id = toId(e, obligation);
-    require !obligationCreated(id),"obligation not yet created";
+    require !obligationCreated(id), "obligation not yet created";
 
     uint256 expectedFee = defaultFee(obligation.loanToken, index);
 
