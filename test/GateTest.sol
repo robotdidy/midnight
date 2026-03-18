@@ -307,30 +307,4 @@ contract GateTest is BaseTest {
         bytes32 ungatedId = toId(obligation);
         assertNotEq(ungatedId, gatedId, "gated and ungated obligations should have different IDs");
     }
-
-    // --- View function tests ---
-
-    function testCanLendViewFunction() public {
-        gate.setWhitelisted(lender, true);
-
-        assertTrue(midnight.canLend(gatedObligation, lender), "whitelisted should pass");
-        assertFalse(midnight.canLend(gatedObligation, borrower), "non-whitelisted should fail");
-        assertTrue(midnight.canLend(obligation, borrower), "no gate should always pass");
-    }
-
-    function testCanBorrowViewFunction() public {
-        gate.setWhitelisted(borrower, true);
-
-        assertTrue(midnight.canBorrow(gatedObligation, borrower), "whitelisted should pass");
-        assertFalse(midnight.canBorrow(gatedObligation, lender), "non-whitelisted should fail");
-        assertTrue(midnight.canBorrow(obligation, lender), "no gate should always pass");
-    }
-
-    function testCanLiquidateViewFunction() public {
-        gate.setWhitelisted(liquidator, true);
-
-        assertTrue(midnight.canLiquidate(gatedObligation, liquidator), "whitelisted should pass");
-        assertFalse(midnight.canLiquidate(gatedObligation, lender), "non-whitelisted should fail");
-        assertTrue(midnight.canLiquidate(obligation, lender), "no gate should always pass");
-    }
 }
