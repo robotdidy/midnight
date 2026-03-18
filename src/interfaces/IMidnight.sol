@@ -24,7 +24,6 @@ struct Offer {
     bool buy;
     address maker;
     uint256 obligationUnits;
-    uint256 obligationShares;
     uint256 start;
     uint256 expiry;
     uint256 tick;
@@ -33,6 +32,7 @@ struct Offer {
     address callback;
     bytes callbackData;
     address receiverIfMakerIsSeller;
+    bool exitOnly;
 }
 
 struct Signature {
@@ -41,20 +41,23 @@ struct Signature {
     bytes32 s;
 }
 
-struct BorrowerState {
+struct ObligationState {
+    uint128 totalUnits;
+    uint256 withdrawable;
+    uint128 lossIndex;
+    bool created;
+    uint16[7] fees;
+    uint64 continuousFee;
+}
+
+struct Position {
+    uint128 credit;
+    uint128 lossIndex;
     uint128 debt;
     uint128 activatedCollaterals;
     uint128 pendingFee;
     uint48 lastContinuousFeeAccrual;
-}
-
-struct ObligationState {
-    uint128 totalUnits;
-    uint128 totalShares;
-    uint256 withdrawable;
-    bool created;
-    uint16[7] fees;
-    uint64 continuousFee;
+    uint128[128] collateral;
 }
 
 interface IMidnight {}
