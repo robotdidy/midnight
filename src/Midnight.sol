@@ -450,6 +450,8 @@ contract Midnight is IMidnight {
         if (badDebt > 0) {
             // forge-lint: disable-next-item(unsafe-typecast) as badDebt <= _position.debt
             _position.debt -= uint128(badDebt);
+            // forge-lint: disable-next-item(unsafe-typecast) as badDebt <= originalDebt
+            _position.pendingFee -= uint128(uint256(_position.pendingFee).mulDivUp(badDebt, originalDebt));
             uint256 oldTotalUnits = _obligationState.totalUnits;
             _obligationState.lossIndex = UtilsLib.toUint128(
                 type(uint128).max
@@ -495,12 +497,11 @@ contract Midnight is IMidnight {
             }
             _obligationState.withdrawable += repaidUnits;
             _position.debt -= UtilsLib.toUint128(repaidUnits);
+            // forge-lint: disable-next-item(unsafe-typecast) as repaidUnits <= originalDebt - badDebt
+            _position.pendingFee -= uint128(uint256(_position.pendingFee).mulDivUp(repaidUnits, originalDebt - badDebt));
         }
 
         if (originalDebt > 0) {
-            // forge-lint: disable-next-item(unsafe-typecast) as badDebt and repaidUnits have been deducted from
-            // originalDebt earlier without underflow
-            _position.pendingFee -= uint128(uint256(_position.pendingFee).mulDivUp(badDebt + repaidUnits, originalDebt));
             emit EventsLib.UpdatePendingFee(id, borrower, _position.pendingFee);
         }
 
