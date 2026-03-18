@@ -10,20 +10,6 @@ library UtilsLib {
         }
     }
 
-    /// @dev Returns true if at most one of `x`, `y`, `z` is nonzero.
-    function atMostOneNonZero(uint256 a, uint256 b, uint256 c) internal pure returns (bool z) {
-        assembly {
-            z := gt(add(add(iszero(a), iszero(b)), iszero(c)), 1)
-        }
-    }
-
-    /// @dev Returns true if at most one of `a`, `b`, `c`, `d` is nonzero.
-    function atMostOneNonZero(uint256 a, uint256 b, uint256 c, uint256 d) internal pure returns (bool z) {
-        assembly {
-            z := gt(add(add(add(iszero(a), iszero(b)), iszero(c)), iszero(d)), 2)
-        }
-    }
-
     /// @dev Returns min(a, b).
     function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
         assembly {
@@ -52,14 +38,19 @@ library UtilsLib {
     function isLeaf(bytes32 root, bytes32 leafHash, bytes32[] memory proof) internal pure returns (bool) {
         bytes32 currentHash = leafHash;
         for (uint256 i = 0; i < proof.length; i++) {
-            currentHash = keccak256(sort(currentHash, proof[i]));
+            currentHash = commutativeHash(currentHash, proof[i]);
         }
         return currentHash == root;
     }
 
-    /// @dev Returns the concatenation of x and y, sorted lexicographically.
-    function sort(bytes32 x, bytes32 y) internal pure returns (bytes memory) {
-        return x < y ? abi.encodePacked(x, y) : abi.encodePacked(y, x);
+    /// @dev Returns the keccak256 hash of the sorted concatenation of `a` and `b`.
+    function commutativeHash(bytes32 a, bytes32 b) internal pure returns (bytes32 value) {
+        if (a > b) (a, b) = (b, a);
+        assembly ("memory-safe") {
+            mstore(0x00, a)
+            mstore(0x20, b)
+            value := keccak256(0x00, 0x40)
+        }
     }
 
     function toUint128(uint256 x) internal pure returns (uint128) {
@@ -68,14 +59,12 @@ library UtilsLib {
         return uint128(x);
     }
 
-    /// @dev Returns the number of set bits in x < 2^256-1, 0 otherwise.
-    function countBits(uint256 x) internal pure returns (uint256) {
+    function countBits(uint128 x) internal pure returns (uint256) {
         unchecked {
-            x = x - ((x >> 1) & 0x5555555555555555555555555555555555555555555555555555555555555555);
-            x = (x & 0x3333333333333333333333333333333333333333333333333333333333333333)
-                + ((x >> 2) & 0x3333333333333333333333333333333333333333333333333333333333333333);
-            x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f;
-            return (x * 0x0101010101010101010101010101010101010101010101010101010101010101) >> 248;
+            x = x - ((x >> 1) & 0x55555555555555555555555555555555);
+            x = (x & 0x33333333333333333333333333333333) + ((x >> 2) & 0x33333333333333333333333333333333);
+            x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f;
+            return (x * 0x01010101010101010101010101010101) >> 120;
         }
     }
 

@@ -6,29 +6,19 @@ import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 import {TickLib} from "../src/libraries/TickLib.sol";
 
 contract UtilsLibTest is Test {
-    function testFuzzCountBits(uint256 bitmap) public pure {
-        if (bitmap == type(uint256).max) {
-            assertEq(UtilsLib.countBits(bitmap), 0);
-        } else {
-            uint256 actual = UtilsLib.countBits(bitmap);
-            uint256 expected;
-            while (bitmap != 0) {
-                bitmap &= bitmap - 1;
-                expected++;
-            }
-            assertEq(actual, expected);
+    function testFuzzCountBits(uint128 bitmap) public pure {
+        uint256 actual = UtilsLib.countBits(bitmap);
+        uint256 expected;
+        uint128 temp = bitmap;
+        while (temp != 0) {
+            temp &= temp - 1;
+            expected++;
         }
+        assertEq(actual, expected);
     }
 
     function testAtMostOneNonZero(uint256 x, uint256 y) public pure {
         assertEq(UtilsLib.atMostOneNonZero(x, y), (x != 0 ? 1 : 0) + (y != 0 ? 1 : 0) <= 1);
-    }
-
-    function testAtMostOneNonZero(uint256 a, uint256 b, uint256 c, uint256 d) public pure {
-        assertEq(
-            UtilsLib.atMostOneNonZero(a, b, c, d),
-            (a != 0 ? 1 : 0) + (b != 0 ? 1 : 0) + (c != 0 ? 1 : 0) + (d != 0 ? 1 : 0) <= 1
-        );
     }
 
     function testMin(uint256 a, uint256 b) public pure {
@@ -108,6 +98,13 @@ contract UtilsLibTest is Test {
         proof[0] = y;
         proof[1] = rightNode;
         assertTrue(UtilsLib.isLeaf(root, x, proof));
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testToUint128Overflow(uint256 x) public {
+        x = bound(x, uint256(type(uint128).max) + 1, type(uint256).max);
+        vm.expectRevert("uint256 overflows uint128");
+        UtilsLib.toUint128(x);
     }
 
     function mulDivDown(uint256 x, uint256 y, uint256 d) external pure {

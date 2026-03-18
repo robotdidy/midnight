@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Morpho Association
 pragma solidity >=0.5.0;
 
-import {Obligation} from "./IMorphoV2.sol";
+import {Obligation} from "./IMidnight.sol";
 
 interface ICallbacks {
     function onBuy(
@@ -11,7 +11,6 @@ interface ICallbacks {
         uint256 buyerAssets,
         uint256 sellerAssets,
         uint256 obligationUnits,
-        uint256 obligationShares,
         bytes memory data
     ) external;
     function onSell(
@@ -20,7 +19,6 @@ interface ICallbacks {
         uint256 buyerAssets,
         uint256 sellerAssets,
         uint256 obligationUnits,
-        uint256 obligationShares,
         bytes memory data
     ) external;
     function onLiquidate(
