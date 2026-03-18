@@ -199,8 +199,8 @@ contract Midnight is IMidnight {
         bytes32 id = touchObligation(offer.obligation);
         slash(id, offer.maker);
         slash(id, taker);
-        accrueContinuousFee(id, offer.maker, offer.obligation.maturity);
-        accrueContinuousFee(id, taker, offer.obligation.maturity);
+        accrueContinuousFee(offer.obligation, id, offer.maker);
+        accrueContinuousFee(offer.obligation, id, taker);
         ObligationState storage _obligationState = obligationState[id];
 
         (
@@ -332,7 +332,7 @@ contract Midnight is IMidnight {
         require(onBehalf == msg.sender || isAuthorized[onBehalf][msg.sender], "unauthorized");
         bytes32 id = touchObligation(obligation);
 
-        accrueContinuousFee(id, onBehalf, obligation.maturity);
+        accrueContinuousFee(obligation, id, onBehalf);
 
         Position storage _position = position[id][onBehalf];
         if (_position.debt > 0) {
@@ -384,7 +384,7 @@ contract Midnight is IMidnight {
         bytes32 id = touchObligation(obligation);
         address collateralToken = obligation.collaterals[collateralIndex].token;
 
-        accrueContinuousFee(id, onBehalf, obligation.maturity);
+        accrueContinuousFee(obligation, id, onBehalf);
 
         Position storage _position = position[id][onBehalf];
         uint256 newCollateralOf = _position.collateral[collateralIndex] - assets;
@@ -425,7 +425,7 @@ contract Midnight is IMidnight {
         ObligationState storage _obligationState = obligationState[id];
         Position storage _position = position[id][borrower];
 
-        accrueContinuousFee(id, borrower, obligation.maturity);
+        accrueContinuousFee(obligation, id, borrower);
 
         uint256 maxDebt;
         uint256 liquidatedCollatPrice;
@@ -671,9 +671,9 @@ contract Midnight is IMidnight {
 
     /// @dev This function should be called with the id corresponding to the obligation.
     /// @dev This function does not call any oracle if debt is 0.
-    function isHealthy(Obligation memory obligation, bytes32 id, address borrower) public view returns (bool) {
+    function isHealthy(Obligation memory obligation, bytes32 id, address borrower) internal view returns (bool) {
         Position storage _position = position[id][borrower];
-        uint256 debt = _position.debt + pendingContinuousFee(id, borrower, obligation.maturity);
+        uint256 debt = _position.debt;
         uint256 maxDebt;
         uint256 bitmap = _position.activatedCollaterals;
         while (maxDebt < debt && bitmap != 0) {
@@ -709,22 +709,31 @@ contract Midnight is IMidnight {
         return tentativeSigner;
     }
 
-    function accrueContinuousFee(bytes32 id, address borrower, uint256 maturity) internal {
-        require(obligationState[id].created, "not created");
+    /// @dev Returns the accrued fee.
+    function accrueContinuousFeeView(Obligation memory obligation, bytes32 id, address borrower)
+        public
+        view
+        returns (uint128)
+    {
         // forge-lint: disable-next-item(unsafe-typecast) as accrued fee is <= pendingFee
-        uint128 accruedFee = uint128(pendingContinuousFee(id, borrower, maturity));
-        Position storage _position = position[id][borrower];
+        return uint128(pendingContinuousFee(id, borrower, obligation.maturity));
+    }
 
+    /// @dev Expects the obligation to be touched.
+    /// @dev Expects the id to correspond to the obligation's id.
+    function accrueContinuousFee(Obligation memory obligation, bytes32 id, address borrower) internal {
+        Position storage _position = position[id][borrower];
+        ObligationState storage _obligationState = obligationState[id];
+        uint128 accruedFee = accrueContinuousFeeView(obligation, id, borrower);
         if (accruedFee > 0) {
-            ObligationState storage _obligationState = obligationState[id];
             _position.pendingFee -= accruedFee;
             _position.debt += accruedFee;
             _obligationState.totalUnits += accruedFee;
             slash(id, PASSIVE_FEE_RECIPIENT);
             position[id][PASSIVE_FEE_RECIPIENT].credit += accruedFee;
         }
-
         _position.lastContinuousFeeAccrual = uint48(block.timestamp);
+
         emit EventsLib.AccrueContinuousFee(id, borrower, accruedFee, accruedFee, _position.pendingFee);
     }
 

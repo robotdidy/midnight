@@ -166,9 +166,28 @@ rule slashEffects(env e, bytes32 id, address user, bytes32 anyId, address anyUse
     assert anyUser != user || anyId != id => creditOf(anyId, anyUser) == otherCreditBefore;
 }
 
+/// WITHDRAW COLLATERAL ///
+
+/// withdrawCollateral does not change any user's credit or debt.
+/// When no fee accrual occurs during withdrawCollateral.
+rule withdrawCollateralEffects(env e, Midnight.Obligation obligation, uint256 collateralIndex, uint256 assets, address onBehalf, address receiver, bytes32 anyId, address anyUser) {
+    bytes32 id = toId(e, obligation);
+
+    // Exclude fee accrual effects.
+    require noAccrual(e, id, onBehalf);
+
+    uint256 otherCreditBefore = creditOf(anyId, anyUser);
+    uint256 otherDebtBefore = debtOf(anyId, anyUser);
+
+    withdrawCollateral(e, obligation, collateralIndex, assets, onBehalf, receiver);
+
+    assert creditOf(anyId, anyUser) == otherCreditBefore;
+    assert debtOf(anyId, anyUser) == otherDebtBefore;
+}
+
 /// ALL OTHER FUNCTIONS ///
 
-/// Functions other than take, withdraw, repay, liquidate, and slash do not change any user's credit or debt.
+/// Functions other than take, withdraw, repay, liquidate, slash, and withdrawCollateral do not change any user's credit or debt.
 rule creditAndDebtUnchangedByOtherFunctions(method f, env e, calldataarg args, bytes32 id, address user)
 filtered {
     f -> !f.isView
@@ -177,6 +196,7 @@ filtered {
         && f.selector != sig:repay(Midnight.Obligation, uint256, address).selector
         && f.selector != sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector
         && f.selector != sig:slash(bytes32, address).selector
+        && f.selector != sig:withdrawCollateral(Midnight.Obligation, uint256, uint256, address, address).selector
 } {
     require noAccrual(e, id, user);
     uint256 creditBefore = creditOf(id, user);

@@ -445,23 +445,6 @@ contract ContinuousFeeTest is BaseTest {
         midnight.liquidate(obligation, 0, 0, 0, borrower, "");
     }
 
-    function testIsHealthyAccountsForPendingFee() public {
-        uint256 debt = 100e18;
-        uint256 ttm = 360 days;
-
-        obligation.maturity = block.timestamp + ttm;
-        id = toId(obligation);
-        midnight.setDefaultContinuousFee(address(loanToken), MAX_CONTINUOUS_FEE);
-        collateralize(obligation, borrower, debt);
-        setupObligation(obligation, debt);
-
-        assertTrue(midnight.isHealthy(obligation, id, borrower), "healthy at entry");
-
-        vm.warp(block.timestamp + 180 days);
-
-        assertFalse(midnight.isHealthy(obligation, id, borrower), "unhealthy from pending fee");
-    }
-
     function testSetContinuousFeeOnlyFeeSetter(address rdm) public {
         vm.assume(rdm != address(this));
 

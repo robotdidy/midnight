@@ -594,10 +594,9 @@ contract LiquidationTest is BaseTest {
         ERC20(obligation.collaterals[1].token).approve(address(midnight), collateral2);
         midnight.supplyCollateral(obligation, 1, collateral2, borrower);
 
-        // Check that the position is unhealthy but has no bad debt.
+        // Check that the position has no bad debt.
         // If it had bad debt, this can be taken into account separately.
         assertEq(_badDebt(), 0, "no bad debt");
-        assertFalse(midnight.isHealthy(obligation, id, borrower), "position should be unhealthy");
 
         uint256 collateralNeededToRepayAll = units.mulDivDown(obligation.collaterals[0].maxLif, WAD);
         if (collateralNeededToRepayAll <= collateral1) {
