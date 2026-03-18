@@ -214,8 +214,7 @@ rule liquidateCollateralEffects(env e, Midnight.Obligation obligation, uint256 c
     uint256 otherCollateralBefore = collateralOf(anyId, anyUser, anyIdx);
 
     uint256 seizedResult;
-    uint256 repaidResult;
-    seizedResult, repaidResult = liquidate(e, obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
+    seizedResult, _ = liquidate(e, obligation, collateralIndex, seizedAssets, repaidUnits, borrower, data);
 
     assert collateralOf(id, borrower, collateralIndex) == collateralBefore - seizedResult;
     assert anyUser != borrower || anyId != id || anyIdx != collateralIndex => collateralOf(anyId, anyUser, anyIdx) == otherCollateralBefore;
