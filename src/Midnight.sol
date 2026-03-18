@@ -259,14 +259,14 @@ contract Midnight is IMidnight {
         );
 
         if (buyerDebtReduction > 0) {
-            // forge-lint: disable-next-item(unsafe-typecast) as if obligationUnits > debt, an underflow occurs later.
+            // forge-lint: disable-next-item(unsafe-typecast) as pendingFee reduction <= pendingFee
             buyerPos.pendingFee -= uint128(uint256(buyerPos.pendingFee).mulDivUp(buyerDebtReduction, oldBuyerDebt));
             emit EventsLib.UpdatePendingFee(id, buyer, buyerPos.pendingFee);
         }
 
         if (sellerDebtIncrease > 0) {
             sellerPos.pendingFee += UtilsLib.toUint128(
-                uint256(_obligationState.continuousFee).mulDivDown(sellerDebtIncrease * timeToMaturity, WAD)
+                _obligationState.continuousFee.mulDivDown(sellerDebtIncrease * timeToMaturity, WAD)
             );
             emit EventsLib.UpdatePendingFee(id, seller, sellerPos.pendingFee);
         }
@@ -693,7 +693,7 @@ contract Midnight is IMidnight {
             return 0;
         } else {
             uint256 accrualEnd = UtilsLib.min(block.timestamp, maturity);
-            return uint256(_position.pendingFee).mulDivDown(accrualEnd - lastAccrual, maturity - lastAccrual);
+            return _position.pendingFee.mulDivDown(accrualEnd - lastAccrual, maturity - lastAccrual);
         }
     }
 
@@ -713,19 +713,19 @@ contract Midnight is IMidnight {
         require(obligationState[id].created, "not created");
         // forge-lint: disable-next-item(unsafe-typecast) as accrued fee is <= pendingFee
         uint128 accruedFee = uint128(pendingContinuousFee(id, borrower, maturity));
+        Position storage _position = position[id][borrower];
 
         if (accruedFee > 0) {
-            Position storage _borrowerPos = position[id][borrower];
             ObligationState storage _obligationState = obligationState[id];
-            _borrowerPos.pendingFee -= accruedFee;
-            _borrowerPos.debt += accruedFee;
+            _position.pendingFee -= accruedFee;
+            _position.debt += accruedFee;
             _obligationState.totalUnits += accruedFee;
             slash(id, PASSIVE_FEE_RECIPIENT);
             position[id][PASSIVE_FEE_RECIPIENT].credit += accruedFee;
         }
 
-        position[id][borrower].lastContinuousFeeAccrual = uint48(block.timestamp);
-        emit EventsLib.AccrueContinuousFee(id, borrower, accruedFee, accruedFee, position[id][borrower].pendingFee);
+        _position.lastContinuousFeeAccrual = uint48(block.timestamp);
+        emit EventsLib.AccrueContinuousFee(id, borrower, accruedFee, accruedFee, _position.pendingFee);
     }
 
     function maxLif(uint256 lltv, uint256 cursor) public pure returns (uint256) {
