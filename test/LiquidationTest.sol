@@ -304,7 +304,7 @@ contract LiquidationTest is BaseTest {
         midnight.liquidate(obligation, 0, 0, 0, borrower, "");
     }
 
-    function testSlashEvent(uint256 units) public {
+    function testSlashNonFull(uint256 units) public {
         units = bound(units, 10, MAX_UNITS);
         collateralize(obligation, borrower, units);
         setupObligation(obligation, units);
