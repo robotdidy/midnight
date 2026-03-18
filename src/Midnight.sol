@@ -226,6 +226,18 @@ contract Midnight is IMidnight {
 
         Position storage buyerPos = position[id][buyer];
         Position storage sellerPos = position[id][seller];
+
+        require(
+            (buyerPos.debt > 0) || offer.obligation.takerGate == address(0)
+                || ITakerGate(offer.obligation.takerGate).canLend(buyer),
+            "buyer gated from lending"
+        );
+        require(
+            (sellerPos.credit > 0) || offer.obligation.takerGate == address(0)
+                || ITakerGate(offer.obligation.takerGate).canBorrow(seller),
+            "seller gated from borrowing"
+        );
+
         uint256 oldBuyerDebt = buyerPos.debt;
         uint256 oldSellerDebt = sellerPos.debt;
         uint256 buyerDebtReduction = UtilsLib.min(oldBuyerDebt, obligationUnits);
@@ -236,16 +248,6 @@ contract Midnight is IMidnight {
         sellerPos.debt += UtilsLib.toUint128(obligationUnits - sellerCreditReduction);
         _obligationState.totalUnits = UtilsLib.toUint128(
             _obligationState.totalUnits - oldSellerDebt - oldBuyerDebt + sellerPos.debt + buyerPos.debt
-        );
-        require(
-            (buyerPos.debt > 0) || offer.obligation.takerGate == address(0)
-                || ITakerGate(offer.obligation.takerGate).canLend(buyer),
-            "buyer gated from lending"
-        );
-        require(
-            (sellerPos.credit > 0) || offer.obligation.takerGate == address(0)
-                || ITakerGate(offer.obligation.takerGate).canBorrow(seller),
-            "seller gated from borrowing"
         );
 
         if (offer.exitOnly) require(offer.buy ? buyerPos.credit == 0 : sellerPos.debt == 0, "crossed");
