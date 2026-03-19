@@ -19,7 +19,7 @@ contract MidnightHarness is Midnight {
         returns (bool)
     {
         Position storage _position = position[id][borrower];
-        uint256 debt = _position.debt + accrueContinuousFeeView(obligation, id, borrower);
+        uint256 debt = _position.debt + _accrueContinuousFeeView(obligation, id, borrower);
         uint256 maxDebt;
         uint256 bitmap = _position.activatedCollaterals;
         while (maxDebt < debt && bitmap != 0) {
