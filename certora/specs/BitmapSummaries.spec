@@ -61,9 +61,9 @@ function summaryMsb(uint256 bitmap) returns (uint256) {
     uint256 bit;
     assert bitmap < 2 ^ 128 && bitmap != 0;
 
-    // we only say it returns some bit where getBit is true.
     require bit < 128, "see Bitmap.spec";
     require summaryGetBit(bitmap, bit), "see Bitmap.spec";
+    require forall uint256 otherbit. otherbit < 256 && summaryGetBit(bitmap, otherbit) => otherbit <= bit, "see Bitmap.spec";
     return bit;
 }
 

@@ -63,11 +63,12 @@ rule toggleBitTogglesBit(uint256 bitmap, uint256 bit) {
 
 rule msb(uint256 bitmap) {
     uint256 msbBit = msb(bitmap);
+    uint256 otherBit;
 
     assert bitmap == 0 => msbBit == 2 ^ 256 - 1;
     assert bitmap != 0 => msbBit < 256;
     assert bitmap != 0 => getBit(bitmap, msbBit);
-    assert bitmap != 0 => clearBit(bitmap, msbBit) < 2 ^ msbBit;
+    assert bitmap != 0 && otherBit < 256 && getBit(bitmap, otherBit) => otherBit <= msbBit;
 }
 
 rule setBitFitsUint128(uint128 bitmap, uint256 bit) {
