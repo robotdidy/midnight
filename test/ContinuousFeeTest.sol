@@ -42,7 +42,7 @@ contract ContinuousFeeTest is BaseTest {
         lenderOffer.obligation = obligation;
         lenderOffer.buy = true;
         lenderOffer.maker = otherLender;
-        lenderOffer.units = type(uint256).max;
+        lenderOffer.maxUnits = type(uint256).max;
         lenderOffer.expiry = block.timestamp;
         lenderOffer.tick = MAX_TICK;
 
@@ -94,7 +94,7 @@ contract ContinuousFeeTest is BaseTest {
         // Via take
         deal(address(loanToken), otherLender, 1);
         lenderOffer.obligation = obligation;
-        lenderOffer.units = 1;
+        lenderOffer.maxUnits = 1;
         lenderOffer.expiry = block.timestamp;
         lenderOffer.group = keccak256("accrual-take");
         collateralize(obligation, borrower, 1);
@@ -144,7 +144,7 @@ contract ContinuousFeeTest is BaseTest {
         // Via take
         deal(address(loanToken), otherLender, 1);
         lenderOffer.obligation = obligation;
-        lenderOffer.units = 1;
+        lenderOffer.maxUnits = 1;
         lenderOffer.expiry = block.timestamp;
         lenderOffer.group = keccak256("postmaturity-take");
         collateralize(obligation, borrower, 1);
@@ -231,7 +231,7 @@ contract ContinuousFeeTest is BaseTest {
 
         deal(address(loanToken), otherLender, debt2);
         lenderOffer.obligation = obligation;
-        lenderOffer.units = debt2;
+        lenderOffer.maxUnits = debt2;
         lenderOffer.expiry = block.timestamp;
         lenderOffer.group = keccak256("second-borrow");
 
