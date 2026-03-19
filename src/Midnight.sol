@@ -54,8 +54,9 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 ///
 /// GATES
 /// @dev Gates can be used to restrict the ability to enter an obligation or liquidate.
-/// @dev The taker gate prevent the user from either lend or borrow the obligation on the primary.
-/// @dev A reverting taker gate does not prevent the user from taking the obligation on the secondary market.
+/// @dev The entry gate can gates entries (increasing credit or debt) in the obligation.
+/// @dev The entry gate does not prevent the user from exiting the obligation.
+/// @dev even when it is reverting thus blacklisting addresses does not work.
 /// @dev The liquidator gate prevent the user from liquidating the obligation.
 contract Midnight is IMidnight {
     using UtilsLib for uint256;
