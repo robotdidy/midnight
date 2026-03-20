@@ -57,7 +57,7 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// @dev The entry gate can gate entry actions (increasing credit or debt) in the obligation.
 /// @dev In particular, it does not prevent the user from exiting the obligation
 /// @dev (even when the entry gate is reverting), so blacklisting addresses does not work.
-/// @dev The liquidator gate prevents the user from liquidating the obligation.
+/// @dev The liquidator gate prevents the user from liquidating the obligation (and realizing bad debt).
 contract Midnight is IMidnight {
     using UtilsLib for uint256;
     using UtilsLib for uint128;
@@ -243,12 +243,12 @@ contract Midnight is IMidnight {
         if (offer.exitOnly) require(offer.buy ? buyerPos.credit == 0 : sellerPos.debt == 0, "crossed");
 
         require(
-            buyerPos.credit == 0 || offer.obligation.enterGate == address(0)
-                || IEnterGate(offer.obligation.enterGate).canIncreaseCredit(buyer),
+            offer.obligation.enterGate == address(0) ||buyerPos.credit == 0 || 
+                IEnterGate(offer.obligation.enterGate).canIncreaseCredit(buyer),
             "buyer gated from increasing credit"
         );
         require(
-            sellerPos.debt == 0 || offer.obligation.enterGate == address(0)
+            offer.obligation.enterGate == address(0) || sellerPos.debt == 0 || 
                 || IEnterGate(offer.obligation.enterGate).canIncreaseDebt(seller),
             "seller gated from increasing debt"
         );
