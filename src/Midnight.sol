@@ -48,6 +48,18 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// @dev Trading fees are stored divided by FEE_STEP (1e12) to fit in 16 bits.
 /// @dev Max trading fee is defined per index (see maxTradingFee function).
 ///
+/// CONTINUOUS FEES
+/// @dev A default continuous fee is set per loan token and applied when obligations are created. Then, the fee setter
+/// can override the continuous fee per obligation.
+/// @dev The fee is tracked per lender via `pendingFee` in each position. If the obligation's continuous fee changes,
+/// the pending fee of existing lenders is not updated (=> their fee is fixed).
+/// @dev Absent bad debt, the face value of a lender's position is `credit - pendingFee`.
+///
+/// SLASHING
+/// @dev When some bad debt is realized, it is socialized among lenders in the obligation.
+/// @dev At each lender's next interaction, their credit is slashed proportionally.
+/// @dev The fee recipient is not slashed when receiving fees, so it will be slashed a bit too much later.
+///
 /// ROUNDINGS
 /// @dev lossIndex is rounded up so lenders collectively lose a bit more on each bad debt realization.
 /// @dev slash rounds the credit down, so lenders lose a bit at each interaction.
@@ -63,7 +75,6 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 contract Midnight is IMidnight {
     using UtilsLib for uint256;
     using UtilsLib for uint128;
-    using UtilsLib for uint64;
 
     /// STORAGE ///
 
@@ -344,8 +355,7 @@ contract Midnight is IMidnight {
         require(onBehalf == msg.sender || isAuthorized[onBehalf][msg.sender], "unauthorized");
         bytes32 id = touchObligation(obligation);
 
-        Position storage _position = position[id][onBehalf];
-        _position.debt -= UtilsLib.toUint128(units);
+        position[id][onBehalf].debt -= UtilsLib.toUint128(units);
         obligationState[id].withdrawable += units;
 
         emit EventsLib.Repay(msg.sender, id, units, onBehalf);

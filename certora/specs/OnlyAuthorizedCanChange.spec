@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+using Utils as Utils;
+
 methods {
     function feeRecipient() external returns (address) envfree;
     function Utils.passiveFeeRecipient() external returns (address) envfree;
