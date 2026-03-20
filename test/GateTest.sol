@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import {Obligation, Offer, Collateral} from "../src/interfaces/IMidnight.sol";
 import {IEnterGate, ILiquidatorGate} from "../src/interfaces/IGate.sol";
 import {LIQUIDATION_CURSOR_LOW, ORACLE_PRICE_SCALE} from "../src/libraries/ConstantsLib.sol";
-import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 import {MAX_TICK} from "../src/libraries/TickLib.sol";
 import {BaseTest, MAX_TEST_AMOUNT} from "./BaseTest.sol";
 import {Oracle} from "./helpers/Oracle.sol";
@@ -31,8 +30,6 @@ contract WhitelistGate is IEnterGate, ILiquidatorGate {
 }
 
 contract GateTest is BaseTest {
-    using UtilsLib for uint256;
-
     WhitelistGate internal gate;
     Obligation internal obligation;
     Obligation internal gatedObligation;
@@ -130,7 +127,7 @@ contract GateTest is BaseTest {
 
     // --- No gate check on exit  ---
 
-    function testNoLenderGateCheckWhenBorrowerIsExitingBorrower(uint256 obligationUnits) public {
+    function testNoEnterGateCheckWhenBorrowerIsExitingBorrower(uint256 obligationUnits) public {
         obligationUnits = bound(obligationUnits, 1, MAX_TEST_AMOUNT * 3 / 4);
         gate.setWhitelisted(lender, true);
         gate.setWhitelisted(borrower, true);
