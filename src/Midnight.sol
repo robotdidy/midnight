@@ -698,22 +698,19 @@ contract Midnight is IMidnight {
 
     /// @dev Returns the accrued fee.
     function accrueContinuousFeeView(Obligation memory obligation, address borrower) public view returns (uint256) {
-        return _accrueContinuousFeeView(obligation, IdLib.toId(obligation, block.chainid, address(this)), borrower);
+        bytes32 id = IdLib.toId(obligation, block.chainid, address(this));
+        return _accrueContinuousFeeView(id, obligation.maturity, borrower);
     }
 
     /// @dev Expects the id to correspond to the obligation's id.
-    function _accrueContinuousFeeView(Obligation memory obligation, bytes32 id, address borrower)
-        internal
-        view
-        returns (uint256)
-    {
+    function _accrueContinuousFeeView(bytes32 id, uint256 maturity, address borrower) internal view returns (uint256) {
         Position storage _position = position[id][borrower];
         uint256 lastAccrual = _position.lastContinuousFeeAccrual;
-        if (lastAccrual == 0 || lastAccrual >= obligation.maturity) {
+        if (lastAccrual == 0 || lastAccrual >= maturity) {
             return 0;
         } else {
-            uint256 accrualEnd = UtilsLib.min(block.timestamp, obligation.maturity);
-            return _position.pendingFee.mulDivDown(accrualEnd - lastAccrual, obligation.maturity - lastAccrual);
+            uint256 accrualEnd = UtilsLib.min(block.timestamp, maturity);
+            return _position.pendingFee.mulDivDown(accrualEnd - lastAccrual, maturity - lastAccrual);
         }
     }
 
@@ -729,7 +726,7 @@ contract Midnight is IMidnight {
     function accrueContinuousFee(Obligation memory obligation, bytes32 id, address user) internal {
         Position storage _position = position[id][user];
         // forge-lint: disable-next-item(unsafe-typecast) as accrued fee is <= pendingFee
-        uint128 accruedFee = uint128(_accrueContinuousFeeView(obligation, id, user));
+        uint128 accruedFee = uint128(_accrueContinuousFeeView(id, obligation.maturity, user));
         if (accruedFee > 0) {
             _position.pendingFee -= accruedFee;
             _position.credit -= accruedFee;
