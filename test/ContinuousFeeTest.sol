@@ -252,8 +252,10 @@ contract ContinuousFeeTest is BaseTest {
         // Lender exits via take (lender is seller, otherLender is buyer)
         deal(address(loanToken), otherLender, exitAmount);
 
-        vm.expectEmit();
-        emit EventsLib.UpdatePosition(id, otherLender, 0, 0, 0);
+        if (exitAmount > 0) {
+            vm.expectEmit();
+            emit EventsLib.UpdatePosition(id, otherLender, 0, 0, 0);
+        }
         vm.expectEmit();
         emit EventsLib.UpdatePosition(id, lender, creditAfterAccrual, remainingAfterAccrual, feeUnits);
         uint256 expectedRemaining = creditAfterAccrual > 0
