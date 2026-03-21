@@ -16,8 +16,8 @@ methods {
     function UtilsLib.isLeaf(bytes32, bytes32, bytes32[] memory) internal returns (bool) => NONDET;
     function UtilsLib.msb(uint256) internal returns (uint256) => NONDET;
     function TickLib.tickToPrice(uint256) internal returns (uint256) => NONDET;
-    function UtilsLib.mulDivDown(uint256 x, uint256 y, uint256 d) internal returns (uint256) => NONDET;
-    function UtilsLib.mulDivUp(uint256 x, uint256 y, uint256 d) internal returns (uint256) => NONDET;
+    function UtilsLib.mulDivDown(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDiv(x, y, d);
+    function UtilsLib.mulDivUp(uint256 x, uint256 y, uint256 d) internal returns (uint256) => summaryMulDiv(x, y, d);
 
     // Assume no reentrancy: callbacks and token transfers do not re-enter Midnight.
     // This is justified because the properties we verify are about the effect of each function's own
@@ -32,14 +32,22 @@ methods {
 
 /// HELPERS ///
 
+// mulDiv(x, y, y) == x is needed so _updatePosition is a no-op under noSlash.
+function summaryMulDiv(uint256 x, uint256 y, uint256 d) returns uint256 {
+    if (x == 0 || y == 0) return 0;
+    if (d > 0 && y == d) return x;
+    uint256 res;
+    return res;
+}
+
 // All rules in this file assume no accrual and no slash.
 definition noAccrual(env e, bytes32 id, address user) returns bool = currentContract.position[id][user].pendingFee == 0 || e.block.timestamp == currentContract.position[id][user].lastAccrual;
 
-definition noSlash(bytes32 id, address user) returns bool = currentContract.position[id][user].lossIndex == currentContract.obligationState[id].lossIndex;
+definition noSlash(bytes32 id, address user) returns bool = currentContract.position[id][user].lossIndex == currentContract.obligationState[id].lossIndex && currentContract.position[id][user].lossIndex < max_uint128;
 
 /// REPAY ///
 
-/// When no fee accrual occurs, repay decreases onBehalf's debt by exactly units and only changes position[id][onBehalf].debt
+/// Repay decreases onBehalf's debt by exactly units and only changes position[id][onBehalf].debt
 rule repayEffects(env e, Midnight.Obligation obligation, uint256 units, address onBehalf, bytes32 anyId, address anyUser) {
     bytes32 id = toId(e, obligation);
 

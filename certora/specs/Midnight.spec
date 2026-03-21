@@ -61,8 +61,7 @@ function summaryMulDiv(uint256 x, uint256 y, uint256 d) returns uint256 {
     if (d > 0 && y == d) return x;
     if (d > 0 && x == d) return y;
     uint256 res;
-    require y > d || res <= x;
-    require y > d || x > d || x - res <= d - y;
+    require y <= d => res <= x;
     return res;
 }
 
