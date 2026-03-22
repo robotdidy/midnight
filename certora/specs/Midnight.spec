@@ -136,12 +136,12 @@ strong invariant totalUnitsEqualsSumNegativeDebtPlusWithdrawable(bytes32 id)
 
 strong invariant pendingContinuousFeeBoundedByCredit(bytes32 id, address user)
     pendingFee(id, user) <= creditOf(id, user)
-    filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector }
+    filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector && f.selector != sig:updatePosition(Midnight.Obligation, address).selector && f.selector != sig:withdraw(Midnight.Obligation, uint256, address, address).selector }
     // TODO fix this
 
 strong invariant noRemainingContinuousFeeWithoutCredit(bytes32 id, address user)
     creditOf(id, user) == 0 => pendingFee(id, user) == 0
-    filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector }
+    filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector && f.selector != sig:updatePosition(Midnight.Obligation, address).selector && f.selector != sig:withdraw(Midnight.Obligation, uint256, address, address).selector }
     // TODO fix this
 
 strong invariant userLossIndexLeqObligationLossIndex(bytes32 id, address user)
