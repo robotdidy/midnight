@@ -108,7 +108,7 @@ abstract contract BaseTest is Test {
         lenderOffer.obligation = obligation;
         lenderOffer.buy = true;
         lenderOffer.maker = otherLender;
-        lenderOffer.units = units;
+        lenderOffer.maxUnits = units;
         lenderOffer.group = keccak256(abi.encode("non zero group"));
         lenderOffer.expiry = block.timestamp + 200;
         lenderOffer.tick = MAX_TICK;
@@ -129,7 +129,7 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.buy = false;
         badBorrowerOffer.maker = badBorrower;
         badBorrowerOffer.receiverIfMakerIsSeller = badBorrower;
-        badBorrowerOffer.units = 100;
+        badBorrowerOffer.maxUnits = 100;
         badBorrowerOffer.start = block.timestamp;
         badBorrowerOffer.expiry = block.timestamp + 200;
         badBorrowerOffer.tick = MAX_TICK;
@@ -222,7 +222,7 @@ abstract contract BaseTest is Test {
         return arr;
     }
 
-    /// @dev Returns an obligation with sorted, unique collaterals and valid lltv/maxLif.
+    /// @dev Returns an obligation with sorted, unique collaterals, valid lltv/maxLif, and a creatable TTM.
     function validObligation(Obligation memory obligation) internal pure returns (Obligation memory) {
         uint256 len = obligation.collaterals.length > MAX_COLLATERALS ? MAX_COLLATERALS : obligation.collaterals.length;
         Collateral[] memory collaterals = new Collateral[](len);
@@ -245,7 +245,7 @@ abstract contract BaseTest is Test {
         borrowerOffer.buy = false;
         borrowerOffer.maker = borrower;
         borrowerOffer.receiverIfMakerIsSeller = borrower;
-        borrowerOffer.units = units;
+        borrowerOffer.maxUnits = units;
         borrowerOffer.start = block.timestamp;
         borrowerOffer.expiry = block.timestamp;
         borrowerOffer.tick = MAX_TICK;

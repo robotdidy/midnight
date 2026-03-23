@@ -59,11 +59,11 @@ rule consumeNonDecreasing(env e, method f, calldataarg args, address user, bytes
     assert consumed(user, group) >= consumedBefore;
 }
 
-/// After a successful `take`, consumed[offer.maker][offer.group] does not exceed offer.units.
+/// After a successful `take`, consumed[offer.maker][offer.group] does not exceed offer.maxUnits.
 rule takeConsumedBoundedByMax(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
     take(e, units, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
 
-    assert consumed(offer.maker, offer.group) <= offer.units;
+    assert consumed(offer.maker, offer.group) <= offer.maxUnits;
 }
 
 /// After a successful `take`, the change in consumed equals the units taken.
@@ -82,14 +82,14 @@ rule takeConsumedAtMaxUnchanged(env e, uint256 units, address taker, address tak
 
     take(e, units, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
 
-    assert consumedBefore >= offer.units => consumed(offer.maker, offer.group) == consumedBefore;
+    assert consumedBefore >= offer.maxUnits => consumed(offer.maker, offer.group) == consumedBefore;
 }
 
 /// A fully-consumed offer only allows no-op takes.
 rule fullyConsumedOfferRevertsOnNonTrivialTake(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
     uint256 consumedBefore = consumed(offer.maker, offer.group);
 
-    require offer.units > 0 && consumedBefore >= offer.units, "assume the offer is fully consumed";
+    require offer.maxUnits > 0 && consumedBefore >= offer.maxUnits, "assume the offer is fully consumed";
 
     take(e, units, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
 

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {Obligation, Offer, Collateral} from "../src/interfaces/IMidnight.sol";
-import {WAD} from "../src/libraries/ConstantsLib.sol";
+import {WAD, MAX_CONTINUOUS_FEE} from "../src/libraries/ConstantsLib.sol";
 import {UtilsLib} from "../src/libraries/UtilsLib.sol";
 import {TickLib, MAX_TICK} from "../src/libraries/TickLib.sol";
 import {BaseTest} from "./BaseTest.sol";
@@ -45,7 +45,7 @@ contract TakeAmountsTest is BaseTest {
         id = toId(obligation);
 
         offer.buy = false;
-        offer.units = type(uint256).max;
+        offer.maxUnits = type(uint256).max;
         offer.obligation = obligation;
         offer.expiry = block.timestamp + 200;
         offer.tick = MAX_TICK;
