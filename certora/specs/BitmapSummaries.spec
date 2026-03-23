@@ -5,7 +5,6 @@ methods {
 
     function collateralOf(bytes32 id, address user, uint256 index) external returns (uint128) envfree;
 
-    function UtilsLib.getBit(uint256 bitmap, uint256 bit) internal returns (bool) => summaryGetBit(bitmap, bit);
     function UtilsLib.setBit(uint256 bitmap, uint256 bit) internal returns (uint256) => summarySetBit(bitmap, bit);
     function UtilsLib.clearBit(uint256 bitmap, uint256 bit) internal returns (uint256) => summaryClearBit(bitmap, bit);
     function UtilsLib.msb(uint256 bitmap) internal returns (uint256) => summaryMsb(bitmap);
