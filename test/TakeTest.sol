@@ -320,11 +320,14 @@ contract TakeTest is BaseTest {
         collateralize(obligation, borrower, exitUnits);
 
         uint256 debtBefore = midnight.debtOf(id, otherBorrower);
+        uint256 totalUnitsBefore = midnight.totalUnits(id);
 
         take(exitUnits, borrower, otherBorrowerOffer);
 
-        assertEq(midnight.creditOf(id, otherBorrower), 0, "no credit");
-        assertEq(midnight.debtOf(id, otherBorrower), debtBefore - exitUnits, "debt reduced");
+        assertEq(midnight.debtOf(id, borrower), exitUnits, "borrower debt");
+        assertEq(midnight.creditOf(id, otherBorrower), 0, "otherBorrower units");
+        assertEq(midnight.debtOf(id, otherBorrower), debtBefore - exitUnits, "otherBorrower debt");
+        assertEq(midnight.totalUnits(id), totalUnitsBefore, "total units");
     }
 
     function testExitOnlyBuyRevert(uint256 existingUnits, uint256 exitUnits) public {
@@ -351,11 +354,15 @@ contract TakeTest is BaseTest {
         deal(address(loanToken), lender, exitUnits.mulDivUp(price, WAD));
 
         uint256 creditBefore = midnight.creditOf(id, otherLender);
+        uint256 totalUnitsBefore = midnight.totalUnits(id);
 
         take(exitUnits, lender, otherLenderOffer);
 
-        assertEq(midnight.debtOf(id, otherLender), 0, "no debt");
-        assertEq(midnight.creditOf(id, otherLender), creditBefore - exitUnits, "credit reduced");
+        assertEq(midnight.creditOf(id, lender), exitUnits, "lender units");
+        assertEq(midnight.debtOf(id, lender), 0, "lender debt");
+        assertEq(midnight.creditOf(id, otherLender), creditBefore - exitUnits, "other lender units");
+        assertEq(midnight.debtOf(id, otherLender), 0, "other lender debt");
+        assertEq(midnight.totalUnits(id), totalUnitsBefore, "total units");
     }
 
     function testExitOnlySellRevert(uint256 existingUnits, uint256 exitUnits) public {
@@ -1039,14 +1046,7 @@ contract BorrowCallback is ICallbacks {
         Midnight(msg.sender).supplyCollateral(obligation, collateralIndex, amount, seller);
     }
 
-    function onBuy(
-        Obligation memory obligation,
-        address buyer,
-        uint256 buyerAssets,
-        uint256 sellerAssets,
-        uint256 units,
-        bytes memory data
-    ) external {}
+    function onBuy(Obligation memory, address, uint256, uint256, uint256, bytes memory) external {}
 
     function onLiquidate(Obligation memory, uint256, uint256, uint256, address, bytes memory) external {}
     function onRatify(Offer memory, address) external returns (bytes32) {}
@@ -1067,14 +1067,7 @@ contract LendCallback is ICallbacks {
         require(ERC20(obligation.loanToken).transfer(buyer, buyerAssets), "transfer failed");
     }
 
-    function onSell(
-        Obligation memory obligation,
-        address seller,
-        uint256 buyerAssets,
-        uint256 sellerAssets,
-        uint256 units,
-        bytes memory data
-    ) external {}
+    function onSell(Obligation memory, address, uint256, uint256, uint256, bytes memory) external {}
 
     function onLiquidate(Obligation memory, uint256, uint256, uint256, address, bytes memory) external {}
     function onRatify(Offer memory, address) external returns (bytes32) {}
