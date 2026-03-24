@@ -42,7 +42,7 @@ strong invariant feeRecipientCantAuthorize(address authorized)
     !isAuthorized(Utils.passiveFeeRecipient(), authorized)
     {
         preserved with (env e) {
-            require e.msg.sender != Utils.passiveFeeRecipient(), "passive fee recipient can't sign";
+            require e.msg.sender != Utils.passiveFeeRecipient(), "passive fee recipient can't sign or call";
             requireInvariant feeRecipientCantAuthorize(e.msg.sender);
         }
     }
@@ -53,7 +53,7 @@ strong invariant feeRecipientHasNoPendingFee(bytes32 id)
     pendingFee(id, Utils.passiveFeeRecipient()) == 0
     {
         preserved take(uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) with (env e) {
-            require e.msg.sender != Utils.passiveFeeRecipient(), "passive fee recipient can't sign";
+            require e.msg.sender != Utils.passiveFeeRecipient(), "passive fee recipient can't sign or call";
             requireInvariant feeRecipientCantAuthorize(e.msg.sender);
         }
     }
@@ -119,12 +119,12 @@ rule withdrawEffects(env e, Midnight.Obligation obligation, uint256 units, addre
 
 /// take changes maker's and taker's net credit-debt by +/- units relative to their post-update values
 /// and only changes credit of maker, taker, and passive fee recipient and debt of maker and taker at the obligation id.
-/// Assumes the passive fee recipient can't sign since its address derives from the hash of a human readable string.
+/// Assumes the passive fee recipient can't sign or call since its address derives from the hash of a human readable string.
 rule takeEffects(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, bytes32 anyId, address anyUser) {
     bytes32 id = toId(e, offer.obligation);
     address passiveFeeRecipient = Utils.passiveFeeRecipient();
 
-    require e.msg.sender != passiveFeeRecipient, "passive fee recipient can't sign";
+    require e.msg.sender != passiveFeeRecipient, "passive fee recipient can't sign or call";
     requireInvariant feeRecipientCantAuthorize(e.msg.sender);
 
     uint128 makerCreditBefore;
