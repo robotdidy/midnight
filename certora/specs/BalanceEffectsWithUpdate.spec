@@ -61,6 +61,7 @@ rule updatePositionEffects(env e, Midnight.Obligation obligation, address user, 
     assert (anyUser != passiveFeeRecipient && anyUser != user) => creditOf(anyId, anyUser) == anyCredit;
     assert (anyId != id) => creditOf(anyId, anyUser) == anyCredit;
     assert creditOf(id, user) == updatedUserCredit;
+
     // Depends on antecedent because fee recipient is not slashed in other user updates.
     assert user != passiveFeeRecipient => creditOf(id, passiveFeeRecipient) == feeRecipientCredit + userFee;
 }
@@ -89,6 +90,7 @@ rule withdrawEffects(env e, Midnight.Obligation obligation, uint256 units, addre
     assert debtOf(anyId, anyUser) == anyDebt;
     assert (anyUser != passiveFeeRecipient && anyUser != onBehalf) => creditOf(anyId, anyUser) == anyCredit;
     assert (anyId != id) => creditOf(anyId, anyUser) == anyCredit;
+
     // Depends on antecedent because fee recipient is not slashed in other user updates.
     assert onBehalf != passiveFeeRecipient => creditOf(id, passiveFeeRecipient) == feeRecipientCredit + userFee;
 }
