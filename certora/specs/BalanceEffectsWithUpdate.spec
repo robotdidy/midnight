@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+// The file is separate from BalanceEffects.spec because it cannot use a mulDiv summary.
+
 using Utils as Utils;
 
 methods {
@@ -13,7 +15,6 @@ methods {
 
     function _.price() external => NONDET;
 
-    // Summarize internals irrelevant to credit and debt tracking.
     function IdLib.storeInCode(Midnight.Obligation memory) internal returns (address) => NONDET;
     function SafeTransferLib.safeTransfer(address, address, uint256) internal => NONDET;
     function SafeTransferLib.safeTransferFrom(address, address, address, uint256) internal => NONDET;
@@ -22,9 +23,10 @@ methods {
     function TickLib.tickToPrice(uint256) internal returns (uint256) => NONDET;
 
     // Assume no reentrancy: callbacks and token transfers do not re-enter Midnight.
+    // This is justified because the properties we verify are about the effect of each function's own
+    // body on credit and debt, not the effect of the full transaction including callbacks.
     function _.onBuy(Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
     function _.onSell(Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
-    function _.transfer(address, uint256) external => NONDET;
     function signer(bytes32, Midnight.Signature memory) internal returns (address) => NONDET;
 }
 
