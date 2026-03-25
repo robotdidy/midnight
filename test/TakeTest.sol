@@ -841,8 +841,8 @@ contract BorrowCallback is ICallbacks {
         uint256,
         bytes memory data
     ) external {
-        recordedObligationId = obligationId;
         require(obligationId == IdLib.toId(obligation, block.chainid, msg.sender), "wrong obligationId");
+        recordedObligationId = obligationId;
         recordedData = data;
         (uint256 collateralIndex, uint256 amount) = abi.decode(data, (uint256, uint256));
         address collateralToken = obligation.collaterals[collateralIndex].token;
@@ -869,8 +869,8 @@ contract LendCallback is ICallbacks {
         uint256,
         bytes memory data
     ) external {
-        recordedObligationId = obligationId;
         require(obligationId == IdLib.toId(obligation, block.chainid, msg.sender), "wrong obligationId");
+        recordedObligationId = obligationId;
         recordedData = data;
         require(ERC20(obligation.loanToken).transfer(buyer, buyerAssets), "transfer failed");
     }
