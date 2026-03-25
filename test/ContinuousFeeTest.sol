@@ -79,7 +79,7 @@ contract ContinuousFeeTest is BaseTest {
         // Via withdraw(0)
         uint256 snap = vm.snapshotState();
         vm.expectEmit();
-        emit EventsLib.UpdatePosition(id, lender, credit - expectedFee, remaining - expectedFee, expectedFee);
+        emit EventsLib.UpdatePosition(id, lender, expectedFee, remaining - expectedFee, expectedFee);
         vm.prank(lender);
         midnight.withdraw(obligation, 0, lender, lender);
         assertEq(midnight.creditOf(id, lender), credit - expectedFee, "credit after withdraw");
@@ -88,7 +88,7 @@ contract ContinuousFeeTest is BaseTest {
 
         // Via direct call
         vm.expectEmit();
-        emit EventsLib.UpdatePosition(id, lender, credit - expectedFee, remaining - expectedFee, expectedFee);
+        emit EventsLib.UpdatePosition(id, lender, expectedFee, remaining - expectedFee, expectedFee);
         midnight.updatePosition(obligation, lender);
         assertEq(midnight.creditOf(id, lender), credit - expectedFee, "credit after direct call");
         assertEq(midnight.pendingFee(id, lender), remaining - expectedFee, "remaining after direct call");
@@ -114,7 +114,7 @@ contract ContinuousFeeTest is BaseTest {
         // Via withdraw(0)
         uint256 snap = vm.snapshotState();
         vm.expectEmit();
-        emit EventsLib.UpdatePosition(id, lender, credit - remaining, 0, remaining);
+        emit EventsLib.UpdatePosition(id, lender, remaining, 0, remaining);
         vm.prank(lender);
         midnight.withdraw(obligation, 0, lender, lender);
         assertEq(midnight.creditOf(id, lender), credit - remaining, "all remaining consumed (withdraw)");
@@ -123,7 +123,7 @@ contract ContinuousFeeTest is BaseTest {
 
         // Via direct call
         vm.expectEmit();
-        emit EventsLib.UpdatePosition(id, lender, credit - remaining, 0, remaining);
+        emit EventsLib.UpdatePosition(id, lender, remaining, 0, remaining);
         midnight.updatePosition(obligation, lender);
         assertEq(midnight.creditOf(id, lender), credit - remaining, "all remaining consumed (direct)");
         assertEq(midnight.pendingFee(id, lender), 0, "remaining is zero (direct)");
@@ -255,7 +255,7 @@ contract ContinuousFeeTest is BaseTest {
         vm.expectEmit();
         emit EventsLib.UpdatePosition(id, otherLender, 0, 0, 0);
         vm.expectEmit();
-        emit EventsLib.UpdatePosition(id, lender, creditAfterAccrual, remainingAfterAccrual, feeUnits);
+        emit EventsLib.UpdatePosition(id, lender, credit - creditAfterAccrual, remainingAfterAccrual, feeUnits);
         uint256 expectedRemaining = creditAfterAccrual > 0
             ? remainingAfterAccrual - remainingAfterAccrual.mulDivUp(exitAmount, creditAfterAccrual)
             : 0;
@@ -376,11 +376,12 @@ contract ContinuousFeeTest is BaseTest {
 
         vm.warp(block.timestamp + elapsed);
 
-        (uint128 expectedCredit, uint128 expectedPending,) = midnight.updatePositionView(obligation, id, lender);
+        uint128 creditBefore = uint128(midnight.creditOf(id, lender));
+        (uint128 creditLost, uint128 expectedPending,) = midnight.updatePositionView(obligation, id, lender);
 
         midnight.updatePosition(obligation, lender);
 
-        assertEq(midnight.creditOf(id, lender), expectedCredit, "view matches credit");
+        assertEq(midnight.creditOf(id, lender), creditBefore - creditLost, "view matches credit");
         assertEq(midnight.pendingFee(id, lender), expectedPending, "view matches pendingFee");
     }
 }

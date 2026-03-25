@@ -597,7 +597,7 @@ contract Midnight is IMidnight {
     /// SLASHING AND CONTINUOUS FEE ACCRUAL ///
 
     /// @dev Expects the id to correspond to the obligation's id.
-    /// @dev Returns the new credit, new pending fee, and accrued fee after having updated the position.
+    /// @dev Returns the credit lost, new pending fee, and accrued fee after having updated the position.
     function updatePositionView(Obligation memory obligation, bytes32 id, address user)
         public
         view
@@ -618,7 +618,7 @@ contract Midnight is IMidnight {
             ? uint128(postSlashPending.mulDivDown(accrualEnd - _lastAccrual, obligation.maturity - _lastAccrual))
             : 0;
         // forge-lint: disable-next-item(unsafe-typecast) as credit and pending are <= uint128 position fields
-        return (uint128(postSlashCredit) - fee, uint128(postSlashPending) - fee, fee);
+        return (credit - uint128(postSlashCredit) + fee, uint128(postSlashPending) - fee, fee);
     }
 
     /// @dev Slashes the position and accrues the continuous fee.
@@ -632,9 +632,9 @@ contract Midnight is IMidnight {
     /// @dev Expects the id to correspond to the obligation's id.
     function _updatePosition(Obligation memory obligation, bytes32 id, address user) internal {
         Position storage _position = position[id][user];
-        (uint128 newCredit, uint128 newPending, uint128 accruedFee) = updatePositionView(obligation, id, user);
+        (uint128 creditLost, uint128 newPending, uint128 accruedFee) = updatePositionView(obligation, id, user);
 
-        _position.credit = newCredit;
+        _position.credit -= creditLost;
         _position.lossIndex = obligationState[id].lossIndex;
         _position.pendingFee = newPending;
         _position.lastAccrual = uint128(block.timestamp);
@@ -642,7 +642,7 @@ contract Midnight is IMidnight {
         // slashed a bit too much later.
         position[id][PASSIVE_FEE_RECIPIENT].credit += accruedFee;
 
-        emit EventsLib.UpdatePosition(id, user, newCredit, newPending, accruedFee);
+        emit EventsLib.UpdatePosition(id, user, creditLost, newPending, accruedFee);
     }
 
     /// OTHER VIEW FUNCTIONS ///
