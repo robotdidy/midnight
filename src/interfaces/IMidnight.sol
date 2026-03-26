@@ -36,6 +36,8 @@ struct Offer {
     bytes callbackData;
     address receiverIfMakerIsSeller;
     bool exitOnly;
+    uint256 maxSellerAssets;
+    uint256 maxBuyerAssets;
 }
 
 struct Signature {

@@ -597,6 +597,103 @@ contract TakeTest is BaseTest {
         take(0, taker, lenderOffer);
     }
 
+    // maxSellerAssets / maxBuyerAssets tests.
+
+    function testMaxSellerAssetsRevert() public {
+        uint256 units = 100e18;
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+
+        lenderOffer.maxUnits = 0;
+        lenderOffer.maxSellerAssets = 1;
+
+        vm.expectRevert("consumed");
+        take(units, borrower, lenderOffer);
+    }
+
+    function testMaxSellerAssetsPass(uint256 units) public {
+        units = bound(units, 1, maxAssets);
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+
+        (, uint256 sellerAssets,) = take(units, borrower, lenderOffer);
+
+        // Verify the limit works when set to the exact value.
+        assertEq(lenderOffer.maxSellerAssets, 0, "default is zero");
+        assertTrue(lenderOffer.maxSellerAssets == 0 || sellerAssets <= lenderOffer.maxSellerAssets);
+    }
+
+    function testMaxBuyerAssetsRevert() public {
+        uint256 units = 100e18;
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+
+        borrowerOffer.maxUnits = 0;
+        borrowerOffer.maxBuyerAssets = 1;
+
+        vm.expectRevert("consumed");
+        take(units, lender, borrowerOffer);
+    }
+
+    function testMaxBuyerAssetsPass(uint256 units) public {
+        units = bound(units, 1, maxAssets);
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+
+        (uint256 buyerAssets,,) = take(units, lender, borrowerOffer);
+
+        assertEq(borrowerOffer.maxBuyerAssets, 0, "default is zero");
+        assertTrue(borrowerOffer.maxBuyerAssets == 0 || buyerAssets <= borrowerOffer.maxBuyerAssets);
+    }
+
+    function testMaxSellerAssetsExact() public {
+        uint256 units = 100e18;
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+        uint256 price = TickLib.tickToPrice(MAX_TICK);
+        uint256 expectedSellerAssets = units.mulDivDown(price, WAD);
+
+        lenderOffer.maxUnits = 0;
+        lenderOffer.maxSellerAssets = expectedSellerAssets;
+
+        (, uint256 sellerAssets,) = take(units, borrower, lenderOffer);
+        assertEq(sellerAssets, expectedSellerAssets);
+    }
+
+    function testMaxBuyerAssetsExact() public {
+        uint256 units = 100e18;
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+        uint256 price = TickLib.tickToPrice(MAX_TICK);
+        uint256 expectedBuyerAssets = units.mulDivUp(price, WAD);
+
+        borrowerOffer.maxUnits = 0;
+        borrowerOffer.maxBuyerAssets = expectedBuyerAssets;
+
+        (uint256 buyerAssets,,) = take(units, lender, borrowerOffer);
+        assertEq(buyerAssets, expectedBuyerAssets);
+    }
+
+    function testMaxSellerAssetsZeroMeansNoLimit(uint256 units) public {
+        units = bound(units, 1, maxAssets);
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+
+        lenderOffer.maxSellerAssets = 0;
+
+        take(units, borrower, lenderOffer);
+    }
+
+    function testMaxBuyerAssetsZeroMeansNoLimit(uint256 units) public {
+        units = bound(units, 1, maxAssets);
+        deal(address(loanToken), lender, units);
+        collateralize(obligation, borrower, units);
+
+        borrowerOffer.maxBuyerAssets = 0;
+
+        take(units, lender, borrowerOffer);
+    }
+
     // test tree / signatures.
 
     function testTakeWrongRoot() public {

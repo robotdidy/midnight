@@ -256,8 +256,17 @@ contract Midnight is IMidnight {
         uint256 buyerAssets = offer.buy ? units.mulDivDown(buyerPrice, WAD) : units.mulDivUp(buyerPrice, WAD);
         uint256 sellerAssets = offer.buy ? units.mulDivDown(sellerPrice, WAD) : units.mulDivUp(sellerPrice, WAD);
 
-        uint256 newConsumed = consumed[offer.maker][offer.group] += units;
-        require(newConsumed <= offer.maxUnits, "consumed");
+        uint256 newConsumed;
+        if (offer.maxSellerAssets > 0) {
+            newConsumed = consumed[offer.maker][offer.group] += sellerAssets;
+            require(newConsumed <= offer.maxSellerAssets, "consumed");
+        } else if (offer.maxBuyerAssets > 0) {
+            newConsumed = consumed[offer.maker][offer.group] += buyerAssets;
+            require(newConsumed <= offer.maxBuyerAssets, "consumed");
+        } else {
+            newConsumed = consumed[offer.maker][offer.group] += units;
+            require(newConsumed <= offer.maxUnits, "consumed");
+        }
 
         Position storage buyerPos = position[id][buyer];
         Position storage sellerPos = position[id][seller];
