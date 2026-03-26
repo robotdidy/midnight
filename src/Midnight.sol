@@ -82,7 +82,7 @@ contract Midnight is IMidnight {
     mapping(bytes32 id => ObligationState) public obligationState;
 
     /// @dev Groups are useful to have a global offered amount shared across multiple offers ("OCO").
-    /// @dev To work as expected, all offers in a same group should have the maxs and loan token.
+    /// @dev To work as expected, all offers in a same group should have the same maxs and loan token.
     /// @dev Only one of `maxSellerAssets`, `maxBuyerAssets`, or `maxUnits` should be nonzero per offer.
     mapping(address user => mapping(bytes32 group => uint256)) public consumed;
 
