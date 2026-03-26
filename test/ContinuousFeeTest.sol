@@ -259,9 +259,8 @@ contract ContinuousFeeTest is BaseTest {
         uint256 price = TickLib.tickToPrice(MAX_TICK);
         uint256 takeAssets = exitAmount.mulDivDown(price, WAD);
         uint256 buyerPendingFeeIncrease = exitAmount.mulDivDown(feeRate * (ttm - elapsed), WAD);
-        uint256 sellerPendingFeeDecrease = creditAfterAccrual > 0
-            ? remainingAfterAccrual.mulDivUp(exitAmount, creditAfterAccrual)
-            : 0;
+        uint256 sellerPendingFeeDecrease =
+            creditAfterAccrual > 0 ? remainingAfterAccrual.mulDivUp(exitAmount, creditAfterAccrual) : 0;
 
         vm.expectEmit();
         emit EventsLib.UpdatePosition(id, otherLender, 0, 0, 0);
@@ -289,9 +288,7 @@ contract ContinuousFeeTest is BaseTest {
         );
         take(exitAmount, lender, _makeBuyOffer(exitAmount, keccak256("lender-exit"))); // lender is taker = seller
 
-        uint256 expectedRemaining = creditAfterAccrual > 0
-            ? remainingAfterAccrual - sellerPendingFeeDecrease
-            : 0;
+        uint256 expectedRemaining = creditAfterAccrual > 0 ? remainingAfterAccrual - sellerPendingFeeDecrease : 0;
         assertEq(midnight.creditOf(id, lender), creditAfterAccrual - exitAmount, "credit after exit");
         assertApproxEqAbs(midnight.pendingFee(id, lender), expectedRemaining, 1, "remaining after exit");
 
