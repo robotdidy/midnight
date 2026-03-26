@@ -38,7 +38,7 @@ abstract contract BaseTest is Test {
     address internal otherLender;
     address internal liquidator = makeAddr("liquidator");
 
-    Signature internal emptySig;
+    bytes internal emptySig;
 
     function setUp() public virtual {
         midnight = new Midnight();
@@ -112,6 +112,7 @@ abstract contract BaseTest is Test {
         lenderOffer.maker = otherLender;
         lenderOffer.maxUnits = units;
         lenderOffer.group = keccak256(abi.encode("non zero group"));
+        lenderOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
         lenderOffer.expiry = block.timestamp + 200;
         lenderOffer.tick = MAX_TICK;
 
@@ -132,6 +133,7 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.maker = badBorrower;
         badBorrowerOffer.receiverIfMakerIsSeller = badBorrower;
         badBorrowerOffer.maxUnits = 100;
+        badBorrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
         badBorrowerOffer.start = block.timestamp;
         badBorrowerOffer.expiry = block.timestamp + 200;
         badBorrowerOffer.tick = MAX_TICK;
@@ -165,8 +167,8 @@ abstract contract BaseTest is Test {
         return IdLib.toId(obligation, block.chainid, address(midnight));
     }
 
-    function sig(Offer[1] memory offers, address _signer) internal view returns (Signature memory) {
-        return sig(root(offers), privateKey[_signer]);
+    function sig(Offer[1] memory offers, address _signer) internal view returns (bytes memory) {
+        return abi.encode(signature(root(offers), privateKey[_signer]));
     }
 
     function proof(Offer[1] memory) internal pure returns (bytes32[] memory) {
@@ -201,22 +203,22 @@ abstract contract BaseTest is Test {
         return keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(midnight)));
     }
 
-    function sig(bytes32 _root, uint256 _privateKey) internal view returns (Signature memory) {
+    function signature(bytes32 _root, uint256 _privateKey) internal view returns (Signature memory) {
         bytes32 structHash = keccak256(abi.encode(ROOT_TYPEHASH, _root));
         bytes32 messageHash = keccak256(bytes.concat("\x19\x01", domainSeparator(), structHash));
-        Signature memory signature;
-        (signature.v, signature.r, signature.s) = vm.sign(_privateKey, messageHash);
-        return signature;
+        Signature memory _signature;
+        (_signature.v, _signature.r, _signature.s) = vm.sign(_privateKey, messageHash);
+        return _signature;
     }
 
-    function sig(Offer[1] memory offers) internal view returns (Signature memory) {
+    function sig(Offer[1] memory offers) internal view returns (bytes memory) {
         bytes32 _root = root(offers);
-        return sig(_root, privateKey[offers[0].maker]);
+        return abi.encode(signature(_root, privateKey[offers[0].maker]));
     }
 
-    function sig(Offer[2] memory offers) internal view returns (Signature memory) {
+    function sig(Offer[2] memory offers) internal view returns (bytes memory) {
         bytes32 _root = root(offers);
-        return sig(_root, privateKey[offers[0].maker]);
+        return abi.encode(signature(_root, privateKey[offers[0].maker]));
     }
 
     function sortCollaterals(Collateral[] memory arr) internal pure returns (Collateral[] memory) {
@@ -256,6 +258,7 @@ abstract contract BaseTest is Test {
         borrowerOffer.maker = borrower;
         borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.maxUnits = units;
+        borrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
         borrowerOffer.start = block.timestamp;
         borrowerOffer.expiry = block.timestamp;
         borrowerOffer.tick = MAX_TICK;

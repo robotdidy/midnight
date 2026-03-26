@@ -5,9 +5,10 @@ methods {
 
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
     function ratified(address user, bytes32 root) external returns (bool) envfree;
+    function ECRECOVER_RATIFIER() external returns (address) envfree;
 
     function _.price() external => NONDET;
-    function _.onRatify(Midnight.Offer, address) external => NONDET;
+    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
     function _.onBuy(Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
     function _.onSell(Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
     function _.transferFrom(address, address, uint256) external => NONDET;
@@ -23,33 +24,22 @@ methods {
     function TickLib.tickToPrice(uint256) internal returns (uint256) => NONDET;
     function Midnight.isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
     function Midnight.tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
-    function Midnight.signer(bytes32 root, Midnight.Signature memory) internal returns (address) => signerSummary(root, _);
-    function Midnight.domainSeparator() internal returns (bytes32) => NONDET;
+
 }
 
-persistent ghost ghostSigner(bytes32) returns address;
-
-function signerSummary(bytes32 root, Midnight.Signature s) returns address {
-    return ghostSigner(root);
-}
-
-/// Every successful take requires maker consent: either a ratifier callback, a ratified root, or a valid signature.
-rule takeRequiresMakerConsent(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
+/// Every successful take requires maker consent: either the ecrecover ratifier is used, or the maker authorized the ratifier.
+rule takeRequiresMakerConsent(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof) {
+    address ecrecoverRatifier = ECRECOVER_RATIFIER();
     bool makerAuthorizedRatifier = isAuthorized(offer.maker, offer.ratifier);
-    bool rootRatified = ratified(offer.maker, root);
 
-    take(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
+    take(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, ratifierData, root, proof);
 
-    if (offer.ratifier != 0) {
-        assert makerAuthorizedRatifier;
-    } else {
-        assert ghostSigner(root) == offer.maker || rootRatified;
-    }
+    assert offer.ratifier == ecrecoverRatifier || makerAuthorizedRatifier;
 }
 
 /// No successful take can use address(0) as maker.
-rule takeRequiresNonZeroMaker(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    take@withrevert(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
+rule takeRequiresNonZeroMaker(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof) {
+    take@withrevert(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, ratifierData, root, proof);
     assert !lastReverted => offer.maker != 0;
 }
 

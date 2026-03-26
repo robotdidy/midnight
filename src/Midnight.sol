@@ -18,7 +18,6 @@ import {
     LIQUIDATION_CURSOR_LOW,
     LIQUIDATION_CURSOR_HIGH,
     EIP712_DOMAIN_TYPEHASH,
-    ROOT_TYPEHASH,
     AUTHORIZATION_TYPEHASH,
     PASSIVE_FEE_RECIPIENT
 } from "./libraries/ConstantsLib.sol";
@@ -33,9 +32,10 @@ import {
     Authorization,
     Position
 } from "./interfaces/IMidnight.sol";
-import {ICallbacks, IFlashLoanCallback} from "./interfaces/ICallbacks.sol";
+import {ICallbacks, IFlashLoanCallback, IRatifier} from "./interfaces/ICallbacks.sol";
 import {IEnterGate, ILiquidatorGate} from "./interfaces/IGate.sol";
 import {EventsLib} from "./libraries/EventsLib.sol";
+import {EcrecoverRatifier} from "./ratifiers/EcrecoverRatifier.sol";
 
 /// MAX AMOUNTS
 /// @dev The max amount of totalUnits, collateral, credit, and debt is type(uint128).max (~1e38).
@@ -113,9 +113,12 @@ contract Midnight is IMidnight {
     /// @dev Address that can set trading fees.
     address public feeSetter;
 
+    EcrecoverRatifier public immutable ECRECOVER_RATIFIER;
+
     /// CONSTRUCTOR ///
 
     constructor() {
+        ECRECOVER_RATIFIER = new EcrecoverRatifier(address(this));
         owner = msg.sender;
         emit EventsLib.Constructor(owner);
     }
@@ -209,7 +212,7 @@ contract Midnight is IMidnight {
         bytes memory takerCallbackData,
         address receiverIfTakerIsSeller,
         Offer memory offer,
-        Signature memory sig,
+        bytes memory ratifierData,
         bytes32 root,
         bytes32[] memory proof
     ) external returns (uint256, uint256, uint256) {
@@ -220,15 +223,11 @@ contract Midnight is IMidnight {
         require(UtilsLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
         require(offer.session == session[offer.maker], "invalid session");
         require(offer.maker != address(0), "maker cannot be address(0)");
-        if (offer.ratifier == address(0)) {
-            require(signer(root, sig) == offer.maker || ratified[offer.maker][root], "invalid signer");
-        } else {
-            require(
-                isAuthorized[offer.maker][offer.ratifier]
-                    && ICallbacks(offer.ratifier).onRatify(offer, signer(root, sig)) == CALLBACK_SUCCESS,
-                "unauthorized"
-            );
-        }
+        require(
+            (offer.ratifier == address(ECRECOVER_RATIFIER) || isAuthorized[offer.maker][offer.ratifier])
+                && IRatifier(offer.ratifier).onRatify(offer, root, proof, ratifierData) == CALLBACK_SUCCESS,
+            "unauthorized"
+        );
 
         bytes32 id = touchObligation(offer.obligation);
         _updatePosition(offer.obligation, id, offer.maker);
@@ -554,7 +553,8 @@ contract Midnight is IMidnight {
         require(authorization.nonce == authorizationNonce[authorization.authorizer]++, "invalid nonce");
 
         bytes32 hashStruct = keccak256(abi.encode(AUTHORIZATION_TYPEHASH, authorization));
-        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), hashStruct));
+        bytes32 domainSeparator = keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(this)));
+        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator, hashStruct));
         address signatory = ecrecover(digest, signature.v, signature.r, signature.s);
         require(signatory != address(0) && signatory == authorization.authorizer, "invalid signature");
 
@@ -762,18 +762,6 @@ contract Midnight is IMidnight {
             bitmap ^= (1 << i);
         }
         return maxDebt >= debt;
-    }
-
-    function domainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(this)));
-    }
-
-    /// @dev Does not revert if the signature is invalid.
-    function signer(bytes32 root, Signature memory signature) internal view returns (address) {
-        bytes32 structHash = keccak256(abi.encode(ROOT_TYPEHASH, root));
-        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), structHash));
-        address tentativeSigner = ecrecover(digest, signature.v, signature.r, signature.s);
-        return tentativeSigner;
     }
 
     function maxLif(uint256 lltv, uint256 cursor) public pure returns (uint256) {

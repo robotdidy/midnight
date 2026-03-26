@@ -16,6 +16,7 @@ methods {
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
     function ratified(address user, bytes32 root) external returns (bool) envfree;
     function authorizationNonce(address user) external returns (uint256) envfree;
+    function ECRECOVER_RATIFIER() external returns (address) envfree;
 
     // Summarize internal functions that use opcodes causing HAVOC (CREATE2, low-level calls).
     function IdLib.storeInCode(Midnight.Obligation memory) internal returns (address) => NONDET;
@@ -41,27 +42,16 @@ methods {
     // Assume no reentrancy: callbacks and tokens do not re-enter Midnight.
     function _.onBuy(Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
     function _.onSell(Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
-    function _.onRatify(Midnight.Offer, address) external => NONDET;
+    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
     function _.onFlashLoan(address, uint256, bytes) external => NONDET;
     function SafeTransferLib.safeTransferFrom(address, address, address, uint256) internal => NONDET;
     function SafeTransferLib.safeTransfer(address, address, uint256) internal => NONDET;
-
-    function signer(bytes32, Midnight.Signature memory) internal returns (address) => CVL_signer();
 }
 
 /// HELPERS ///
 
 definition noAccrual(env e, bytes32 id, address borrower) returns bool = currentContract.position[id][borrower].pendingFee == 0 || e.block.timestamp == currentContract.position[id][borrower].lastAccrual;
 
-ghost mapping(address => bool) signed {
-    init_state axiom forall address a. signed[a] == false;
-}
-
-function CVL_signer() returns address {
-    address result;
-    signed[result] = true;
-    return result;
-}
 
 /// CREDIT AND DEBT CHANGE RULES ///
 
@@ -70,7 +60,7 @@ function CVL_signer() returns address {
 /// unauthorizedTakeFails, takeRequiresMakerConsent, and takeEffects.
 /// PASSIVE_FEE_RECIPIENT's credit can increase via fee accrual without authorization.
 /// Assumes no reentrancy: callbacks (onBuy, onSell) and token transfers are not modeled as re-entering Midnight, so re-entrant credit and debt changes are not covered.
-rule onlyAuthorizedCanChangeCreditAndDebtExceptTakeLiquidateAndUpdatePosition(env e, method f, calldataarg args, bytes32 id, address user) filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector && f.selector != sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector && f.selector != sig:updatePosition(Midnight.Obligation, address).selector } {
+rule onlyAuthorizedCanChangeCreditAndDebtExceptTakeLiquidateAndUpdatePosition(env e, method f, calldataarg args, bytes32 id, address user) filtered { f -> f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, bytes, bytes32, bytes32[]).selector && f.selector != sig:liquidate(Midnight.Obligation, uint256, uint256, uint256, address, bytes).selector && f.selector != sig:updatePosition(Midnight.Obligation, address).selector } {
     bool userIsAuthorized = user == e.msg.sender || isAuthorized(user, e.msg.sender);
     bool isPassiveFeeRecipient = user == Utils.passiveFeeRecipient();
 
@@ -80,7 +70,7 @@ rule onlyAuthorizedCanChangeCreditAndDebtExceptTakeLiquidateAndUpdatePosition(en
     uint256 creditAfter = creditOf(id, user);
     uint256 debtAfter = debtOf(id, user);
 
-    assert (creditAfter == creditBefore && debtAfter == debtBefore) || userIsAuthorized || signed[user] || isPassiveFeeRecipient;
+    assert (creditAfter == creditBefore && debtAfter == debtBefore) || userIsAuthorized || isPassiveFeeRecipient;
 }
 
 /// COLLATERAL CHANGE RULES ///
@@ -102,7 +92,7 @@ rule onlyAuthorizedCanChangeCollateralExceptLiquidate(env e, method f, calldataa
 /// An unauthorized caller cannot change a user's consumed except via take.
 /// take is excluded because maker consent is verified via signature/ratification, not caller authorization.
 /// Assumes no reentrancy: callbacks and token transfers are not modeled as re-entering Midnight, so re-entrant consumed changes are not covered.
-rule onlyAuthorizedCanChangeConsumedExceptTake(env e, method f, calldataarg args, address user, bytes32 group) filtered { f -> !f.isView && f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, Midnight.Signature, bytes32, bytes32[]).selector } {
+rule onlyAuthorizedCanChangeConsumedExceptTake(env e, method f, calldataarg args, address user, bytes32 group) filtered { f -> !f.isView && f.selector != sig:take(uint256, address, address, bytes, address, Midnight.Offer, bytes, bytes32, bytes32[]).selector } {
     bool userIsAuthorized = user == e.msg.sender || isAuthorized(user, e.msg.sender);
 
     uint256 consumedBefore = consumed(user, group);
@@ -157,17 +147,17 @@ rule nonceOnlyChangedBySetAuthorizedWithSig(env e, method f, calldataarg data, a
 /// ACCESS CONTROL ///
 
 /// take requires the caller to be the taker or authorized by the taker.
-rule unauthorizedTakeFails(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    take@withrevert(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
+rule unauthorizedTakeFails(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof) {
+    take@withrevert(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, ratifierData, root, proof);
     assert !lastReverted => e.msg.sender == taker || isAuthorized(taker, e.msg.sender);
 }
 
-/// take with a ratifier callback requires the ratifier to be the maker or authorized by the maker.
-rule unauthorizedOnRatifyFails(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    require signature.v != 0;
+/// take with a custom ratifier requires the ratifier to be authorized by the maker (or be the ecrecover ratifier).
+rule unauthorizedOnRatifyFails(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof) {
     require offer.ratifier != 0;
-    take@withrevert(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, signature, root, proof);
-    assert !lastReverted => offer.maker == offer.ratifier || isAuthorized(offer.maker, offer.ratifier);
+    address ecrecoverRatifier = ECRECOVER_RATIFIER();
+    take@withrevert(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, ratifierData, root, proof);
+    assert !lastReverted => offer.ratifier == ecrecoverRatifier || isAuthorized(offer.maker, offer.ratifier);
 }
 
 /// ISOLATION ///

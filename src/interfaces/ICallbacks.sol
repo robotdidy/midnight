@@ -29,7 +29,12 @@ interface ICallbacks {
         address borrower,
         bytes memory data
     ) external;
-    function onRatify(Offer memory offer, address signer) external returns (bytes32);
+}
+
+interface IRatifier {
+    function onRatify(Offer memory offer, bytes32 root, bytes32[] memory proof, bytes memory data)
+        external
+        returns (bytes32);
 }
 
 interface IFlashLoanCallback {

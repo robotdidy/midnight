@@ -20,6 +20,7 @@ methods {
     function TickLib.wExp(int256) internal returns (uint256) => NONDET;
     function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
     function tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
+    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
 
     // Hook on callbacks, this adds no assumption: see FlashLiquidateCallback.sol and the summaries below.
     function _.onFlashLoan(address token, uint256 amount, bytes data) external => DISPATCHER(true);
@@ -141,7 +142,7 @@ strong invariant tokenBalanceCorrect(address token)
         preserved with (env e) {
             require e.msg.sender != currentContract, "only external calls";
         }
-        preserved take(uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) with (env e) {
+        preserved take(uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof) with (env e) {
             require taker != currentContract, "no trading with contract";
             require offer.maker != currentContract, "no trading with contract";
         }

@@ -23,7 +23,8 @@ methods {
 
     function tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
     function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
-    function signer(bytes32, Midnight.Signature memory) internal returns (address) => NONDET;
+
+    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
 
     // Tokens are assumed to not reenter.
     function SafeTransferLib.safeTransferFrom(address, address, address, uint256) internal => NONDET;
@@ -66,12 +67,12 @@ function summaryMulDiv(uint256 x, uint256 y, uint256 d) returns uint256 {
     return r;
 }
 
-rule takeInputOutputConsistency(env e, uint256 unitsInput, address taker, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
+rule takeInputOutputConsistency(env e, uint256 unitsInput, address taker, address receiver, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
     uint256 buyerAssetsOutput;
     uint256 sellerAssetsOutput;
     uint256 unitsOutput;
 
-    buyerAssetsOutput, sellerAssetsOutput, unitsOutput = take(e, unitsInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
+    buyerAssetsOutput, sellerAssetsOutput, unitsOutput = take(e, unitsInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, ratifierData, root, proof);
 
     // The output units is equal to the input.
     assert unitsOutput == unitsInput;
@@ -80,18 +81,18 @@ rule takeInputOutputConsistency(env e, uint256 unitsInput, address taker, addres
     assert unitsInput == 0 => buyerAssetsOutput == 0 && sellerAssetsOutput == 0 && unitsOutput == 0;
 }
 
-rule offerInputsConsumed(env e, uint256 unitsInput, address taker, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
+rule offerInputsConsumed(env e, uint256 unitsInput, address taker, address receiver, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
     uint256 consumedBefore = consumed(offer.maker, offer.group);
 
-    take(e, unitsInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
+    take(e, unitsInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, ratifierData, root, proof);
 
     assert consumed(offer.maker, offer.group) == consumedBefore + unitsInput;
 }
 
-rule offerInputsLimit(env e, uint256 unitsInput, address taker, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
+rule offerInputsLimit(env e, uint256 unitsInput, address taker, address receiver, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof, address takerCallbackAddress, bytes takerCallbackData) {
     uint256 consumedBefore = consumed(offer.maker, offer.group);
 
-    take(e, unitsInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
+    take(e, unitsInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, ratifierData, root, proof);
 
     assert unitsInput <= offer.maxUnits - consumedBefore;
 }

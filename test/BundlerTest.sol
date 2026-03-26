@@ -58,6 +58,7 @@ contract BundlerTest is BaseTest {
         offers[0].buy = true;
         offers[0].maker = lender;
         offers[0].obligation = obligation;
+        offers[0].ratifier = address(midnight.ECRECOVER_RATIFIER());
         offers[0].expiry = block.timestamp + 200;
         offers[0].tick = MAX_TICK;
 
@@ -65,6 +66,7 @@ contract BundlerTest is BaseTest {
         offers[1].buy = true;
         offers[1].maker = lender;
         offers[1].obligation = obligation;
+        offers[1].ratifier = address(midnight.ECRECOVER_RATIFIER());
         offers[1].expiry = block.timestamp + 200;
         offers[1].tick = MAX_TICK;
         offers[1].group = bytes32(uint256(1));
