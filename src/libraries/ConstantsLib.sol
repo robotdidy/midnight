@@ -16,7 +16,6 @@ uint256 constant LIQUIDATION_CURSOR_HIGH = 0.5e18;
 address constant PASSIVE_FEE_RECIPIENT = address(uint160(uint256(keccak256("passive fee recipient"))));
 
 /// @dev The allowed LLTV values, copied from Morpho Blue's enabled tiers (excluding zero, including WAD).
-/// @dev These are constant and cannot be changed.
 uint256 constant LLTV_0 = 0.385e18;
 uint256 constant LLTV_1 = 0.625e18;
 uint256 constant LLTV_2 = 0.77e18;
