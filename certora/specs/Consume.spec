@@ -68,7 +68,7 @@ rule takeConsumedBoundedByMax(env e, uint256 units, address taker, address taker
     assert offer.maxSellerAssets == 0 && offer.maxBuyerAssets == 0 => consumed(offer.maker, offer.group) <= offer.maxUnits;
 }
 
-/// After a successful `take` in units mode, the change in consumed equals the units taken.
+/// After a successful `take`, the change in consumed equals the units taken.
 rule takeConsumedDelta(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
     require offer.maxSellerAssets == 0 && offer.maxBuyerAssets == 0;
 
