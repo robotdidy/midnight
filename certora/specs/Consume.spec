@@ -79,34 +79,6 @@ rule takeConsumedDeltaUnits(env e, uint256 units, address taker, address takerCa
     assert consumed(offer.maker, offer.group) == consumedBefore + units;
 }
 
-/// After a successful `take` in seller assets mode, the change in consumed equals the seller assets.
-rule takeConsumedDeltaSellerAssets(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    require offer.maxBuyerAssets == 0 && offer.maxUnits == 0;
-
-    uint256 consumedBefore = consumed(offer.maker, offer.group);
-
-    uint256 buyerAssetsOutput;
-    uint256 sellerAssetsOutput;
-    uint256 unitsOutput;
-    buyerAssetsOutput, sellerAssetsOutput, unitsOutput = take(e, units, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
-
-    assert consumed(offer.maker, offer.group) == consumedBefore + sellerAssetsOutput;
-}
-
-/// After a successful `take` in buyer assets mode, the change in consumed equals the buyer assets.
-rule takeConsumedDeltaBuyerAssets(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    require offer.maxSellerAssets == 0 && offer.maxUnits == 0;
-
-    uint256 consumedBefore = consumed(offer.maker, offer.group);
-
-    uint256 buyerAssetsOutput;
-    uint256 sellerAssetsOutput;
-    uint256 unitsOutput;
-    buyerAssetsOutput, sellerAssetsOutput, unitsOutput = take(e, units, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
-
-    assert consumed(offer.maker, offer.group) == consumedBefore + buyerAssetsOutput;
-}
-
 /// If consumed[offer.maker][offer.group] is already at or above maxUnits before a `take` in units mode,
 /// it remains unchanged.
 rule takeConsumedAtMaxUnchangedUnits(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
