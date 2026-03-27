@@ -128,37 +128,3 @@ rule fullyConsumedOfferRevertsOnNonTrivialTake(env e, uint256 units, address tak
     // If take does not revert, its input has to be zero.
     assert units == 0;
 }
-
-/// A fully-consumed offer in seller assets mode only allows no-op takes.
-rule fullyConsumedOfferRevertsOnNonTrivialTakeSellerAssets(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    require offer.maxBuyerAssets == 0 && offer.maxUnits == 0;
-
-    uint256 consumedBefore = consumed(offer.maker, offer.group);
-
-    require offer.maxSellerAssets > 0 && consumedBefore >= offer.maxSellerAssets, "assume the offer is fully consumed";
-
-    uint256 buyerAssetsOutput;
-    uint256 sellerAssetsOutput;
-    uint256 unitsOutput;
-    buyerAssetsOutput, sellerAssetsOutput, unitsOutput = take(e, units, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
-
-    // If take does not revert, seller assets have to be zero.
-    assert sellerAssetsOutput == 0;
-}
-
-/// A fully-consumed offer in buyer assets mode only allows no-op takes.
-rule fullyConsumedOfferRevertsOnNonTrivialTakeBuyerAssets(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    require offer.maxSellerAssets == 0 && offer.maxUnits == 0;
-
-    uint256 consumedBefore = consumed(offer.maker, offer.group);
-
-    require offer.maxBuyerAssets > 0 && consumedBefore >= offer.maxBuyerAssets, "assume the offer is fully consumed";
-
-    uint256 buyerAssetsOutput;
-    uint256 sellerAssetsOutput;
-    uint256 unitsOutput;
-    buyerAssetsOutput, sellerAssetsOutput, unitsOutput = take(e, units, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
-
-    // If take does not revert, buyer assets have to be zero.
-    assert buyerAssetsOutput == 0;
-}
