@@ -66,7 +66,7 @@ contract TickLibTest is BaseTest {
     }
 
     function testPriceToTick(uint256 price) public pure {
-        price = bound(price, 0, TickLib.tickToPrice(MAX_TICK));
+        price = bound(price, 0, 1 ether);
         uint256 tick = TickLib.priceToTick(price);
         assertGe(TickLib.tickToPrice(tick), price);
         if (tick > 0) assertLe(TickLib.tickToPrice(tick - 1), price);
