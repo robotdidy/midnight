@@ -62,6 +62,8 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// @dev The fee recipient is not slashed when receiving fees, so it will be slashed a bit too much later.
 ///
 /// ROUNDINGS
+/// @dev Because of roundings, trading and continuous fees might charge less than expected, which can become problematic
+/// for chains were the gas is cheaper than 1 asset of the loan token.
 /// @dev lossIndex is rounded up so lenders collectively lose a bit more on each bad debt realization.
 /// @dev slash rounds the credit down, so lenders lose a bit at each interaction.
 /// @dev If an obligation loses more than 99%+ of its value to bad debt over its lifetime, it won't function properly
