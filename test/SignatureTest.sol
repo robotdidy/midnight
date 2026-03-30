@@ -4,28 +4,15 @@ pragma solidity ^0.8.0;
 
 import {Signature} from "../src/interfaces/IMidnight.sol";
 import {Midnight} from "../src/Midnight.sol";
-import {EcrecoverRatifier} from "../src/ratifiers/EcrecoverRatifier.sol";
 import {EIP712_DOMAIN_TYPEHASH, ROOT_TYPEHASH} from "../src/libraries/ConstantsLib.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 
-contract SignatureTest is Test, Midnight(new EcrecoverRatifier()) {
-    function domainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(ECRECOVER_RATIFIER)));
-    }
-
-    function signer(bytes32 root, Signature memory signature) internal view returns (address) {
-        bytes32 structHash = keccak256(abi.encode(ROOT_TYPEHASH, root));
-        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), structHash));
-        address tentativeSigner = ecrecover(digest, signature.v, signature.r, signature.s);
-        require(tentativeSigner != address(0), "invalid signature");
-        return tentativeSigner;
-    }
-
+contract SignatureTest is Test, Midnight {
     function testSigner(bytes32 root, uint256 privateKey) public view {
         privateKey = boundPrivateKey(privateKey);
         bytes32 expectedDomainSeparator = vm.eip712HashStruct(
             "EIP712Domain(uint256 chainId,address verifyingContract)",
-            abi.encode(block.chainid, address(ECRECOVER_RATIFIER))
+            abi.encode(block.chainid, address(this))
         );
         bytes32 structHash = keccak256(abi.encode(ROOT_TYPEHASH, root));
         bytes32 digest = keccak256(bytes.concat("\x19\x01", expectedDomainSeparator, structHash));
@@ -36,7 +23,7 @@ contract SignatureTest is Test, Midnight(new EcrecoverRatifier()) {
     function testDomainSeparator() public view {
         bytes32 expectedDomainSeparator = vm.eip712HashStruct(
             "EIP712Domain(uint256 chainId,address verifyingContract)",
-            abi.encode(block.chainid, address(ECRECOVER_RATIFIER))
+            abi.encode(block.chainid, address(this))
         );
         assertEq(domainSeparator(), expectedDomainSeparator);
     }

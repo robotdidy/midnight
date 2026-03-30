@@ -19,6 +19,7 @@ import {
     LIQUIDATION_CURSOR_HIGH,
     EIP712_DOMAIN_TYPEHASH,
     AUTHORIZATION_TYPEHASH,
+    ROOT_TYPEHASH,
     PASSIVE_FEE_RECIPIENT,
     isLltvAllowed
 } from "./libraries/ConstantsLib.sol";
@@ -114,12 +115,9 @@ contract Midnight is IMidnight {
     /// @dev Address that can set trading fees.
     address public feeSetter;
 
-    IRatifier public immutable ECRECOVER_RATIFIER;
-
     /// CONSTRUCTOR ///
 
-    constructor(IRatifier ecrecoverRatifier) {
-        ECRECOVER_RATIFIER = ecrecoverRatifier;
+    constructor() {
         owner = msg.sender;
         emit EventsLib.Constructor(owner);
     }
@@ -224,11 +222,18 @@ contract Midnight is IMidnight {
         require(offer.maker != taker, "buyer and seller cannot be the same");
         require(UtilsLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
         require(offer.session == session[offer.maker], "invalid session");
-        require(
-            (offer.ratifier == address(ECRECOVER_RATIFIER) || isAuthorized[offer.maker][offer.ratifier])
-                && IRatifier(offer.ratifier).onRatify(offer, root, proof, ratifierData) == CALLBACK_SUCCESS,
-            "unauthorized"
-        );
+        if (offer.ratifier == address(0)) {
+            require(ratified[offer.maker][root], "unauthorized");
+        } else if (offer.ratifier == address(1)) {
+            Signature memory sig = abi.decode(ratifierData, (Signature));
+            require(signer(root, sig) == offer.maker, "invalid signature");
+        } else {
+            require(
+                isAuthorized[offer.maker][offer.ratifier]
+                    && IRatifier(offer.ratifier).onRatify(offer, root, proof, ratifierData) == CALLBACK_SUCCESS,
+                "unauthorized"
+            );
+        }
 
         bytes32 id = touchObligation(offer.obligation);
         ObligationState storage _obligationState = obligationState[id];
@@ -577,8 +582,7 @@ contract Midnight is IMidnight {
         require(authorization.nonce == authorizationNonce[authorization.authorizer]++, "invalid nonce");
 
         bytes32 hashStruct = keccak256(abi.encode(AUTHORIZATION_TYPEHASH, authorization));
-        bytes32 domainSeparator = keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(this)));
-        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator, hashStruct));
+        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), hashStruct));
         address signatory = ecrecover(digest, signature.v, signature.r, signature.s);
         require(signatory != address(0) && signatory == authorization.authorizer, "invalid signature");
 
@@ -827,5 +831,17 @@ contract Midnight is IMidnight {
         uint256 feeUpper = _fees[index + 1] * FEE_STEP;
 
         return (feeLower * (end - timeToMaturity) + feeUpper * (timeToMaturity - start)) / (end - start);
+    }
+
+    function domainSeparator() internal view returns (bytes32) {
+        return keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(this)));
+    }
+
+    function signer(bytes32 root, Signature memory signature) internal view returns (address) {
+        bytes32 structHash = keccak256(abi.encode(ROOT_TYPEHASH, root));
+        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), structHash));
+        address tentativeSigner = ecrecover(digest, signature.v, signature.r, signature.s);
+        require(tentativeSigner != address(0), "invalid signature");
+        return tentativeSigner;
     }
 }

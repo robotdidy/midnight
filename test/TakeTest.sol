@@ -55,7 +55,7 @@ contract TakeTest is BaseTest {
 
         lenderOffer.buy = true;
         lenderOffer.maker = lender;
-        lenderOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        lenderOffer.ratifier = address(1);
         lenderOffer.maxUnits = type(uint256).max;
         lenderOffer.obligation = obligation;
         lenderOffer.expiry = block.timestamp + 200;
@@ -63,7 +63,7 @@ contract TakeTest is BaseTest {
 
         otherLenderOffer.buy = false;
         otherLenderOffer.maker = otherLender;
-        otherLenderOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        otherLenderOffer.ratifier = address(1);
         otherLenderOffer.receiverIfMakerIsSeller = otherLender;
         otherLenderOffer.maxUnits = type(uint256).max;
         otherLenderOffer.obligation = obligation;
@@ -72,7 +72,7 @@ contract TakeTest is BaseTest {
 
         borrowerOffer.buy = false;
         borrowerOffer.maker = borrower;
-        borrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        borrowerOffer.ratifier = address(1);
         borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.maxUnits = type(uint256).max;
         borrowerOffer.obligation = obligation;
@@ -81,7 +81,7 @@ contract TakeTest is BaseTest {
 
         otherBorrowerOffer.buy = true;
         otherBorrowerOffer.maker = otherBorrower;
-        otherBorrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        otherBorrowerOffer.ratifier = address(1);
         otherBorrowerOffer.maxUnits = type(uint256).max;
         otherBorrowerOffer.obligation = obligation;
         otherBorrowerOffer.expiry = block.timestamp + 200;
@@ -752,7 +752,7 @@ contract TakeTest is BaseTest {
     }
 
     function testTakeInvalidSignature() public {
-        vm.expectRevert("unauthorized");
+        vm.expectRevert("invalid signature");
         Signature memory _sig = Signature({v: 1, r: 0, s: 0});
         vm.prank(borrower);
         midnight.take(
@@ -920,7 +920,7 @@ contract TakeTest is BaseTest {
 
         lenderOffer.maker = vm.addr(makerSecretKey);
 
-        vm.expectRevert("unauthorized");
+        vm.expectRevert("invalid signature");
         vm.prank(sender);
         midnight.take(
             100,
@@ -1170,7 +1170,7 @@ contract TakeTest is BaseTest {
         Offer memory zeroOffer;
         zeroOffer.buy = true;
         zeroOffer.maker = address(0);
-        zeroOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        zeroOffer.ratifier = address(1);
         zeroOffer.maxUnits = units;
         zeroOffer.obligation = obligation;
         zeroOffer.expiry = block.timestamp + 200;
@@ -1181,7 +1181,7 @@ contract TakeTest is BaseTest {
 
         Signature memory badSig;
 
-        vm.expectRevert("unauthorized");
+        vm.expectRevert("invalid signature");
         vm.prank(borrower);
         midnight.take(
             units,

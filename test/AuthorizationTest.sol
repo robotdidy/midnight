@@ -201,7 +201,7 @@ contract AuthorizationTest is BaseTest {
         Offer memory offer;
         offer.buy = true;
         offer.maker = lender;
-        offer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        offer.ratifier = address(1);
         offer.maxUnits = units;
         offer.obligation = obligation;
         offer.expiry = block.timestamp + 200;
@@ -225,7 +225,7 @@ contract AuthorizationTest is BaseTest {
         Offer memory offer;
         offer.buy = true;
         offer.maker = lender;
-        offer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        offer.ratifier = address(1);
         offer.maxUnits = units;
         offer.obligation = obligation;
         offer.expiry = block.timestamp + 200;
@@ -322,7 +322,7 @@ contract AuthorizationTest is BaseTest {
         Offer memory offer;
         offer.buy = true;
         offer.maker = lender;
-        offer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        offer.ratifier = address(1);
         offer.maxUnits = units;
         offer.obligation = obligation;
         offer.expiry = block.timestamp + 200;

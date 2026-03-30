@@ -64,7 +64,7 @@ contract MaxAmountsTest is BaseTest {
         borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.maxUnits = type(uint256).max;
         borrowerOffer.expiry = block.timestamp + 200;
-        borrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        borrowerOffer.ratifier = address(1);
         borrowerOffer.tick = MAX_TICK;
 
         take(amount, lender, borrowerOffer);
@@ -91,7 +91,7 @@ contract MaxAmountsTest is BaseTest {
         borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.maxUnits = type(uint256).max;
         borrowerOffer.expiry = block.timestamp + 200;
-        borrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        borrowerOffer.ratifier = address(1);
         borrowerOffer.tick = MAX_TICK;
 
         vm.expectRevert("uint256 overflows uint128");

@@ -27,8 +27,6 @@ import {
 } from "../src/libraries/ConstantsLib.sol";
 import {Obligation, Offer, Signature, Collateral} from "../src/interfaces/IMidnight.sol";
 import {Midnight} from "../src/Midnight.sol";
-import {EcrecoverRatifier} from "../src/ratifiers/EcrecoverRatifier.sol";
-
 uint256 constant MAX_TEST_AMOUNT = type(uint128).max;
 
 abstract contract BaseTest is Test {
@@ -51,8 +49,7 @@ abstract contract BaseTest is Test {
     bytes internal emptySig;
 
     function setUp() public virtual {
-        EcrecoverRatifier ecrecoverRatifier = new EcrecoverRatifier();
-        midnight = new Midnight(ecrecoverRatifier);
+        midnight = new Midnight();
 
         midnight.setFeeSetter(address(this));
 
@@ -123,7 +120,7 @@ abstract contract BaseTest is Test {
         lenderOffer.maker = otherLender;
         lenderOffer.maxUnits = units;
         lenderOffer.group = keccak256(abi.encode("non zero group"));
-        lenderOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        lenderOffer.ratifier = address(1);
         lenderOffer.expiry = block.timestamp + 200;
         lenderOffer.tick = MAX_TICK;
 
@@ -144,7 +141,7 @@ abstract contract BaseTest is Test {
         badBorrowerOffer.maker = badBorrower;
         badBorrowerOffer.receiverIfMakerIsSeller = badBorrower;
         badBorrowerOffer.maxUnits = 100;
-        badBorrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        badBorrowerOffer.ratifier = address(1);
         badBorrowerOffer.start = block.timestamp;
         badBorrowerOffer.expiry = block.timestamp + 200;
         badBorrowerOffer.tick = MAX_TICK;
@@ -211,7 +208,7 @@ abstract contract BaseTest is Test {
     }
 
     function domainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(midnight.ECRECOVER_RATIFIER())));
+        return keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, block.chainid, address(midnight)));
     }
 
     function signature(bytes32 _root, uint256 _privateKey) internal view returns (Signature memory) {
@@ -275,7 +272,7 @@ abstract contract BaseTest is Test {
         borrowerOffer.maker = borrower;
         borrowerOffer.receiverIfMakerIsSeller = borrower;
         borrowerOffer.maxUnits = units;
-        borrowerOffer.ratifier = address(midnight.ECRECOVER_RATIFIER());
+        borrowerOffer.ratifier = address(1);
         borrowerOffer.start = block.timestamp;
         borrowerOffer.expiry = block.timestamp;
         borrowerOffer.tick = MAX_TICK;
