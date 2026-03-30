@@ -29,9 +29,6 @@ methods {
 
     function UtilsLib.mulDivDown(uint256 x, uint256 y, uint256 d) internal returns (uint256) => mulDivDownSummary(x, y, d);
     function UtilsLib.mulDivUp(uint256 x, uint256 y, uint256 d) internal returns (uint256) => mulDivUpSummary(x, y, d);
-
-    // Proven in ExactMath.spec (maxLifIsAtLeastWad).
-    function Midnight.maxLif(uint256 lltv, uint256 cursor) internal returns (uint256) => maxLifSummary(lltv);
 }
 
 /// GHOSTS ///
@@ -95,12 +92,6 @@ function summaryToId(Midnight.Obligation obligation, uint256 chainId, address mo
         require id != globalId, "toId() is injective";
     }
     return id;
-}
-
-function maxLifSummary(uint256 lltv) returns uint256 {
-    uint256 result;
-    require result >= WAD();
-    return result;
 }
 
 function mulDivDownSummary(uint256 x, uint256 y, uint256 d) returns uint256 {
