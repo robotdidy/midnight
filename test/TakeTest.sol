@@ -935,6 +935,34 @@ contract TakeTest is BaseTest {
         );
     }
 
+    function testOfferAuthorizationAuthorizedSigner(uint256 makerSecretKey, address sender, uint256 otherSecretKey)
+        public
+    {
+        makerSecretKey = boundPrivateKey(makerSecretKey);
+        otherSecretKey = boundPrivateKey(otherSecretKey);
+        vm.assume(otherSecretKey != makerSecretKey);
+        privateKey[vm.addr(makerSecretKey)] = makerSecretKey;
+        privateKey[vm.addr(otherSecretKey)] = otherSecretKey;
+
+        lenderOffer.maker = vm.addr(makerSecretKey);
+        vm.assume(sender != lenderOffer.maker);
+
+        vm.prank(lenderOffer.maker);
+        midnight.setIsAuthorized(lenderOffer.maker, vm.addr(otherSecretKey), true);
+        vm.prank(sender);
+        midnight.take(
+            0,
+            sender,
+            address(0),
+            hex"",
+            sender,
+            lenderOffer,
+            sig([lenderOffer], vm.addr(otherSecretKey)),
+            root([lenderOffer]),
+            proof([lenderOffer])
+        );
+    }
+
     function testTakeRatificationFailed(address maker, address sender, uint256 signerPrivateKey) public {
         vm.assume(maker != sender);
         vm.assume(maker != address(0));
@@ -1258,10 +1286,7 @@ contract RatifyCallback is IRatifier {
         return _recordedOffer;
     }
 
-    function onRatify(Offer memory offer, bytes32 root, bytes32[] memory, bytes memory data)
-        external
-        returns (bytes32)
-    {
+    function onRatify(Offer memory offer, bytes32 root, bytes memory data) external returns (bytes32) {
         _recordedOffer = offer;
 
         if (data.length > 0) {

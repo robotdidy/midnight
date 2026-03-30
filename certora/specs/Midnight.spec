@@ -23,7 +23,7 @@ methods {
     function tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
     function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
 
-    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
+    function _.onRatify(Midnight.Offer, bytes32, bytes) external => NONDET;
 
     // Tokens are assumed to not reenter.
     function SafeTransferLib.safeTransferFrom(address, address, address, uint256) internal => NONDET;

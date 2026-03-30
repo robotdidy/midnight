@@ -226,11 +226,12 @@ contract Midnight is IMidnight {
             require(ratified[offer.maker][root], "unauthorized");
         } else if (offer.ratifier == address(1)) {
             Signature memory sig = abi.decode(ratifierData, (Signature));
-            require(signer(root, sig) == offer.maker, "invalid signature");
+            address _signer = signer(root, sig);
+            require(_signer == offer.maker || isAuthorized[offer.maker][_signer], "invalid signature");
         } else {
             require(
                 isAuthorized[offer.maker][offer.ratifier]
-                    && IRatifier(offer.ratifier).onRatify(offer, root, proof, ratifierData) == CALLBACK_SUCCESS,
+                    && IRatifier(offer.ratifier).onRatify(offer, root, ratifierData) == CALLBACK_SUCCESS,
                 "unauthorized"
             );
         }
@@ -583,8 +584,8 @@ contract Midnight is IMidnight {
 
         bytes32 hashStruct = keccak256(abi.encode(AUTHORIZATION_TYPEHASH, authorization));
         bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), hashStruct));
-        address signatory = ecrecover(digest, signature.v, signature.r, signature.s);
-        require(signatory != address(0) && signatory == authorization.authorizer, "invalid signature");
+        address _signer = ecrecover(digest, signature.v, signature.r, signature.s);
+        require(_signer != address(0) && _signer == authorization.authorizer, "invalid signature");
 
         isAuthorized[authorization.authorizer][authorization.authorizee] = authorization.isAuthorized;
         emit EventsLib.SetIsAuthorized(
@@ -838,8 +839,8 @@ contract Midnight is IMidnight {
     }
 
     function signer(bytes32 root, Signature memory signature) internal view returns (address) {
-        bytes32 structHash = keccak256(abi.encode(ROOT_TYPEHASH, root));
-        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), structHash));
+        bytes32 hashStruct = keccak256(abi.encode(ROOT_TYPEHASH, root));
+        bytes32 digest = keccak256(bytes.concat("\x19\x01", domainSeparator(), hashStruct));
         address tentativeSigner = ecrecover(digest, signature.v, signature.r, signature.s);
         require(tentativeSigner != address(0), "invalid signature");
         return tentativeSigner;

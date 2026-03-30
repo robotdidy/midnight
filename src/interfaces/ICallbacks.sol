@@ -35,9 +35,7 @@ interface ICallbacks {
 }
 
 interface IRatifier {
-    function onRatify(Offer memory offer, bytes32 root, bytes32[] memory proof, bytes memory data)
-        external
-        returns (bytes32);
+    function onRatify(Offer memory offer, bytes32 root, bytes memory data) external returns (bytes32);
 }
 
 interface IFlashLoanCallback {

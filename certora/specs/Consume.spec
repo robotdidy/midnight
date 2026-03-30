@@ -18,7 +18,7 @@ methods {
     function isHealthy(Midnight.Obligation memory, bytes32, address) internal returns (bool) => NONDET;
     function tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
 
-    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
+    function _.onRatify(Midnight.Offer, bytes32, bytes) external => NONDET;
 }
 
 ///  Only `setConsumed` and `take` can modify the `consumed` mapping.

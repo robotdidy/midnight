@@ -5,10 +5,9 @@ methods {
 
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
     function ratified(address user, bytes32 root) external returns (bool) envfree;
-    function ECRECOVER_RATIFIER() external returns (address) envfree;
 
     function _.price() external => NONDET;
-    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => DISPATCHER(true);
+    function _.onRatify(Midnight.Offer, bytes32, bytes) external => DISPATCHER(true);
     function _.onBuy(bytes32, Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
     function _.onSell(bytes32, Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
     function _.transferFrom(address, address, uint256) external => NONDET;
@@ -26,14 +25,14 @@ methods {
     function Midnight.tradingFee(bytes32, uint256) internal returns (uint256) => NONDET;
 }
 
-/// Every successful take requires maker consent: either the ecrecover ratifier is used, or the maker authorized the ratifier.
+/// Every successful take requires maker consent: either the root was pre-ratified, the built-in signature path is
+/// used, or the maker authorized the ratifier.
 rule takeRequiresMakerConsent(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof) {
-    address ecrecoverRatifier = ECRECOVER_RATIFIER();
     bool makerAuthorizedRatifier = isAuthorized(offer.maker, offer.ratifier);
 
     take(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, ratifierData, root, proof);
 
-    assert offer.ratifier == ecrecoverRatifier || makerAuthorizedRatifier;
+    assert (offer.ratifier == 0 && ratified(offer.maker, root)) || offer.ratifier == 1 || makerAuthorizedRatifier;
 }
 
 /// address(0) can't authorize another account, because it can't sign

@@ -16,7 +16,6 @@ methods {
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
     function ratified(address user, bytes32 root) external returns (bool) envfree;
     function authorizationNonce(address user) external returns (uint256) envfree;
-    function ECRECOVER_RATIFIER() external returns (address) envfree;
 
     // Summarize internal functions that use opcodes causing HAVOC (CREATE2, low-level calls).
     function IdLib.storeInCode(Midnight.Obligation memory) internal returns (address) => NONDET;
@@ -42,7 +41,7 @@ methods {
     // Assume no reentrancy: callbacks and tokens do not re-enter Midnight.
     function _.onBuy(bytes32, Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
     function _.onSell(bytes32, Midnight.Obligation, address, uint256, uint256, uint256, bytes) external => NONDET;
-    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
+    function _.onRatify(Midnight.Offer, bytes32, bytes) external => NONDET;
     function _.onFlashLoan(address, uint256, bytes) external => NONDET;
     function SafeTransferLib.safeTransferFrom(address, address, address, uint256) internal => NONDET;
     function SafeTransferLib.safeTransfer(address, address, uint256) internal => NONDET;
@@ -151,12 +150,12 @@ rule unauthorizedTakeFails(env e, uint256 units, address taker, address takerCal
     assert !lastReverted => e.msg.sender == taker || isAuthorized(taker, e.msg.sender);
 }
 
-/// take with a custom ratifier requires the ratifier to be authorized by the maker (or be the ecrecover ratifier).
+/// take with a custom ratifier requires the ratifier to be authorized by the maker.
 rule unauthorizedOnRatifyFails(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, bytes ratifierData, bytes32 root, bytes32[] proof) {
     require offer.ratifier != 0;
-    address ecrecoverRatifier = ECRECOVER_RATIFIER();
+    require offer.ratifier != 1;
     take@withrevert(e, units, taker, takerCallback, takerCallbackData, receiverIfTakerIsSeller, offer, ratifierData, root, proof);
-    assert !lastReverted => offer.ratifier == ecrecoverRatifier || isAuthorized(offer.maker, offer.ratifier);
+    assert !lastReverted => isAuthorized(offer.maker, offer.ratifier);
 }
 
 /// ISOLATION ///

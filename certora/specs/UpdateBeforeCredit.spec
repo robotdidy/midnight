@@ -14,7 +14,7 @@ methods {
 
     function IdLib.toId(Midnight.Obligation memory, uint256, address) internal returns (bytes32) => NONDET;
 
-    function _.onRatify(Midnight.Offer, bytes32, bytes32[], bytes) external => NONDET;
+    function _.onRatify(Midnight.Offer, bytes32, bytes) external => NONDET;
 
     // Summarize _updatePosition so that its credit reads/writes do not fire the hooks below.
     function _updatePosition(Midnight.Obligation memory, bytes32 id, address user) internal => summaryUpdatePosition(id, user);
