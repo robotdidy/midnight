@@ -3,12 +3,13 @@
 methods {
     function multicall(bytes[]) external => HAVOC_ALL DELETE;
 
-    function _.price() external => NONDET;
     function IdLib.toId(Midnight.Obligation memory obligation, uint256 chainId, address midnight) internal returns (bytes32) => CVL_toId(obligation, chainId, midnight);
     function UtilsLib.mulDivDown(uint256 a, uint256 b, uint256 denominator) internal returns (uint256) => CVL_mulDivDown(a, b, denominator);
     function UtilsLib.mulDivUp(uint256 a, uint256 b, uint256 denominator) internal returns (uint256) => CVL_mulDivUp(a, b, denominator);
     function TickLib.tickToPrice(uint256 tick) internal returns (uint256) => CVL_tickToPrice(tick);
     function tradingFee(bytes32 id, uint256 timeToMaturity) internal returns (uint256) => CVL_tradingFee(id, timeToMaturity);
+
+    function _.price() external => NONDET;
     function signer(bytes32, Midnight.Signature memory) internal returns (address) => NONDET;
     function UtilsLib.isLeaf(bytes32, bytes32, bytes32[] memory) internal returns (bool) => NONDET;
     function IdLib.storeInCode(Midnight.Obligation memory) internal returns (address) => NONDET;
@@ -65,12 +66,9 @@ rule makerFavorableRounding(env e, uint256 units, address taker, address takerCa
     assert !offer.buy => to_mathint(sellerAssets) * WAD() >= to_mathint(units) * to_mathint(offerPrice);
 }
 
-// The trading fee is fully borne by the taker:
-//   1. buyer-maker: taker/seller receives at most floor(units * (offerPrice − fee) / WAD).
-//   2. seller-maker: taker/buyer pays at least ceil(units * (offerPrice + fee) / WAD).
-//   3. corollary: buyerAssets >= sellerAssets always.
-rule takerBearsFee(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
-    uint256 offerPrice = CVL_tickToPrice(offer.tick);
+// The trading fee cannot be bypassed: the spread between what the buyer pays and what
+// the seller receives is at least floor(units * fee / WAD) and at most ceil(units * fee / WAD).
+rule feeIsNotBypassed(env e, uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
     uint256 timeToMaturity = e.block.timestamp <= offer.obligation.maturity ? assert_uint256(offer.obligation.maturity - e.block.timestamp) : 0;
 
     uint256 buyerAssets;
@@ -79,7 +77,16 @@ rule takerBearsFee(env e, uint256 units, address taker, address takerCallback, b
 
     uint256 fee = CVL_tradingFee(lastId, timeToMaturity);
 
-    assert to_mathint(buyerAssets) >= to_mathint(sellerAssets);
-    assert offer.buy => to_mathint(sellerAssets) * WAD() <= to_mathint(units) * (to_mathint(offerPrice) - to_mathint(fee));
-    assert !offer.buy => to_mathint(buyerAssets) * WAD() >= to_mathint(units) * (to_mathint(offerPrice) + to_mathint(fee));
+    assert to_mathint(buyerAssets) - to_mathint(sellerAssets) >= to_mathint(CVL_mulDivDown(units, fee, WAD()));
+    assert to_mathint(buyerAssets) - to_mathint(sellerAssets) <= to_mathint(CVL_mulDivUp(units, fee, WAD()));
+}
+
+// taking zero units must produce zero assets on both sides.
+rule zeroUnitsTakeResultsInZeroAssets(env e, address taker, address takerCallback, bytes takerCallbackData, address receiver, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) {
+    uint256 buyerAssets;
+    uint256 sellerAssets;
+    buyerAssets, sellerAssets, _ = take(e, 0, taker, takerCallback, takerCallbackData, receiver, offer, signature, root, proof);
+
+    assert buyerAssets  == 0;
+    assert sellerAssets == 0;
 }
