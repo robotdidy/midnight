@@ -14,6 +14,7 @@ methods {
     function consumed(address user, bytes32 group) external returns (uint256) envfree;
     function session(address user) external returns (bytes32) envfree;
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
+
     // Summarize internal functions that use opcodes causing HAVOC (CREATE2, low-level calls).
     function IdLib.storeInCode(Midnight.Obligation memory) internal returns (address) => NONDET;
 
