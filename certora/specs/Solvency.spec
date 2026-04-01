@@ -146,6 +146,8 @@ strong invariant tokenBalanceCorrect(address token)
         preserved take(uint256 units, address taker, address takerCallback, bytes takerCallbackData, address receiverIfTakerIsSeller, Midnight.Offer offer, Midnight.Signature signature, bytes32 root, bytes32[] proof) with (env e) {
             require taker != currentContract, "no trading with contract";
             require offer.maker != currentContract, "no trading with contract";
+            require offer.callback != currentContract, "midnight reverts on callbacks";
+            require takerCallback != currentContract, "midnight reverts on callbacks";
         }
     }
 
