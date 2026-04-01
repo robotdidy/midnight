@@ -207,7 +207,6 @@ contract Midnight is IMidnight {
     function claimTradingFee(address token, uint256 amount, address receiver) external {
         require(msg.sender == feeClaimer, "only fee claimer");
         claimableTradingFee[token] -= amount;
-
         emit EventsLib.ClaimTradingFee(msg.sender, token, amount, receiver);
 
         SafeTransferLib.safeTransfer(token, receiver, amount);
