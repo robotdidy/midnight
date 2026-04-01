@@ -112,6 +112,7 @@ contract Midnight is IMidnight {
     /// feeSetter.
     mapping(address loanToken => uint32) public defaultContinuousFee;
 
+    /// @dev If a fee recipient does not claim a fee after a take, a future fee recipient could claim that fee in his place.
     mapping(address token => uint256) public claimableTradingFee;
 
     address public feeRecipient;
