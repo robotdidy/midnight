@@ -199,7 +199,6 @@ contract Midnight is IMidnight {
     /// position at the end.
     /// @dev The taker might not get the price they expected if the trading fee was just changed.
     /// @dev All sellerAssets are reachable with the units input, and all buyerAssets are reachable only if
-    /// @dev To work as expected, all offers in a same group should have the same ratifier.
     /// buyerPrice <= WAD.
     function take(
         uint256 units,
