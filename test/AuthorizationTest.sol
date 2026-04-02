@@ -251,6 +251,8 @@ contract AuthorizationTest is BaseTest {
 
         deal(address(loanToken), authorized, units);
         vm.prank(authorized);
+        loanToken.approve(address(midnight), 0);
+        vm.prank(authorized);
         loanToken.approve(address(midnight), units);
 
         vm.prank(authorized);
