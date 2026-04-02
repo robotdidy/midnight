@@ -6,7 +6,7 @@ import {IMidnight} from "../interfaces/IMidnight.sol";
 import {Authorization, Signature, AUTHORIZATION_TYPEHASH, EIP712_DOMAIN_TYPEHASH} from "../interfaces/IEcrecover.sol";
 
 contract SetIsAuthorizedWithSig {
-    event SetIsAuthorizedWithSig(
+    event AuthorizationWithSig(
         address indexed caller, address indexed authorizer, address indexed authorized, bool isAuthorized, uint256 nonce
     );
 
@@ -32,7 +32,7 @@ contract SetIsAuthorizedWithSig {
             "invalid signature"
         );
 
-        emit SetIsAuthorizedWithSig(
+        emit AuthorizationWithSig(
             msg.sender,
             authorization.authorizer,
             authorization.authorized,
