@@ -8,6 +8,7 @@ methods {
 
     function withdrawable(bytes32 id) external returns (uint256) envfree;
     function totalUnits(bytes32 id) external returns (uint256) envfree;
+    function claimableTradingFee(address token) external returns (uint256) envfree;
     function creditOf(bytes32 id, address user) external returns (uint256) envfree;
     function debtOf(bytes32 id, address user) external returns (uint256) envfree;
     function pendingFee(bytes32 id, address user) external returns (uint128) envfree;
@@ -69,6 +70,8 @@ rule takeInputOutputConsistency(env e, uint256 unitsInput, address taker, addres
     uint256 sellerAssetsOutput;
     uint256 unitsOutput;
 
+    uint256 claimableBefore = claimableTradingFee(offer.obligation.loanToken);
+
     buyerAssetsOutput, sellerAssetsOutput, unitsOutput = take(e, unitsInput, taker, takerCallbackAddress, takerCallbackData, receiver, offer, signature, root, proof);
 
     // The output units is equal to the input.
@@ -76,6 +79,9 @@ rule takeInputOutputConsistency(env e, uint256 unitsInput, address taker, addres
 
     // If the input is zero, all the output arguments are zero.
     assert unitsInput == 0 => buyerAssetsOutput == 0 && sellerAssetsOutput == 0 && unitsOutput == 0;
+
+    // The claimable trading fee increases by exactly the spread.
+    assert claimableTradingFee(offer.obligation.loanToken) == claimableBefore + buyerAssetsOutput - sellerAssetsOutput;
 }
 
 rule liquidateInputOutputConsistency(env e, Midnight.Obligation obligation, uint256 collateralIndex, uint256 seizedAssets, uint256 repaidUnits, address borrower, bytes data) {

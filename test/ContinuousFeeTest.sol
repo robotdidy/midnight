@@ -16,7 +16,7 @@ contract ContinuousFeeTest is BaseTest {
 
     Obligation internal obligation;
     bytes32 internal id;
-    address internal feeRecipient = makeAddr("feeRecipient");
+    address internal feeClaimer = makeAddr("feeClaimer");
 
     function setUp() public override {
         super.setUp();
@@ -36,7 +36,7 @@ contract ContinuousFeeTest is BaseTest {
         obligation.rcfThreshold = 0;
 
         id = toId(obligation);
-        midnight.setFeeRecipient(feeRecipient);
+        midnight.setFeeClaimer(feeClaimer);
 
         vm.prank(borrower);
         midnight.setIsAuthorized(borrower, address(this), true);

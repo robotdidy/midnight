@@ -111,7 +111,10 @@ contract Midnight is IMidnight {
     /// feeSetter.
     mapping(address loanToken => uint32) public defaultContinuousFee;
 
-    address public feeRecipient;
+    /// @dev When the claimer is set, the old claimer loses the unclaimed trading and continuous fees.
+    mapping(address token => uint256) public claimableTradingFee;
+
+    address public feeClaimer;
 
     /// @dev Contract owner for administrative functions.
     address public owner;
@@ -176,10 +179,10 @@ contract Midnight is IMidnight {
         emit EventsLib.SetDefaultTradingFee(loanToken, index, newTradingFee);
     }
 
-    function setFeeRecipient(address newFeeRecipient) external {
+    function setFeeClaimer(address newFeeClaimer) external {
         require(msg.sender == owner, "only owner");
-        feeRecipient = newFeeRecipient;
-        emit EventsLib.SetFeeRecipient(newFeeRecipient);
+        feeClaimer = newFeeClaimer;
+        emit EventsLib.SetFeeClaimer(newFeeClaimer);
     }
 
     function setObligationContinuousFee(bytes32 id, uint256 newContinuousFee) external {
@@ -197,6 +200,14 @@ contract Midnight is IMidnight {
         // forge-lint: disable-next-line(unsafe-typecast) as newContinuousFee <= MAX_CONTINUOUS_FEE < type(uint32).max
         defaultContinuousFee[loanToken] = uint32(newContinuousFee);
         emit EventsLib.SetDefaultContinuousFee(loanToken, newContinuousFee);
+    }
+
+    function claimTradingFee(address token, uint256 amount, address receiver) external {
+        require(msg.sender == feeClaimer, "only fee claimer");
+        claimableTradingFee[token] -= amount;
+        emit EventsLib.ClaimTradingFee(msg.sender, token, amount, receiver);
+
+        SafeTransferLib.safeTransfer(token, receiver, amount);
     }
 
     /// ENTRY-POINTS ///
@@ -341,7 +352,8 @@ contract Midnight is IMidnight {
                 .onBuy(id, offer.obligation, buyer, buyerAssets, sellerAssets, units, buyerCallbackData);
         }
 
-        SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, feeRecipient, buyerAssets - sellerAssets);
+        SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, address(this), buyerAssets - sellerAssets);
+        claimableTradingFee[offer.obligation.loanToken] += buyerAssets - sellerAssets;
         SafeTransferLib.safeTransferFrom(offer.obligation.loanToken, buyer, receiver, sellerAssets);
 
         if (sellerCallback != address(0)) {
@@ -377,7 +389,7 @@ contract Midnight is IMidnight {
     }
 
     function claimContinuousFee(Obligation memory obligation, uint256 amount, address receiver) external {
-        require(msg.sender == feeRecipient, "only fee recipient");
+        require(msg.sender == feeClaimer, "only fee claimer");
         bytes32 id = toId(obligation);
         require(obligationState[id].created, "not created");
         ObligationState storage _obligationState = obligationState[id];
