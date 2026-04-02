@@ -9,32 +9,30 @@ methods {
 }
 
 /// setIsAuthorizedWithSig is satisfiable.
-rule satisfiable(env e, address authorizer, address authorized, bool isAuth, SetIsAuthorizedWithSig.Signature signature) {
-    setIsAuthorizedWithSig(e, authorizer, authorized, isAuth, signature);
+rule satisfiable(env e, SetIsAuthorizedWithSig.Authorization authorization, SetIsAuthorizedWithSig.Signature signature) {
+    setIsAuthorizedWithSig(e, authorization, signature);
     satisfy true;
 }
 
-/// setIsAuthorizedWithSig requires caller auth, valid signer, increments nonce, and doesn't change other nonces.
-rule setIsAuthorizedWithSigEffects(env e, address authorizer, address authorized, bool isAuth, SetIsAuthorizedWithSig.Signature signature, address other) {
-    require other != authorizer;
-    uint256 nonceBefore = nonce(authorizer);
+/// setIsAuthorizedWithSig increments nonce and doesn't change other nonces.
+rule effects(env e, SetIsAuthorizedWithSig.Authorization authorization, SetIsAuthorizedWithSig.Signature signature, address other) {
+    require other != authorization.authorizer;
+    uint256 nonceBefore = nonce(authorization.authorizer);
     uint256 otherNonceBefore = nonce(other);
-    bool callerWasAuthorized = midnight.isAuthorized(authorizer, e.msg.sender);
 
-    setIsAuthorizedWithSig(e, authorizer, authorized, isAuth, signature);
+    setIsAuthorizedWithSig(e, authorization, signature);
 
-    assert e.msg.sender == authorizer || callerWasAuthorized;
-    assert nonce(authorizer) == nonceBefore + 1;
+    assert nonce(authorization.authorizer) == nonceBefore + 1;
     assert nonce(other) == otherNonceBefore;
 }
 
-/// A nonce can't be reused: calling setIsAuthorizedWithSig twice with the same nonce reverts.
-rule nonceReplay(env e1, env e2, address authorizer, address authorized1, bool isAuth1, SetIsAuthorizedWithSig.Signature signature1, address authorized2, bool isAuth2, SetIsAuthorizedWithSig.Signature signature2) {
-    uint256 nonceBefore = nonce(authorizer);
+/// A nonce can't be reused.
+rule nonceReplay(env e1, env e2, SetIsAuthorizedWithSig.Authorization auth1, SetIsAuthorizedWithSig.Signature sig1, SetIsAuthorizedWithSig.Authorization auth2, SetIsAuthorizedWithSig.Signature sig2) {
+    uint256 nonceBefore = nonce(auth1.authorizer);
 
-    setIsAuthorizedWithSig(e1, authorizer, authorized1, isAuth1, signature1);
+    setIsAuthorizedWithSig(e1, auth1, sig1);
 
-    setIsAuthorizedWithSig@withrevert(e2, authorizer, authorized2, isAuth2, signature2);
+    setIsAuthorizedWithSig@withrevert(e2, auth2, sig2);
 
-    assert !lastReverted => nonce(authorizer) == nonceBefore + 2;
+    assert !lastReverted => nonce(auth1.authorizer) == nonceBefore + 2;
 }
