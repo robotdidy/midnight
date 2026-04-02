@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import {Obligation, Collateral} from "../src/interfaces/IMidnight.sol";
-import {ICallbacks} from "../src/interfaces/ICallbacks.sol";
 import {Midnight} from "../src/Midnight.sol";
 import {IdLib} from "../src/libraries/IdLib.sol";
 
