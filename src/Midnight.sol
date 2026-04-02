@@ -353,7 +353,7 @@ contract Midnight is IMidnight {
         if (buyerCallback != address(0)) {
             require(
                 ICallbacks(buyerCallback).onBuy(id, offer.obligation, buyer, buyerAssets, units, buyerCallbackData)
-                == CALLBACK_SUCCESS,
+                    == CALLBACK_SUCCESS,
                 "invalid callback"
             );
             fundingSource = buyerCallback;

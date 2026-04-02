@@ -26,14 +26,10 @@ contract IdleCallback is ICallbacks {
         SafeTransferLib.safeTransfer(token, msg.sender, amount);
     }
 
-    function onBuy(
-        bytes32,
-        Obligation memory obligation,
-        address buyer,
-        uint256 buyerAssets,
-        uint256,
-        bytes memory
-    ) external returns (bytes32) {
+    function onBuy(bytes32, Obligation memory obligation, address buyer, uint256 buyerAssets, uint256, bytes memory)
+        external
+        returns (bytes32)
+    {
         require(msg.sender == MIDNIGHT);
         balances[buyer][obligation.loanToken] -= buyerAssets;
         IERC20(obligation.loanToken).approve(MIDNIGHT, buyerAssets);
