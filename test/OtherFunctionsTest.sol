@@ -414,7 +414,7 @@ contract OtherFunctionsTest is BaseTest {
         address lastToken = _obligation.collateralParams[numCollaterals - 1].token;
         deal(lastToken, address(this), 1e18);
         ERC20(lastToken).approve(address(midnight), 1e18);
-        vm.expectRevert("too many collateralParams per borrower");
+        vm.expectRevert("too many collaterals per borrower");
         midnight.supplyCollateral(_obligation, numCollaterals - 1, 1e18, borrower);
     }
 
