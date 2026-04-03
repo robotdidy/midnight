@@ -992,14 +992,10 @@ contract BorrowCallback is ICallbacks {
     bytes public recordedData;
     bytes32 public recordedId;
 
-    function onSell(
-        bytes32 id,
-        Obligation memory obligation,
-        address seller,
-        uint256,
-        uint256,
-        bytes memory data
-    ) external returns (bytes32) {
+    function onSell(bytes32 id, Obligation memory obligation, address seller, uint256, uint256, bytes memory data)
+        external
+        returns (bytes32)
+    {
         require(id == IdLib.toId(obligation, block.chainid, msg.sender), "wrong id");
         recordedId = id;
         recordedData = data;
@@ -1028,14 +1024,10 @@ contract LendCallback is ICallbacks {
 
     bytes32 public recordedId;
 
-    function onBuy(
-        bytes32 id,
-        Obligation memory obligation,
-        address,
-        uint256 buyerAssets,
-        uint256,
-        bytes memory data
-    ) external returns (bytes32) {
+    function onBuy(bytes32 id, Obligation memory obligation, address, uint256 buyerAssets, uint256, bytes memory data)
+        external
+        returns (bytes32)
+    {
         require(id == IdLib.toId(obligation, block.chainid, msg.sender), "wrong id");
         recordedId = id;
         recordedData = data;
