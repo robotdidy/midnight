@@ -133,12 +133,12 @@ rule onlyAuthorizedCanChangeIsAuthorized(env e, method f, calldataarg args, addr
 
 /// Only the fee claimer can successfully call claimContinuousFee.
 rule onlyFeeClaimerCanClaimContinuousFee(env e, Midnight.Obligation obligation, uint256 amount, address receiver) {
-    claimContinuousFee@withrevert(e, obligation, amount, receiver);
-    assert !lastReverted => e.msg.sender == feeClaimer();
+    claimContinuousFee(e, obligation, amount, receiver);
+    assert e.msg.sender == feeClaimer();
 }
 
 /// Only the fee claimer can successfully call claimTradingFee.
 rule onlyFeeClaimerCanClaimTradingFee(env e, address token, uint256 amount, address receiver) {
-    claimTradingFee@withrevert(e, token, amount, receiver);
-    assert !lastReverted => e.msg.sender == feeClaimer();
+    claimTradingFee(e, token, amount, receiver);
+    assert e.msg.sender == feeClaimer();
 }
