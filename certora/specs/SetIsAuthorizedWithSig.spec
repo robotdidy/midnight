@@ -28,11 +28,12 @@ rule effects(env e, SetIsAuthorizedWithSig.Authorization authorization, SetIsAut
 
 /// A nonce can't be reused.
 rule nonceReplay(env e1, env e2, SetIsAuthorizedWithSig.Authorization auth1, SetIsAuthorizedWithSig.Signature sig1, SetIsAuthorizedWithSig.Authorization auth2, SetIsAuthorizedWithSig.Signature sig2) {
-    uint256 nonceBefore = nonce(auth1.authorizer);
+    require auth2.authorizer == auth1.authorizer;
+    require auth2.nonce == nonce(auth1.authorizer);
 
     setIsAuthorizedWithSig(e1, auth1, sig1);
 
     setIsAuthorizedWithSig@withrevert(e2, auth2, sig2);
 
-    assert !lastReverted => nonce(auth1.authorizer) == nonceBefore + 2;
+    assert lastReverted;
 }
