@@ -46,9 +46,8 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// - Each collateral's `lltv` must be one of the allowed tiers (see `isLltvAllowed` in ConstantsLib).
 /// - Each collateral's `maxLif` must equal `maxLif(lltv, LIQUIDATION_CURSOR_LOW)` or
 ///   `maxLif(lltv, LIQUIDATION_CURSOR_HIGH)`.
-/// @dev Additionally, within a single obligation, a borrower can use at most
-/// `MAX_COLLATERALS_PER_BORROWER` (10) collaterals simultaneously.
-/// simultaneously within a single obligation.
+/// @dev Additionally, within a single obligation, a borrower can use at most MAX_COLLATERALS_PER_BORROWER (10)
+/// collaterals simultaneously.
 ///
 /// TRADING FEES
 /// @dev The trading fee is computed using piecewise linear interpolation between breakpoints.
