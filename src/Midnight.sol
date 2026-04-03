@@ -521,10 +521,12 @@ contract Midnight is IMidnight {
                     - (type(uint128).max - oldLossIndex).mulDivDown(oldTotalUnits - badDebt, oldTotalUnits)
             );
             _obligationState.totalUnits -= UtilsLib.toUint128(badDebt);
-            _obligationState.continuousFeeAmount = UtilsLib.toUint128(
-                _obligationState.continuousFeeAmount
-                    .mulDivDown(type(uint128).max - _obligationState.lossIndex, type(uint128).max - oldLossIndex)
-            );
+            _obligationState.continuousFeeAmount = oldLossIndex < type(uint128).max
+                ? UtilsLib.toUint128(
+                    _obligationState.continuousFeeAmount
+                        .mulDivDown(type(uint128).max - _obligationState.lossIndex, type(uint128).max - oldLossIndex)
+                )
+                : 0;
         }
 
         if (repaidUnits > 0 || seizedAssets > 0) {

@@ -395,6 +395,69 @@ contract ContinuousFeeTest is BaseTest {
         );
     }
 
+    function testClaimContinuousFee(uint256 credit, uint256 feeRate, uint256 ttm, uint256 elapsed, uint256 claimAmount)
+        public
+    {
+        credit = bound(credit, 1, MAX_CREDIT);
+        feeRate = bound(feeRate, 1, MAX_CONTINUOUS_FEE);
+        ttm = bound(ttm, 2, 360 days);
+        elapsed = bound(elapsed, 1, ttm - 1);
+
+        setupLender(credit, feeRate, ttm);
+
+        vm.warp(block.timestamp + elapsed);
+        midnight.updatePosition(obligation, lender);
+
+        uint256 feeAmount = midnight.continuousFeeAmount(id);
+        vm.assume(feeAmount > 0);
+        claimAmount = bound(claimAmount, 1, feeAmount);
+
+        // Repay so withdrawable covers the claim.
+        deal(address(loanToken), borrower, credit);
+        vm.prank(borrower);
+        midnight.repay(obligation, credit, borrower);
+
+        address receiver = makeAddr("receiver");
+        uint256 totalUnitsBefore = midnight.totalUnits(id);
+        uint256 withdrawableBefore = midnight.withdrawable(id);
+
+        vm.expectEmit();
+        emit EventsLib.ClaimContinuousFee(feeClaimer, id, claimAmount, receiver);
+        vm.prank(feeClaimer);
+        midnight.claimContinuousFee(obligation, claimAmount, receiver);
+
+        assertEq(loanToken.balanceOf(receiver), claimAmount, "receiver balance");
+        assertEq(midnight.continuousFeeAmount(id), feeAmount - claimAmount, "continuousFeeAmount after claim");
+        assertEq(midnight.totalUnits(id), totalUnitsBefore - claimAmount, "totalUnits after claim");
+        assertEq(midnight.withdrawable(id), withdrawableBefore - claimAmount, "withdrawable after claim");
+    }
+
+    function testClaimContinuousFeeOnlyFeeClaimer(address caller) public {
+        vm.assume(caller != feeClaimer);
+        vm.prank(caller);
+        vm.expectRevert("only fee claimer");
+        midnight.claimContinuousFee(obligation, 0, caller);
+    }
+
+    function testClaimContinuousFeeExcessReverts(uint256 credit, uint256 feeRate, uint256 ttm, uint256 elapsed) public {
+        credit = bound(credit, 1, MAX_CREDIT);
+        feeRate = bound(feeRate, 1, MAX_CONTINUOUS_FEE);
+        ttm = bound(ttm, 2, 360 days);
+        elapsed = bound(elapsed, 1, ttm - 1);
+
+        setupLender(credit, feeRate, ttm);
+
+        vm.warp(block.timestamp + elapsed);
+        midnight.updatePosition(obligation, lender);
+
+        uint256 feeAmount = midnight.continuousFeeAmount(id);
+        vm.assume(feeAmount > 0);
+
+        vm.prank(feeClaimer);
+        vm.expectRevert();
+        midnight.claimContinuousFee(obligation, feeAmount + 1, feeClaimer);
+    }
+
     function testUpdatePositionViewCorrect(
         uint256 credit,
         uint256 feeRate,
