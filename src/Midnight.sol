@@ -18,6 +18,7 @@ import {
     LIQUIDATION_CURSOR_HIGH,
     EIP712_DOMAIN_TYPEHASH,
     ROOT_TYPEHASH,
+    DEFERRED_CHECK_SLOT,
     CALLBACK_SUCCESS,
     isLltvAllowed
 } from "./libraries/ConstantsLib.sol";
@@ -361,6 +362,7 @@ contract Midnight is IMidnight {
             sellerCreditDecrease
         );
 
+        UtilsLib.tSet(DEFERRED_CHECK_SLOT, id, seller, true);
         if (buyerCallback != address(0)) {
             require(
                 ICallbacks(buyerCallback).onBuy(id, offer.obligation, buyer, buyerAssets, units, buyerCallbackData)
@@ -381,6 +383,7 @@ contract Midnight is IMidnight {
                 "invalid callback"
             );
         }
+        UtilsLib.tSet(DEFERRED_CHECK_SLOT, id, seller, false);
 
         require(isHealthy(offer.obligation, id, seller), "seller is unhealthy");
 
@@ -501,6 +504,7 @@ contract Midnight is IMidnight {
             "liquidator gated from liquidating"
         );
         Position storage _position = position[id][borrower];
+        require(!UtilsLib.tGet(DEFERRED_CHECK_SLOT, id, borrower), "health check deferred");
 
         uint256 maxDebt;
         uint256 liquidatedCollatPrice;

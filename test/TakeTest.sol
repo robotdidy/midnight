@@ -868,6 +868,40 @@ contract TakeTest is BaseTest {
         assertEq(BorrowCallback(callback).recordedData(), abi.encode(0, collateral));
     }
 
+    function testSellSellerCallbackLiquidateRevertsWhileHealthCheckDeferred() public {
+        uint256 units = 100e18;
+        uint256 repaidUnits = 1e18;
+        uint256 collateral = units.mulDivUp(WAD, obligation.collateralParams[0].lltv);
+        lenderOffer.maxUnits = units;
+        lenderOffer.tick = MAX_TICK;
+        uint256 price = TickLib.tickToPrice(MAX_TICK);
+        ReentrantLiquidateBorrowCallback callback = new ReentrantLiquidateBorrowCallback();
+        deal(address(loanToken), lender, units.mulDivDown(price, WAD));
+        deal(obligation.collateralParams[0].token, address(callback), collateral);
+        deal(address(loanToken), address(callback), repaidUnits);
+
+        authorize(borrower, address(callback));
+
+        vm.warp(obligation.maturity + 1);
+        vm.prank(borrower);
+        midnight.take(
+            units,
+            borrower,
+            address(callback),
+            abi.encode(0, collateral, repaidUnits),
+            borrower,
+            lenderOffer,
+            sig([lenderOffer]),
+            root([lenderOffer]),
+            proof([lenderOffer])
+        );
+
+        assertFalse(callback.liquidateSucceeded());
+        assertEq(callback.liquidateError(), "health check deferred");
+        assertEq(midnight.debtOf(id, borrower), units);
+        assertEq(midnight.collateral(id, borrower, 0), collateral);
+    }
+
     function testSellSellerCallbackRevertsOnInvalidReturn(uint256 units) public {
         units = bound(units, 1, maxAssets);
         lenderOffer.maxUnits = units;
@@ -1003,6 +1037,47 @@ contract BorrowCallback is ICallbacks {
         address collateralToken = obligation.collateralParams[collateralIndex].token;
         ERC20(collateralToken).approve(msg.sender, amount);
         Midnight(msg.sender).supplyCollateral(obligation, collateralIndex, amount, seller);
+        return CALLBACK_SUCCESS;
+    }
+
+    function onBuy(bytes32, Obligation memory, address, uint256, uint256, bytes memory)
+        external
+        pure
+        returns (bytes32)
+    {
+        return CALLBACK_SUCCESS;
+    }
+
+    function onLiquidate(bytes32, Obligation memory, uint256, uint256, uint256, address, bytes memory) external {}
+
+    function onRepay(bytes32, Obligation memory, uint256, address, bytes memory) external {}
+}
+
+contract ReentrantLiquidateBorrowCallback is ICallbacks {
+    bool public liquidateSucceeded;
+    string public liquidateError;
+    bytes public liquidateRevertData;
+
+    function onSell(bytes32 id, Obligation memory obligation, address seller, uint256, uint256, bytes memory data)
+        external
+        returns (bytes32)
+    {
+        require(id == IdLib.toId(obligation, block.chainid, msg.sender), "wrong id");
+        (uint256 collateralIndex, uint256 collateralAmount, uint256 repaidUnits) =
+            abi.decode(data, (uint256, uint256, uint256));
+        address collateralToken = obligation.collateralParams[collateralIndex].token;
+        ERC20(collateralToken).approve(msg.sender, collateralAmount);
+        Midnight(msg.sender).supplyCollateral(obligation, collateralIndex, collateralAmount, seller);
+        ERC20(obligation.loanToken).approve(msg.sender, repaidUnits);
+        try Midnight(msg.sender).liquidate(obligation, collateralIndex, 0, repaidUnits, seller, "") returns (
+            uint256, uint256
+        ) {
+            liquidateSucceeded = true;
+        } catch Error(string memory reason) {
+            liquidateError = reason;
+        } catch (bytes memory revertData) {
+            liquidateRevertData = revertData;
+        }
         return CALLBACK_SUCCESS;
     }
 
