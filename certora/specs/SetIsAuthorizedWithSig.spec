@@ -10,7 +10,7 @@ methods {
 
 /// EcrecoverAuthorizer is satisfiable.
 rule satisfiable(env e, EcrecoverAuthorizer.Authorization authorization, EcrecoverAuthorizer.Signature signature) {
-    EcrecoverAuthorizer(e, authorization, signature);
+    setIsAuthorized(e, authorization, signature);
     satisfy true;
 }
 
@@ -20,7 +20,7 @@ rule effects(env e, EcrecoverAuthorizer.Authorization authorization, EcrecoverAu
     uint256 nonceBefore = nonce(authorization.authorizer);
     uint256 otherNonceBefore = nonce(other);
 
-    EcrecoverAuthorizer(e, authorization, signature);
+    setIsAuthorized(e, authorization, signature);
 
     assert nonce(authorization.authorizer) == nonceBefore + 1;
     assert nonce(other) == otherNonceBefore;
@@ -31,9 +31,9 @@ rule nonceReplay(env e1, env e2, EcrecoverAuthorizer.Authorization auth1, Ecreco
     require auth2.authorizer == auth1.authorizer;
     require auth2.nonce == nonce(auth1.authorizer);
 
-    EcrecoverAuthorizer(e1, auth1, sig1);
+    setIsAuthorized(e1, auth1, sig1);
 
-    EcrecoverAuthorizer@withrevert(e2, auth2, sig2);
+    setIsAuthorized@withrevert(e2, auth2, sig2);
 
     assert lastReverted;
 }
