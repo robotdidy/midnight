@@ -9,7 +9,7 @@ methods {
 
     function Midnight.totalUnits(bytes32) external returns (uint256) envfree;
     function Midnight.withdrawable(bytes32) external returns (uint256) envfree;
-    function Midnight.fees(bytes32) external returns (uint16[7]) envfree;
+    function Midnight.tradingFees(bytes32) external returns (uint16[7]) envfree;
     function Midnight.continuousFee(bytes32) external returns (uint32) envfree;
     function Midnight.obligationCreated(bytes32) external returns (bool) envfree;
     function Midnight.creditOf(bytes32, address) external returns (uint256) envfree;
@@ -128,6 +128,9 @@ strong invariant obligationFeesAreEmptyIfNotCreated(bytes32 id)
 strong invariant obligationContinuousFeeIsEmptyIfNotCreated(bytes32 id)
     !Midnight.obligationCreated(id) => Midnight.continuousFee(id) == 0;
 
+strong invariant obligationContinuousFeeCreditIsEmptyIfNotCreated(bytes32 id)
+    !Midnight.obligationCreated(id) => currentContract.obligationState[id].continuousFeeCredit == 0;
+
 strong invariant obligationLossIndexIsEmptyIfNotCreated(bytes32 id)
     !Midnight.obligationCreated(id) => currentContract.obligationState[id].lossIndex == 0;
 
@@ -153,7 +156,7 @@ strong invariant positionLossIndexIsEmptyIfNotCreated(bytes32 id, address user)
     !Midnight.obligationCreated(id) => currentContract.position[id][user].lossIndex == 0;
 
 function noFeesAreSet(bytes32 id) returns (bool) {
-    uint16[7] fees = Midnight.fees(id);
+    uint16[7] fees = Midnight.tradingFees(id);
     return fees[0] == 0 && fees[1] == 0 && fees[2] == 0 && fees[3] == 0 && fees[4] == 0 && fees[5] == 0 && fees[6] == 0;
 }
 

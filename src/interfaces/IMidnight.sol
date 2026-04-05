@@ -50,10 +50,16 @@ struct ObligationState {
     uint128 totalUnits;
     uint128 lossIndex;
     uint128 withdrawable;
-    uint128 continuousFeeAmount;
-    bool created;
-    uint16[7] fees;
+    uint128 continuousFeeCredit;
+    uint16 fee0;
+    uint16 fee1;
+    uint16 fee2;
+    uint16 fee3;
+    uint16 fee4;
+    uint16 fee5;
+    uint16 fee6;
     uint32 continuousFee;
+    bool created;
 }
 
 struct Position {

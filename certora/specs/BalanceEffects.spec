@@ -11,7 +11,7 @@ methods {
     function collateral(bytes32 id, address user, uint256 index) external returns (uint128) envfree;
     function pendingFee(bytes32 id, address user) external returns (uint128) envfree;
     function isAuthorized(address authorizer, address authorized) external returns (bool) envfree;
-    function continuousFeeAmount(bytes32 id) external returns (uint256) envfree;
+    function continuousFeeCredit(bytes32 id) external returns (uint256) envfree;
     function _.price() external => NONDET;
 
     // Summarize internals irrelevant to credit and debt tracking.
@@ -42,7 +42,7 @@ function signerSummary() returns address {
 /// UPDATE POSITION ///
 
 /// updatePosition sets user's credit to the post-update value,
-/// only changes credit of user at the obligation id, and accrues fee to continuousFeeAmount.
+/// only changes credit of user at the obligation id, and accrues fee to continuousFeeCredit.
 rule updatePositionEffects(env e, Midnight.Obligation obligation, address user, bytes32 anyId, address anyUser) {
     bytes32 id = toId(e, obligation);
 
@@ -52,14 +52,14 @@ rule updatePositionEffects(env e, Midnight.Obligation obligation, address user, 
 
     uint256 anyCredit = creditOf(anyId, anyUser);
     uint256 anyDebt = debtOf(anyId, anyUser);
-    uint256 feeAmountBefore = continuousFeeAmount(id);
+    uint256 feeAmountBefore = continuousFeeCredit(id);
 
     updatePosition(e, obligation, user);
 
     assert debtOf(anyId, anyUser) == anyDebt;
     assert (anyId != id) || (anyUser != user) => creditOf(anyId, anyUser) == anyCredit;
     assert creditOf(id, user) == updatedUserCredit;
-    assert continuousFeeAmount(id) == feeAmountBefore + userFee;
+    assert continuousFeeCredit(id) == feeAmountBefore + userFee;
 }
 
 /// WITHDRAW ///
@@ -75,14 +75,14 @@ rule withdrawEffects(env e, Midnight.Obligation obligation, uint256 units, addre
 
     uint256 anyCredit = creditOf(anyId, anyUser);
     uint256 anyDebt = debtOf(anyId, anyUser);
-    uint256 feeAmountBefore = continuousFeeAmount(id);
+    uint256 feeAmountBefore = continuousFeeCredit(id);
 
     withdraw(e, obligation, units, onBehalf, receiver);
 
     assert creditOf(id, onBehalf) == updatedUserCredit - units;
     assert debtOf(anyId, anyUser) == anyDebt;
     assert (anyId != id) || (anyUser != onBehalf) => creditOf(anyId, anyUser) == anyCredit;
-    assert continuousFeeAmount(id) == feeAmountBefore + userFee;
+    assert continuousFeeCredit(id) == feeAmountBefore + userFee;
 }
 
 /// TAKE ///
