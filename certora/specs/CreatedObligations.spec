@@ -128,6 +128,9 @@ strong invariant obligationFeesAreEmptyIfNotCreated(bytes32 id)
 strong invariant obligationContinuousFeeIsEmptyIfNotCreated(bytes32 id)
     !Midnight.obligationCreated(id) => Midnight.continuousFee(id) == 0;
 
+strong invariant obligationContinuousFeeCreditIsEmptyIfNotCreated(bytes32 id)
+    !Midnight.obligationCreated(id) => currentContract.obligationState[id].continuousFeeCredit == 0;
+
 strong invariant obligationLossIndexIsEmptyIfNotCreated(bytes32 id)
     !Midnight.obligationCreated(id) => currentContract.obligationState[id].lossIndex == 0;
 
