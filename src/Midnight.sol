@@ -234,6 +234,7 @@ contract Midnight is IMidnight {
     /// @dev The taker might not get the price they expected if the trading fee was just changed.
     /// @dev All sellerAssets are reachable with the units input, and all buyerAssets are reachable only if
     /// buyerPrice <= WAD.
+    /// @dev The seller cannot be liquidated during the callbacks of a take.
     function take(
         uint256 units,
         address taker,
@@ -362,7 +363,7 @@ contract Midnight is IMidnight {
             sellerCreditDecrease
         );
 
-        UtilsLib.tSet(LIQUIDATION_LOCK_SLOT, id, seller, true);
+        bool wasLocked = UtilsLib.tExchange(LIQUIDATION_LOCK_SLOT, id, seller, true);
         if (buyerCallback != address(0)) {
             require(
                 ICallbacks(buyerCallback).onBuy(id, offer.obligation, buyer, buyerAssets, units, buyerCallbackData)
@@ -384,7 +385,7 @@ contract Midnight is IMidnight {
             );
         }
         require(isHealthy(offer.obligation, id, seller), "seller is unhealthy");
-        UtilsLib.tSet(LIQUIDATION_LOCK_SLOT, id, seller, false);
+        if (!wasLocked) UtilsLib.tExchange(LIQUIDATION_LOCK_SLOT, id, seller, false);
 
         return (buyerAssets, sellerAssets, units);
     }

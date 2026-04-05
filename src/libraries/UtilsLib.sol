@@ -95,9 +95,11 @@ library UtilsLib {
     }
 
     /// @dev Sets a boolean in transient storage keyed by a `(bytes32, address)` pair.
-    function tSet(uint256 baseSlot, bytes32 key1, address key2, bool value) internal {
+    /// @dev Returns the previous value at the written slot.
+    function tExchange(uint256 baseSlot, bytes32 key1, address key2, bool value) internal returns (bool previous) {
         uint256 slot = uint256(keccak256(abi.encode(key1, key2, baseSlot)));
         assembly ("memory-safe") {
+            previous := tload(slot)
             tstore(slot, value)
         }
     }
