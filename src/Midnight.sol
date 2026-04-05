@@ -384,9 +384,7 @@ contract Midnight is IMidnight {
                 "invalid callback"
             );
         }
-
         require(!isLiquidatable(offer.obligation, id, seller), "seller is liquidatable");
-
         if (!wasLocked) UtilsLib.tExchange(LIQUIDATION_LOCK_SLOT, id, seller, false);
 
         return (buyerAssets, sellerAssets, units);
