@@ -168,9 +168,17 @@ contract Midnight is IMidnight {
         require(index <= 6, "invalid index");
         require(newTradingFee <= maxTradingFee(index), "value too high");
         require(newTradingFee % FEE_STEP == 0, "fee should be a multiple of FEE_STEP");
-        require(obligationState[id].created, "obligation not created");
+        ObligationState storage _obligationState = obligationState[id];
+        require(_obligationState.created, "obligation not created");
         // forge-lint: disable-next-item(unsafe-typecast) as newTradingFee <= maxTradingFee <= uint16.max * FEE_STEP
-        obligationState[id].fees[index] = uint16(newTradingFee / FEE_STEP);
+        uint16 toStore = uint16(newTradingFee / FEE_STEP);
+        if (index == 0) _obligationState.fee0 = toStore;
+        else if (index == 1) _obligationState.fee1 = toStore;
+        else if (index == 2) _obligationState.fee2 = toStore;
+        else if (index == 3) _obligationState.fee3 = toStore;
+        else if (index == 4) _obligationState.fee4 = toStore;
+        else if (index == 5) _obligationState.fee5 = toStore;
+        else if (index == 6) _obligationState.fee6 = toStore;
         emit EventsLib.SetObligationTradingFee(id, index, newTradingFee);
     }
 
@@ -188,9 +196,10 @@ contract Midnight is IMidnight {
     function setObligationContinuousFee(bytes32 id, uint256 newContinuousFee) external {
         require(msg.sender == feeSetter, "only fee setter");
         require(newContinuousFee <= MAX_CONTINUOUS_FEE, "continuous fee too high");
-        require(obligationState[id].created, "obligation not created");
+        ObligationState storage _obligationState = obligationState[id];
+        require(_obligationState.created, "obligation not created");
         // forge-lint: disable-next-line(unsafe-typecast) as newContinuousFee <= MAX_CONTINUOUS_FEE < type(uint32).max
-        obligationState[id].continuousFee = uint32(newContinuousFee);
+        _obligationState.continuousFee = uint32(newContinuousFee);
         emit EventsLib.SetObligationContinuousFee(id, newContinuousFee);
     }
 
@@ -658,9 +667,17 @@ contract Midnight is IMidnight {
                 previousCollateralToken = collateralToken;
             }
 
-            obligationState[id].created = true;
-            obligationState[id].fees = defaultTradingFees[obligation.loanToken];
-            obligationState[id].continuousFee = defaultContinuousFee[obligation.loanToken];
+            ObligationState storage _obligationState = obligationState[id];
+            _obligationState.created = true;
+            uint16[7] memory _defaultTradingFees = defaultTradingFees[obligation.loanToken];
+            _obligationState.fee0 = _defaultTradingFees[0];
+            _obligationState.fee1 = _defaultTradingFees[1];
+            _obligationState.fee2 = _defaultTradingFees[2];
+            _obligationState.fee3 = _defaultTradingFees[3];
+            _obligationState.fee4 = _defaultTradingFees[4];
+            _obligationState.fee5 = _defaultTradingFees[5];
+            _obligationState.fee6 = _defaultTradingFees[6];
+            _obligationState.continuousFee = defaultContinuousFee[obligation.loanToken];
             IdLib.storeInCode(obligation);
 
             emit EventsLib.ObligationCreated(id, obligation);
@@ -774,8 +791,16 @@ contract Midnight is IMidnight {
         return obligationState[id].withdrawable;
     }
 
-    function fees(bytes32 id) external view returns (uint16[7] memory) {
-        return obligationState[id].fees;
+    function tradingFees(bytes32 id) external view returns (uint16[7] memory) {
+        return [
+            obligationState[id].fee0,
+            obligationState[id].fee1,
+            obligationState[id].fee2,
+            obligationState[id].fee3,
+            obligationState[id].fee4,
+            obligationState[id].fee5,
+            obligationState[id].fee6
+        ];
     }
 
     function continuousFee(bytes32 id) external view returns (uint32) {
@@ -836,24 +861,20 @@ contract Midnight is IMidnight {
 
     /// @dev Returns the trading fee using piecewise linear interpolation between breakpoints.
     function tradingFee(bytes32 id, uint256 timeToMaturity) public view returns (uint256) {
-        require(obligationState[id].created, "not created");
+        ObligationState storage _obligationState = obligationState[id];
+        require(_obligationState.created, "not created");
 
-        uint16[7] memory _fees = obligationState[id].fees;
-
-        if (timeToMaturity >= 360 days) return _fees[6] * FEE_STEP;
+        if (timeToMaturity >= 360 days) return _obligationState.fee6 * FEE_STEP;
 
         // forgefmt: disable-start
-        (uint256 index, uint256 start, uint256 end) =
-            timeToMaturity < 1 days   ? (0, 0 days, 1 days) :
-            timeToMaturity < 7 days   ? (1, 1 days, 7 days) :
-            timeToMaturity < 30 days  ? (2, 7 days, 30 days) :
-            timeToMaturity < 90 days  ? (3, 30 days, 90 days) :
-            timeToMaturity < 180 days ? (4, 90 days, 180 days) :
-                                        (5, 180 days, 360 days);
+        (uint256 start, uint256 end, uint256 feeLower, uint256 feeUpper) =
+            timeToMaturity < 1 days   ? (  0 days,   1 days, _obligationState.fee0 * FEE_STEP, _obligationState.fee1 * FEE_STEP) :
+            timeToMaturity < 7 days   ? (  1 days,   7 days, _obligationState.fee1 * FEE_STEP, _obligationState.fee2 * FEE_STEP) :
+            timeToMaturity < 30 days  ? (  7 days,  30 days, _obligationState.fee2 * FEE_STEP, _obligationState.fee3 * FEE_STEP) :
+            timeToMaturity < 90 days  ? ( 30 days,  90 days, _obligationState.fee3 * FEE_STEP, _obligationState.fee4 * FEE_STEP) :
+            timeToMaturity < 180 days ? ( 90 days, 180 days, _obligationState.fee4 * FEE_STEP, _obligationState.fee5 * FEE_STEP) :
+                                        (180 days, 360 days, _obligationState.fee5 * FEE_STEP, _obligationState.fee6 * FEE_STEP);
         // forgefmt: disable-end
-
-        uint256 feeLower = _fees[index] * FEE_STEP;
-        uint256 feeUpper = _fees[index + 1] * FEE_STEP;
 
         return (feeLower * (end - timeToMaturity) + feeUpper * (timeToMaturity - start)) / (end - start);
     }
