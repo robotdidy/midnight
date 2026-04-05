@@ -50,11 +50,7 @@ struct ObligationState {
     uint128 totalUnits;
     uint128 lossIndex;
     uint128 withdrawable;
-<<<<<<< HEAD
-    uint128 continuousFeeAmount;
-=======
     uint128 continuousFeeCredit;
->>>>>>> origin/refactor/obligation-fees-seven
     uint16 fee0;
     uint16 fee1;
     uint16 fee2;

@@ -171,7 +171,6 @@ contract Midnight is IMidnight {
         ObligationState storage _obligationState = obligationState[id];
         require(_obligationState.created, "obligation not created");
         // forge-lint: disable-next-item(unsafe-typecast) as newTradingFee <= maxTradingFee <= uint16.max * FEE_STEP
-<<<<<<< HEAD
         uint16 toStore = uint16(newTradingFee / FEE_STEP);
         if (index == 0) _obligationState.fee0 = toStore;
         else if (index == 1) _obligationState.fee1 = toStore;
@@ -180,9 +179,6 @@ contract Midnight is IMidnight {
         else if (index == 4) _obligationState.fee4 = toStore;
         else if (index == 5) _obligationState.fee5 = toStore;
         else if (index == 6) _obligationState.fee6 = toStore;
-=======
-        setObligationFee(_obligationState, index, uint16(newTradingFee / FEE_STEP));
->>>>>>> origin/refactor/obligation-fees-seven
         emit EventsLib.SetObligationTradingFee(id, index, newTradingFee);
     }
 
@@ -880,36 +876,5 @@ contract Midnight is IMidnight {
         // forgefmt: disable-end
 
         return (feeLower * (end - timeToMaturity) + feeUpper * (timeToMaturity - start)) / (end - start);
-    }
-
-    function obligationFees(ObligationState storage _obligationState) internal view returns (uint16[7] memory fees_) {
-        fees_[0] = _obligationState.fee0;
-        fees_[1] = _obligationState.fee1;
-        fees_[2] = _obligationState.fee2;
-        fees_[3] = _obligationState.fee3;
-        fees_[4] = _obligationState.fee4;
-        fees_[5] = _obligationState.fee5;
-        fees_[6] = _obligationState.fee6;
-    }
-
-    function setObligationFee(ObligationState storage _obligationState, uint256 index, uint16 fee) internal {
-        if (index == 0) _obligationState.fee0 = fee;
-        else if (index == 1) _obligationState.fee1 = fee;
-        else if (index == 2) _obligationState.fee2 = fee;
-        else if (index == 3) _obligationState.fee3 = fee;
-        else if (index == 4) _obligationState.fee4 = fee;
-        else if (index == 5) _obligationState.fee5 = fee;
-        else if (index == 6) _obligationState.fee6 = fee;
-        else revert("invalid index");
-    }
-
-    function setObligationFees(ObligationState storage _obligationState, uint16[7] memory fees_) internal {
-        _obligationState.fee0 = fees_[0];
-        _obligationState.fee1 = fees_[1];
-        _obligationState.fee2 = fees_[2];
-        _obligationState.fee3 = fees_[3];
-        _obligationState.fee4 = fees_[4];
-        _obligationState.fee5 = fees_[5];
-        _obligationState.fee6 = fees_[6];
     }
 }
