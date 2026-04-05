@@ -262,6 +262,7 @@ contract Midnight is IMidnight {
         require(UtilsLib.isLeaf(root, keccak256(abi.encode(offer)), proof), "invalid proof");
         require(offer.session == session[offer.maker], "invalid session");
         bytes32 id = touchObligation(offer.obligation);
+        ObligationState storage _obligationState = obligationState[id];
 
         (
             address buyer,
@@ -321,7 +322,7 @@ contract Midnight is IMidnight {
         uint256 sellerCreditDecrease = UtilsLib.min(units, sellerPos.credit);
         buyerPos.debt -= UtilsLib.toUint128(units - buyerCreditIncrease);
         uint128 buyerPendingFeeIncrease =
-            UtilsLib.toUint128(buyerCreditIncrease.mulDivDown(obligationState[id].continuousFee * timeToMaturity, WAD));
+            UtilsLib.toUint128(buyerCreditIncrease.mulDivDown(_obligationState.continuousFee * timeToMaturity, WAD));
         buyerPos.pendingFee += buyerPendingFeeIncrease;
         buyerPos.credit += UtilsLib.toUint128(buyerCreditIncrease);
         uint128 sellerPendingFeeDecrease;
@@ -332,8 +333,8 @@ contract Midnight is IMidnight {
         }
         sellerPos.credit -= UtilsLib.toUint128(sellerCreditDecrease);
         sellerPos.debt += UtilsLib.toUint128(units - sellerCreditDecrease);
-        obligationState[id].totalUnits =
-            UtilsLib.toUint128(obligationState[id].totalUnits + buyerCreditIncrease - sellerCreditDecrease);
+        _obligationState.totalUnits =
+            UtilsLib.toUint128(_obligationState.totalUnits + buyerCreditIncrease - sellerCreditDecrease);
 
         require(buyerPos.pendingFee <= buyerPos.credit, "buyer pendingFee exceeds credit");
         if (offer.reduceOnly) {
