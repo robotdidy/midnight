@@ -89,6 +89,22 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// - Midnight must send/receive exactly the requested amount on transfers.
 /// - It should not revert on `transfer` and `transferFrom` if balances and approvals are right.
 /// - It should not revert on no-op transfers.
+///
+/// LIVENESS
+/// @dev If an activated collateral oracle reverts on `price`, `liquidate`, `isHealthy`, `withdrawCollateral`
+/// (unless the borrower has no debt), and `take` whenever the seller still has debt revert.
+/// @dev If `enterGate` reverts or returns false on `canIncreaseCredit`, `take` reverts whenever the buyer ends with
+/// non-zero credit.
+/// @dev If `enterGate` reverts or returns false on `canIncreaseDebt`, `take` reverts whenever the seller ends with
+/// non-zero debt.
+/// @dev If `liquidatorGate` reverts or returns false on `canLiquidate`, `liquidate` reverts.
+/// @dev If a token pulled by Midnight reverts on `transferFrom` despite balances and approvals being right, `take`,
+/// `repay`, `supplyCollateral`, `liquidate`, and `flashLoan` repayment revert when they need to pull that token.
+/// @dev If a token sent by Midnight reverts on `transfer` despite balances being right, `withdraw`,
+/// `withdrawCollateral`, fee claims, the collateral leg of `liquidate`, and `flashLoan` revert when they need to send
+/// that token.
+/// @dev If a callback reverts, or if a buy/sell callback returns something other than `CALLBACK_SUCCESS`,
+/// callback-enabled `take`, `repay`, `liquidate`, and `flashLoan` revert.
 contract Midnight is IMidnight {
     using UtilsLib for uint256;
     using UtilsLib for uint128;
