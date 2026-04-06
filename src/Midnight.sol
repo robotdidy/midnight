@@ -91,6 +91,22 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// - Midnight must send/receive exactly the requested amount on transfers.
 /// - It should not revert on `transfer` and `transferFrom` if balances and approvals are right.
 /// - It should not revert on no-op transfers.
+///
+/// LIVENESS REQUIREMENTS
+/// @dev List of assumptions that guarantee Midnight's liveness properties:
+/// - Activated collateral oracles should not revert on `price`. Otherwise `liquidate`, `isHealthy`,
+///   `withdrawCollateral` unless the borrower has no debt, and `take` whenever the seller still has debt are not live.
+/// - `enterGate` should not revert on `canIncreaseCredit` and `canIncreaseDebt`. Otherwise takes increasing credit or
+///   debt are not live.
+/// - `liquidatorGate` should not revert on `canLiquidate`. Otherwise liquidations are not live.
+/// - Tokens pulled by Midnight should not revert on `transferFrom` if balances and approvals are right. Otherwise
+///   `take`, `repay`, `supplyCollateral`, `liquidate` and `flashLoan` repayment are not live when they need to pull
+///   that token.
+/// - Tokens sent by Midnight should not revert on `transfer` if balances are right. Otherwise `withdraw`,
+///   `withdrawCollateral`, fee claims, the collateral leg of `liquidate` and `flashLoan` are not live when they need
+///   to send that token.
+/// - Callbacks should not revert, and buy/sell callbacks should return `CALLBACK_SUCCESS`. Otherwise callback-enabled
+///   `take`, `repay`, `liquidate` and `flashLoan` are not live.
 contract Midnight is IMidnight {
     using UtilsLib for uint256;
     using UtilsLib for uint128;
