@@ -88,8 +88,7 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// TOKEN REQUIREMENTS
 /// @dev List of assumptions on tokens that guarantee that Midnight behaves as expected:
 /// - It should be ERC-20 compliant, except that it can omit return values on `transfer` and `transferFrom`.
-/// - Midnight's balance of the token should only decrease on `transfer` and `transferFrom`. In particular, tokens with
-///   burn functions are not supported.
+/// - Midnight's balance of the token should only decrease on `transfer` and `transferFrom`.
 /// - It should not re-enter Midnight on `transfer` nor `transferFrom`.
 /// - The token balance of the sender (resp. receiver) should decrease (resp. increase) by exactly the given amount on
 ///   `transfer` and `transferFrom`. In particular, tokens with fees on transfer are not supported.
