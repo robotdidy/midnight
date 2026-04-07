@@ -147,7 +147,7 @@ contract SettersTest is BaseTest {
     // Default trading fee tests
 
     function testTradingFeeRevertsWhenNotCreated() public {
-        vm.expectRevert("not created");
+        vm.expectRevert("obligation not created");
         midnight.tradingFee(bytes32(0), 0);
     }
 
@@ -329,10 +329,10 @@ contract SettersTest is BaseTest {
         midnight.touchObligation(obligation);
         bytes32 id = toId(obligation);
 
-        vm.expectRevert("continuous fee too high");
+        vm.expectRevert("value too high");
         midnight.setObligationContinuousFee(id, fee);
 
-        vm.expectRevert("continuous fee too high");
+        vm.expectRevert("value too high");
         midnight.setDefaultContinuousFee(address(loanToken), fee);
     }
 
