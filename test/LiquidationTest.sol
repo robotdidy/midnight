@@ -101,7 +101,7 @@ contract LiquidationTest is BaseTest {
         setupObligation(obligation, units);
         Oracle(obligation.collateralParams[0].oracle).setPrice(liquidationOraclePrice);
 
-        vm.expectRevert("position is not liquidatable");
+        vm.expectRevert("not liquidatable");
         midnight.liquidate(obligation, 0, 0, 0, borrower, "");
     }
 

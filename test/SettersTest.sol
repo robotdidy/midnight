@@ -100,7 +100,7 @@ contract SettersTest is BaseTest {
     function testSetObligationTradingFeeValueTooHigh(bytes32 id, uint256 feeTooHigh, uint256 index) public {
         index = bound(index, 0, 6);
         feeTooHigh = bound(feeTooHigh, midnight.maxTradingFee(index) + 1, 1e18);
-        vm.expectRevert("value too high");
+        vm.expectRevert("trading fee too high");
         midnight.setObligationTradingFee(id, index, feeTooHigh);
     }
 
@@ -147,7 +147,7 @@ contract SettersTest is BaseTest {
     // Default trading fee tests
 
     function testTradingFeeRevertsWhenNotCreated() public {
-        vm.expectRevert("not created");
+        vm.expectRevert("obligation not created");
         midnight.tradingFee(bytes32(0), 0);
     }
 
@@ -214,7 +214,7 @@ contract SettersTest is BaseTest {
     function testSetDefaultTradingFeeValidation(address loanToken, uint256 feeTooHigh, uint256 index) public {
         index = bound(index, 0, 6);
         feeTooHigh = bound(feeTooHigh, midnight.maxTradingFee(index) + 1, 1e18);
-        vm.expectRevert("value too high");
+        vm.expectRevert("trading fee too high");
         midnight.setDefaultTradingFee(loanToken, index, feeTooHigh);
     }
 
