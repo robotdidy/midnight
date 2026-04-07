@@ -99,8 +99,8 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// - It should not revert on no-op transfers.
 ///
 /// LIVENESS
-/// @dev If an activated collateral oracle reverts on `price`, `liquidate`, `isHealthy`, `withdrawCollateral`
-/// (unless the borrower has no debt), and `take` whenever the seller still has debt revert.
+/// @dev If an activated collateral oracle reverts or returns 0 on `price`, `liquidate`, `isHealthy`,
+/// `withdrawCollateral` (unless the borrower has no debt), and `take` whenever the seller still has debt revert.
 /// @dev If `enterGate` reverts or returns false on `canIncreaseCredit`, `take` reverts if the buyer's credit increases.
 /// @dev If `enterGate` reverts or returns false on `canIncreaseDebt`, `take` reverts if the seller's debt increases.
 /// @dev If `liquidatorGate` reverts or returns false on `canLiquidate`, `liquidate` reverts.
