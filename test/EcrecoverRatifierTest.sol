@@ -59,7 +59,7 @@ contract EcrecoverRatifierTest is BaseTest {
         bytes32 _root = keccak256(abi.encode(offer));
         bytes memory data = abi.encode(Signature({v: 27, r: bytes32(uint256(1)), s: bytes32(uint256(2))}));
 
-        vm.expectRevert();
+        vm.expectRevert("invalid signature");
         ecrecoverRatifier.onRatify(offer, _root, data);
     }
 
