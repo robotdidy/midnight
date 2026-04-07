@@ -113,7 +113,7 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// callback-enabled `take`, `repay`, `liquidate`, and `flashLoan` revert.
 ///
 /// ROLES
-/// @dev The owner can set the owner, fee setter, and fee claimer.
+/// @dev The role setter can set the role setter, fee setter, and fee claimer.
 /// @dev The fee setter can set the default and per-obligation trading fee and continuous fee.
 /// @dev The fee claimer can claim the trading fee and continuous fee.
 /// @dev When the claimer is set, the old claimer loses the unclaimed fees.
@@ -138,15 +138,15 @@ contract Midnight is IMidnight {
     mapping(address loanToken => uint16[7]) public defaultTradingFees;
     mapping(address loanToken => uint32) public defaultContinuousFee;
     mapping(address token => uint256) public claimableTradingFee;
-    address public owner;
+    address public roleSetter;
     address public feeSetter;
     address public feeClaimer;
 
     /// CONSTRUCTOR ///
 
     constructor() {
-        owner = msg.sender;
-        emit EventsLib.Constructor(owner);
+        roleSetter = msg.sender;
+        emit EventsLib.Constructor(roleSetter);
     }
 
     /// MULTICALL ///
@@ -164,20 +164,20 @@ contract Midnight is IMidnight {
 
     /// ADMIN FUNCTIONS ///
 
-    function setOwner(address newOwner) external {
-        require(msg.sender == owner, "only owner");
-        owner = newOwner;
-        emit EventsLib.SetOwner(newOwner);
+    function setRoleSetter(address newRoleSetter) external {
+        require(msg.sender == roleSetter, "only role setter");
+        roleSetter = newRoleSetter;
+        emit EventsLib.SetRoleSetter(newRoleSetter);
     }
 
     function setFeeSetter(address newFeeSetter) external {
-        require(msg.sender == owner, "only owner");
+        require(msg.sender == roleSetter, "only role setter");
         feeSetter = newFeeSetter;
         emit EventsLib.SetFeeSetter(newFeeSetter);
     }
 
     function setFeeClaimer(address newFeeClaimer) external {
-        require(msg.sender == owner, "only owner");
+        require(msg.sender == roleSetter, "only role setter");
         feeClaimer = newFeeClaimer;
         emit EventsLib.SetFeeClaimer(newFeeClaimer);
     }
