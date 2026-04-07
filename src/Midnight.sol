@@ -28,9 +28,6 @@ import {IRatifier} from "./interfaces/IRatifier.sol";
 import {IEnterGate, ILiquidatorGate} from "./interfaces/IGate.sol";
 import {EventsLib} from "./libraries/EventsLib.sol";
 
-/// MAX AMOUNTS
-/// @dev The max amount of totalUnits, collateral, credit, and debt is type(uint128).max (~1e38).
-///
 /// OBLIGATIONS
 /// @dev The following constraints are enforced on obligation creation (in `touchObligation`):
 /// - `collateralParams.length > 0`: at least one collateral is required.
@@ -43,7 +40,7 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// collaterals simultaneously.
 ///
 /// TRADING FEES
-/// @dev A default trading fee is set on new obligations. Then, the fee setter can override it.
+/// @dev A default trading fee (per loan token) is set on new obligations. Then, the fee setter can override it.
 /// @dev The trading fee is computed using piecewise linear interpolation between breakpoints.
 /// @dev Trading fee breakpoint indices: 0=0d, 1=1d, 2=7d, 3=30d, 4=90d, 5=180d, 6=360d.
 /// @dev For TTM > 360d, the trading fee is the fee at the 360d breakpoint.
@@ -52,7 +49,7 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// @dev Max trading fee is defined per index: 50 bps for ttm=360 days, scaled linearly. For post maturity, 0.14 bps.
 ///
 /// CONTINUOUS FEES
-/// @dev A default continuous fee is set on new obligations. Then, the fee setter can override it.
+/// @dev A default continuous fee (per loan token) is set on new obligations. Then, the fee setter can override it.
 /// @dev The fee is tracked per lender via `pendingFee` in each position. If the obligation's continuous fee changes,
 /// the pending fee of existing lenders is not updated (=> their fee is fixed).
 /// @dev Absent bad debt, the face value of a lender's position is `credit - pendingFee`.
@@ -71,8 +68,8 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// @dev Offers should have the current session to be valid.
 ///
 /// AUTHORIZATIONS
-/// @dev All functions that change the position, session, consumed and authorization are accessible to the user itself
-/// and to any account that has been authorized.
+/// @dev All functions that change the position, session, consumed and authorization are accessible to the user and to
+/// any account that has been authorized.
 /// @dev In particular, authorized accounts can authorize other accounts on behalf of the user.
 /// @dev updatePosition and liquidate (for liquidatable users) also impact the position and are permissionless.
 ///
@@ -121,6 +118,7 @@ import {EventsLib} from "./libraries/EventsLib.sol";
 /// @dev When the claimer is set, the old claimer loses the unclaimed fees.
 ///
 /// MISC
+/// @dev The max amount of totalUnits, collateral, credit, and debt is type(uint128).max (~1e38).
 /// @dev Zero checks are not systematically performed.
 /// @dev No-ops are allowed.
 /// @dev NatSpec comments are included only when they bring clarity.
@@ -140,8 +138,8 @@ contract Midnight is IMidnight {
     mapping(address loanToken => uint32) public defaultContinuousFee;
     mapping(address token => uint256) public claimableTradingFee;
     address public owner;
-    address public feeClaimer;
     address public feeSetter;
+    address public feeClaimer;
 
     /// CONSTRUCTOR ///
 
