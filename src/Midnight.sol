@@ -407,6 +407,7 @@ contract Midnight is IMidnight {
 
         _marketState.totalUnits =
             UtilsLib.toUint128(_marketState.totalUnits + buyerCreditIncrease - sellerCreditDecrease);
+        claimableTradingFee[offer.market.loanToken] += buyerAssets - sellerAssets;
 
         address buyerCallback = offer.buy ? offer.callback : takerCallback;
         address sellerCallback = offer.buy ? takerCallback : offer.callback;
@@ -443,7 +444,6 @@ contract Midnight is IMidnight {
         }
 
         SafeTransferLib.safeTransferFrom(offer.market.loanToken, payer, address(this), buyerAssets - sellerAssets);
-        claimableTradingFee[offer.market.loanToken] += buyerAssets - sellerAssets;
         SafeTransferLib.safeTransferFrom(offer.market.loanToken, payer, receiver, sellerAssets);
 
         if (sellerCallback != address(0)) {
